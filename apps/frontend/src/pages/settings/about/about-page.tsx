@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { getAppInfo } from "@/adapters";
 import { ExternalLink } from "@/components/external-link";
@@ -18,6 +19,7 @@ import { toast } from "@wealthfolio/ui/components/ui/use-toast";
 import { SettingsHeader } from "../settings-header";
 
 export default function AboutSettingsPage() {
+  const { t } = useTranslation();
   const [version, setVersion] = useState<string>("");
   const [dbPath, setDbPath] = useState<string>("");
   const [logsDir, setLogsDir] = useState<string>("");
@@ -63,7 +65,7 @@ export default function AboutSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <SettingsHeader heading="About" text="Application information" />
+      <SettingsHeader heading={t("settings.about.title")} text={t("settings.about.subtitle")} />
       <Separator />
 
       <Card>
@@ -142,7 +144,7 @@ export default function AboutSettingsPage() {
                       onClick={() => dbPath && handleCopy(dbPath, "Database path")}
                     >
                       <Icons.Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy database path</span>
+                      <span className="sr-only">{t("common.copyPath")}</span>
                     </Button>
                   </div>
                 </div>
@@ -161,7 +163,7 @@ export default function AboutSettingsPage() {
                       onClick={() => logsDir && handleCopy(logsDir, "Logs directory")}
                     >
                       <Icons.Copy className="h-4 w-4" />
-                      <span className="sr-only">Copy logs directory</span>
+                      <span className="sr-only">{t("common.copyPath")}</span>
                     </Button>
                   </div>
                 </div>

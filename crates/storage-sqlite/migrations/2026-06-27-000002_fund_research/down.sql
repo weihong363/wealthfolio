@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS rebalance_alerts;
+DROP TABLE IF EXISTS sector_rotation_signals;
+DROP TABLE IF EXISTS fund_announcements;
+DROP TABLE IF EXISTS fund_risk_metrics;
+DROP TABLE IF EXISTS fund_region_allocations;
+DROP TABLE IF EXISTS fund_asset_allocations;
+DROP TABLE IF EXISTS fund_theme_exposures;
+DROP TABLE IF EXISTS fund_sector_allocations;
+DROP TABLE IF EXISTS fund_holding_changes;
+DROP TABLE IF EXISTS fund_internal_holdings;
+DROP TABLE IF EXISTS fund_research_snapshots;

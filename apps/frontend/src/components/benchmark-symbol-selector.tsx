@@ -17,6 +17,7 @@ import { getExchangeDisplayName } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // Predefined benchmarks with canonical asset IDs
 // exchangeMic is undefined for indices (will use "INDEX" as pseudo-MIC)
@@ -121,6 +122,7 @@ export function BenchmarkSymbolSelector({
   className,
   iconOnly = false,
 }: BenchmarkSymbolSelectorProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,7 +190,7 @@ export function BenchmarkSymbolSelector({
       <PopoverContent className="w-[350px] p-0">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search benchmarks or any symbol..."
+            placeholder={t("benchmark.searchBenchmarks")}
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
@@ -243,7 +245,7 @@ export function BenchmarkSymbolSelector({
             {/* Loading state for search results */}
             {isLoading && searchQuery.length > 2 && (
               <CommandGroup
-                heading="Search Results"
+                heading={t("benchmark.searchResults")}
                 className="[&_[cmdk-group-heading]]:bg-popover [&_[cmdk-group-heading]]:border-border/10 [&_[cmdk-group-heading]]:sticky [&_[cmdk-group-heading]]:top-0 [&_[cmdk-group-heading]]:z-10 [&_[cmdk-group-heading]]:border-b"
               >
                 <div className="space-y-2 p-2">
@@ -257,7 +259,7 @@ export function BenchmarkSymbolSelector({
             {/* Error state for search results */}
             {isError && searchQuery.length > 2 && (
               <CommandGroup
-                heading="Search Results"
+                heading={t("benchmark.searchResults")}
                 className="[&_[cmdk-group-heading]]:bg-popover [&_[cmdk-group-heading]]:border-border/10 [&_[cmdk-group-heading]]:sticky [&_[cmdk-group-heading]]:top-0 [&_[cmdk-group-heading]]:z-10 [&_[cmdk-group-heading]]:border-b"
               >
                 <div className="text-muted-foreground p-4 text-sm">
@@ -272,7 +274,7 @@ export function BenchmarkSymbolSelector({
               filteredSearchResults.length > 0 &&
               searchQuery.length > 2 && (
                 <CommandGroup
-                  heading="Search Results"
+                  heading={t("benchmark.searchResults")}
                   className="[&_[cmdk-group-heading]]:bg-popover [&_[cmdk-group-heading]]:border-border/10 [&_[cmdk-group-heading]]:sticky [&_[cmdk-group-heading]]:top-0 [&_[cmdk-group-heading]]:z-10 [&_[cmdk-group-heading]]:border-b"
                 >
                   {filteredSearchResults.slice(0, 8).map((ticker) => (

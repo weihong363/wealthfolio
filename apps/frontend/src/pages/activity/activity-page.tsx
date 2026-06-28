@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SortingState } from "@tanstack/react-table";
 import { Button, Icons, Page, PageContent, PageHeader } from "@wealthfolio/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { DateRange } from "react-day-picker";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ActivityDataGrid } from "./components/activity-data-grid/activity-data-grid";
@@ -81,6 +82,7 @@ function fromDateRange(range: DateRange | undefined): ActivityDateRangeFilter {
 }
 
 const ActivityPage = () => {
+  const { t } = useTranslation();
   const [showBulkHoldingsForm, setShowBulkHoldingsForm] = useState(false);
   const [showAlternativeAssetModal, setShowAlternativeAssetModal] = useState(false);
   const [transferMatchDialog, setTransferMatchDialog] = useState<{
@@ -529,7 +531,7 @@ const ActivityPage = () => {
         items: [
           {
             icon: Icons.Activity,
-            label: "Add Transaction",
+            label: t("activities.addTransaction"),
             onClick: () => handleEdit(undefined),
           },
           {
@@ -539,12 +541,12 @@ const ActivityPage = () => {
           },
           {
             icon: Icons.Holdings,
-            label: "Transfer Holdings",
+            label: t("activities.transferHoldings"),
             onClick: () => setShowBulkHoldingsForm(true),
           },
           {
             icon: Icons.House,
-            label: "Add Personal Asset",
+            label: t("activities.addPersonalAsset"),
             onClick: () => setShowAlternativeAssetModal(true),
           },
         ],
@@ -565,7 +567,7 @@ const ActivityPage = () => {
           trigger={
             <Button size="sm">
               <Icons.Plus className="mr-2 h-4 w-4" />
-              Add Activities
+              {t("activities.addActivities")}
             </Button>
           }
         />
@@ -591,12 +593,12 @@ const ActivityPage = () => {
         items: [
           {
             icon: Icons.Activity,
-            label: "Add Transaction",
+            label: t("activities.addTransaction"),
             onClick: () => spendingTabRef.current?.openAddForm(),
           },
           {
             icon: Icons.UploadSimple,
-            label: "Import from CSV",
+            label: t("activities.importFromCSV"),
             onClick: () => navigate("/import"),
           },
         ],
@@ -613,8 +615,8 @@ const ActivityPage = () => {
         asChild
         size="icon"
         variant="outline"
-        title="Ask AI to categorize"
-        aria-label="Ask AI to categorize"
+        title={t("activities.askAiCategorize")}
+        aria-label={t("activities.askAiCategorize")}
       >
         <Link
           to="/assistant"
@@ -632,7 +634,7 @@ const ActivityPage = () => {
           trigger={
             <Button size="sm">
               <Icons.Plus className="mr-2 h-4 w-4" />
-              Add Activities
+              {t("activities.addActivities")}
             </Button>
           }
         />
@@ -821,14 +823,14 @@ const ActivityPage = () => {
   const views: SwipablePageView[] = [
     {
       value: "investments",
-      label: "Investments",
+      label: t("activities.investments"),
       icon: Icons.TrendingUp,
       content: investmentContent,
       actions: investmentActions,
     },
     {
       value: "spending",
-      label: "Spending",
+      label: t("activities.spending"),
       icon: Icons.Wallet,
       content: <SpendingTransactionsTab ref={spendingTabRef} />,
       actions: spendingActions,

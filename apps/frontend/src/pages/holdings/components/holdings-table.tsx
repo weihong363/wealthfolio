@@ -23,6 +23,7 @@ import { Holding } from "@/lib/types";
 import { AmountDisplay, QuantityDisplay, formatPercent } from "@wealthfolio/ui";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 // Helper function to get display value and currency based on toggle state
 const getDisplayValueAndCurrency = (
@@ -72,6 +73,7 @@ export const HoldingsTable = ({
   isLoading: boolean;
   onClassify?: (holding: Holding) => void;
 }) => {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const { settings } = useSettingsContext();
   const [showConvertedValues, setShowConvertedValues] = useState(false);
@@ -122,7 +124,7 @@ export const HoldingsTable = ({
     <div className="flex h-full flex-col">
       <DataTable
         data={holdings}
-        columns={getColumns(isBalanceHidden, showConvertedValues, onClassify)}
+        columns={getColumns(t, isBalanceHidden, showConvertedValues, onClassify)}
         searchBy="symbol"
         filters={filters}
         showColumnToggle={true}
@@ -174,6 +176,7 @@ export const HoldingsTable = ({
 export default HoldingsTable;
 
 const getColumns = (
+  t: ReturnType<typeof useTranslation>["t"],
   isHidden: boolean,
   showConvertedValues: boolean,
   onClassify?: (holding: Holding) => void,
@@ -181,9 +184,9 @@ const getColumns = (
   {
     id: "symbol",
     accessorKey: "instrument.symbol",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Position" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t("holdings.position")} />,
     meta: {
-      label: "Position",
+      label: t("holdings.position"),
     },
     cell: ({ row }) => {
       const navigate = useNavigate();

@@ -80,6 +80,13 @@ pub use resolver::{
 // Re-export provider types
 pub use provider::alpha_vantage::AlphaVantageProvider;
 pub use provider::boerse_frankfurt::BoerseFrankfurtProvider;
+pub use provider::eastmoney_fund::{
+    AnnouncementCategory, AnnouncementImportance, AssetAllocation, EastmoneyFundProvider,
+    FundAiFeatures, FundAnnouncement, FundDividend, FundFees, FundHolding, FundHoldingChange,
+    FundManager, FundNavPoint, FundPerformance, FundQuote, FundResearchSnapshot, FundRiskMetrics,
+    FundScalePoint, HolderStructure, HoldingChangeType, HoldingConcentration, MarketQuote, Period,
+    PurchaseRules, RegionAllocation, SectorAllocation, ThemeExposure,
+};
 pub use provider::finnhub::FinnhubProvider;
 pub use provider::fixture::FixtureProvider;
 pub use provider::marketdata_app::MarketDataAppProvider;

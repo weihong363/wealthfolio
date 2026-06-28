@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -80,6 +81,7 @@ export function resolveInitialTimezone(configuredTimezone: string | null | undef
 }
 
 export function TimezoneSettings() {
+  const { t } = useTranslation();
   const { settings, updateSettings } = useSettingsContext();
   const browserTimezone = useMemo(() => detectBrowserTimezone(), []);
   const initialTimezone = resolveInitialTimezone(settings?.timezone);
@@ -108,9 +110,9 @@ export function TimezoneSettings() {
     <Card>
       <CardHeader>
         <div>
-          <CardTitle className="text-lg">Timezone</CardTitle>
+          <CardTitle className="text-lg">{t("settings.general.timezone.title")}</CardTitle>
           <CardDescription>
-            Choose the timezone used for dates, daily buckets, and yearly contribution boundaries.
+            {t("settings.general.timezone.description")}
           </CardDescription>
         </div>
       </CardHeader>
@@ -133,7 +135,7 @@ export function TimezoneSettings() {
                 </FormItem>
               )}
             />
-            <Button type="submit">Save Timezone</Button>
+            <Button type="submit">{t("settings.general.timezone.save")}</Button>
           </form>
         </Form>
       </CardContent>

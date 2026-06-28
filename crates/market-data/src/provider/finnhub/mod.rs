@@ -295,6 +295,9 @@ impl FinnhubProvider {
             ProviderInstrument::BondIsin { .. } => Err(MarketDataError::UnsupportedAssetType(
                 "Finnhub does not support bonds directly".to_string(),
             )),
+            ProviderInstrument::FundCode { .. } => Err(MarketDataError::UnsupportedAssetType(
+                "Finnhub does not support mutual funds directly".to_string(),
+            )),
         }
     }
 

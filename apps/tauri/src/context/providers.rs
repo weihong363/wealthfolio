@@ -15,6 +15,10 @@ use wealthfolio_core::{
     activities::ActivityService,
     assets::{AlternativeAssetService, AssetClassificationService, AssetService},
     events::DomainEvent,
+    fund_research::{
+        EastmoneyFundResearchFetcher, FundResearchService, HoldingsBasedPositionProvider,
+        theme_mapping::ThemeMappingConfig,
+    },
     fx::{FxService, FxServiceTrait},
     goals::GoalService,
     health::HealthService,
@@ -54,6 +58,7 @@ use wealthfolio_storage_sqlite::{
     settings::SettingsRepository,
     sync::{AppSyncRepository, BrokerSyncStateRepository, ImportRunRepository, PlatformRepository},
     taxonomies::TaxonomyRepository,
+    fund_research::FundResearchSqliteRepository,
 };
 
 /// Result of context initialization, including the receiver for domain events.
@@ -428,6 +433,34 @@ pub async fn initialize_context(
         .with_lot_repository(lots_repository.clone()),
     );
 
+    // Fund Research service
+    let fund_research_repository = Arc::new(FundResearchSqliteRepository::new(
+        pool.clone(),
+        writer.clone(),
+    ));
+    let eastmoney_provider = wealthfolio_market_data::EastmoneyFundProvider::default();
+    let fund_fetcher = Arc::new(EastmoneyFundResearchFetcher::new(eastmoney_provider));
+    let theme_mapping = ThemeMappingConfig::default();
+
+    // Clean HTML tags from legacy fund holdings data (one-time startup cleanup)
+    if let Err(e) = fund_research_repository.cleanup_html_from_holdings().await {
+        warn!("Failed to clean HTML from fund research holdings: {}", e);
+    }
+
+    let fund_research_position_provider = Arc::new(HoldingsBasedPositionProvider::new(
+        account_service.clone(),
+        holdings_service.clone(),
+        base_currency.read().unwrap().clone(),
+    ));
+    let fund_research_service = Arc::new(
+        FundResearchService::new(
+            fund_research_repository,
+            fund_fetcher,
+            theme_mapping,
+        )
+        .with_position_provider(fund_research_position_provider),
+    );
+
     let allocation_service = Arc::new(
         AllocationService::new(holdings_service.clone(), taxonomy_service.clone())
             .with_account_service(account_service.clone()),
@@ -607,6 +640,7 @@ pub async fn initialize_context(
             budget_service,
             spending_analytics_service,
             spending_insight_service,
+            fund_research_service,
         },
         event_receiver,
         sync_outbox_wake_receiver,

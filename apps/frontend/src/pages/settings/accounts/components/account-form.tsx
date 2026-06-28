@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import * as z from "zod";
 
 import { Button } from "@wealthfolio/ui/components/ui/button";
@@ -121,6 +122,7 @@ interface AccountFormlProps {
 }
 
 export function AccountForm({ defaultValues, onSuccess = () => undefined }: AccountFormlProps) {
+  const { t } = useTranslation();
   const { createAccountMutation, updateAccountMutation } = useAccountMutations({ onSuccess });
 
   // Track initial tracking mode to detect changes
@@ -251,7 +253,7 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
                   <FormItem>
                     <FormLabel>Account Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Account display name" {...field} />
+                      <Input placeholder={t("settings.accounts.accountName")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -264,7 +266,7 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
                   <FormItem>
                     <FormLabel>Account Group</FormLabel>
                     <FormControl>
-                      <Input placeholder="Retirement, 401K, RRSP, TFSA,..." {...field} />
+                      <Input placeholder={t("settings.accounts.accountTags")} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -282,7 +284,7 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
                         value={field.value}
                         onValueChange={field.onChange}
                         options={accountTypes}
-                        placeholder="Select an account type"
+                        placeholder={t("settings.accounts.accountType")}
                         sheetTitle="Select Account Type"
                         sheetDescription="Choose the account type that best matches."
                         triggerClassName="h-11"
@@ -314,14 +316,14 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
               {isCashAccount && (
                 <div className="flex flex-col gap-2">
                   <div>
-                    <label className="text-sm font-medium">Cash Classification</label>
+                    <label className="text-sm font-medium">{t("settings.accounts.cashClassification")}</label>
                     <p className="text-muted-foreground text-xs">
                       How this cash is counted in allocation reports
                     </p>
                   </div>
                   <ToggleGroup
                     type="single"
-                    aria-label="Cash Classification"
+                    aria-label={t("settings.accounts.cashClassification")}
                     value={getSelectableCashCategoryFromMeta(form.watch("meta"))}
                     onValueChange={(v) => {
                       if (!v) return;
@@ -392,7 +394,7 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
                       >
                         <RadioGroupItem value="TRANSACTIONS" className="mt-0.5" />
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">Transactions</span>
+                          <span className="text-sm font-medium">{t("settings.accounts.transactions")}</span>
                           <span className="text-muted-foreground text-xs">
                             Track every trade for performance analytics
                           </span>
@@ -409,7 +411,7 @@ export function AccountForm({ defaultValues, onSuccess = () => undefined }: Acco
                         >
                           <RadioGroupItem value="HOLDINGS" className="mt-0.5" />
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium">Holdings</span>
+                            <span className="text-sm font-medium">{t("settings.accounts.holdings")}</span>
                             <span className="text-muted-foreground text-xs">
                               Add holdings directly as snapshots
                             </span>

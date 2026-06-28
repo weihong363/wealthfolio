@@ -8,10 +8,13 @@ import { Icons } from "@wealthfolio/ui";
 import { Card, CardContent, CardHeader } from "@wealthfolio/ui/components/ui/card";
 import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
 import { Suspense, useMemo, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { OverviewPage } from "./overview/overview-page";
 
 // Loading skeleton to show while the dashboard is loading
-const DashboardLoader = () => (
+const DashboardLoader = () => {
+  const { t } = useTranslation();
+  return (
   <div className="flex h-full w-full flex-col space-y-4 p-4">
     <Card>
       <CardHeader className="space-y-2">
@@ -28,12 +31,14 @@ const DashboardLoader = () => (
       </CardContent>
     </Card>
     <div className="flex items-center justify-center py-8">
-      <span className="text-muted-foreground text-sm">Loading dashboard...</span>
+      <span className="text-muted-foreground text-sm">{t("insights.loadingDashboard")}</span>
     </div>
   </div>
-);
+  );
+};
 
 export default function PortfolioInsightsPage() {
+  const { t } = useTranslation();
   const [accountFilter, setAccountScope] = useState<AccountScope>({ type: "all" });
   const [overviewToolbarActions, setOverviewToolbarActions] = useState<ReactNode | null>(null);
 
@@ -50,7 +55,7 @@ export default function PortfolioInsightsPage() {
     () => [
       {
         value: "overview",
-        label: "Overview",
+        label: t("insights.overview"),
         icon: Icons.PieChart,
         content: (
           <Suspense fallback={<DashboardLoader />}>
@@ -65,7 +70,7 @@ export default function PortfolioInsightsPage() {
       },
       {
         value: "performance",
-        label: "Performance",
+        label: t("insights.performance"),
         icon: Icons.TrendingUp,
         content: (
           <Suspense fallback={<DashboardLoader />}>
@@ -75,7 +80,7 @@ export default function PortfolioInsightsPage() {
       },
       {
         value: "income",
-        label: "Income",
+        label: t("insights.income"),
         icon: Icons.HandCoins,
         content: (
           <Suspense fallback={<DashboardLoader />}>

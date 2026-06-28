@@ -1,8 +1,10 @@
 import { Card } from "@wealthfolio/ui/components/ui/card";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export const OnboardingStep1: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="w-full max-w-5xl space-y-4 md:space-y-6">
       <div className="text-center">
@@ -19,8 +21,8 @@ export const OnboardingStep1: React.FC = () => {
               <Icons.Holdings className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <h3 className="text-lg font-bold md:text-xl">Holdings</h3>
-              <p className="text-muted-foreground text-sm">Value Tracking</p>
+              <h3 className="text-lg font-bold md:text-xl">{t("onboarding.holdings")}</h3>
+              <p className="text-muted-foreground text-sm">{t("onboarding.valueTracking")}</p>
             </div>
           </div>
 
@@ -67,8 +69,8 @@ export const OnboardingStep1: React.FC = () => {
               <Icons.Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h3 className="text-lg font-bold md:text-xl">Transactions</h3>
-              <p className="text-muted-foreground text-sm">Performance Tracking</p>
+              <h3 className="text-lg font-bold md:text-xl">{t("onboarding.transactions")}</h3>
+              <p className="text-muted-foreground text-sm">{t("onboarding.performanceTracking")}</p>
             </div>
           </div>
 
@@ -83,7 +85,7 @@ export const OnboardingStep1: React.FC = () => {
           <div className="relative mb-6 flex-1 space-y-2 md:space-y-3">
             <div className="flex items-center gap-2.5">
               <Icons.Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <p className="text-sm">Total return over time</p>
+              <p className="text-sm">{t("onboarding.totalReturnOverTime")}</p>
             </div>
             <div className="flex items-center gap-2.5">
               <Icons.Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -91,11 +93,11 @@ export const OnboardingStep1: React.FC = () => {
             </div>
             <div className="flex items-center gap-2.5">
               <Icons.Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <p className="text-sm">Most complete performance view</p>
+              <p className="text-sm">{t("onboarding.mostCompleteView")}</p>
             </div>
             <div className="flex items-center gap-2.5">
               <Icons.Check className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <p className="text-sm">Best with broker sync or CSV import</p>
+              <p className="text-sm">{t("onboarding.bestWithSync")}</p>
             </div>
           </div>
 

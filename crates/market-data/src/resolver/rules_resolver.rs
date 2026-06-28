@@ -227,6 +227,7 @@ impl Resolver for RulesResolver {
                 InstrumentId::Metal { code, .. } => code.clone(),
                 InstrumentId::Bond { isin } => isin.clone(),
                 InstrumentId::Option { occ_symbol } => occ_symbol.clone(),
+                InstrumentId::Fund { code } => code.clone(),
             };
             return Some(Ok(ResolvedInstrument {
                 instrument: ProviderInstrument::EquitySymbol { symbol },
@@ -246,6 +247,8 @@ impl Resolver for RulesResolver {
             InstrumentId::Option { occ_symbol } => self.resolve_option(occ_symbol, provider)?,
 
             InstrumentId::Bond { isin } => self.resolve_bond(isin, provider)?,
+
+            InstrumentId::Fund { .. } => return None,
         };
 
         Some(Ok(ResolvedInstrument {

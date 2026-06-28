@@ -248,6 +248,13 @@ fn default_is_active() -> bool {
     true
 }
 
+fn is_fund_type_label(value: &str) -> bool {
+    matches!(
+        value.trim().to_uppercase().as_str(),
+        "FUND" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "CN_FUND" | "CHINA_FUND"
+    )
+}
+
 impl AssetKind {
     /// Returns the database string representation (SCREAMING_SNAKE_CASE).
     pub const fn as_db_str(&self) -> &'static str {
@@ -428,6 +435,11 @@ impl Asset {
         match inst_type {
             InstrumentType::Equity => {
                 let symbol = self.instrument_symbol.as_ref()?;
+                if self.is_cn_fund_candidate(symbol) {
+                    return Some(InstrumentId::Fund {
+                        code: Arc::from(symbol.as_str()),
+                    });
+                }
                 let canonical = canonicalize_market_identity(
                     Some(InstrumentType::Equity),
                     Some(symbol.as_str()),
@@ -485,6 +497,29 @@ impl Asset {
                 })
             }
         }
+    }
+
+    fn is_cn_fund_candidate(&self, symbol: &str) -> bool {
+        if symbol.len() != 6 || !symbol.chars().all(|ch| ch.is_ascii_digit()) {
+            return false;
+        }
+
+        let preferred = self
+            .preferred_provider()
+            .is_some_and(|provider| provider.eq_ignore_ascii_case("EASTMONEY_FUND"));
+        let cny_fund = self.quote_ccy.eq_ignore_ascii_case("CNY")
+            && self
+                .metadata
+                .as_ref()
+                .and_then(|metadata| {
+                    metadata
+                        .get("asset_type")
+                        .or_else(|| metadata.get("fundType"))
+                })
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(is_fund_type_label);
+
+        preferred || cny_fund
     }
 
     /// Get the preferred provider from provider_config JSON.

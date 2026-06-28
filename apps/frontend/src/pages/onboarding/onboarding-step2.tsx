@@ -115,9 +115,11 @@ interface OnboardingStep2Props {
   onNext: () => void;
   onValidityChange: (isValid: boolean) => void;
 }
+import { useTranslation } from "react-i18next";
 
 export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2Props>(
   ({ onNext, onValidityChange }, ref) => {
+    const { t } = useTranslation();
     const { settings, updateSettings } = useSettingsContext();
     const [initialValuesSet, setInitialValuesSet] = useState(false);
     const [showCurrencySearch, setShowCurrencySearch] = useState(false);
@@ -216,7 +218,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
       <>
         <div className="w-full max-w-2xl space-y-4">
           <div className="text-center">
-            <p className="text-muted-foreground">Just a couple preferences to get you started</p>
+            <p className="text-muted-foreground">{t("onboarding.fewPreferences")}</p>
           </div>
           <Card className="border-none bg-transparent">
             <CardContent className="p-0 sm:p-6">
@@ -231,7 +233,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
                           <div className="bg-muted rounded-lg p-2">
                             <Icons.DollarSign className="text-muted-foreground h-5 w-5" />
                           </div>
-                          <FormLabel className="text-xl font-semibold">Currency</FormLabel>
+                          <FormLabel className="text-xl font-semibold">{t("onboarding.currency")}</FormLabel>
                         </div>
                         <FormControl>
                           <div className="grid grid-cols-3 gap-3 md:grid-cols-4">
@@ -276,7 +278,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
                           <div className="bg-muted rounded-lg p-2">
                             <Icons.Globe className="text-muted-foreground h-5 w-5" />
                           </div>
-                          <FormLabel className="text-xl font-semibold">Timezone</FormLabel>
+                          <FormLabel className="text-xl font-semibold">{t("onboarding.timezone")}</FormLabel>
                         </div>
                         <FormControl>
                           <div className="grid grid-cols-3 gap-3 md:grid-cols-4">
@@ -324,7 +326,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
             <Card className="w-full max-w-md border shadow-lg">
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Select Currency</h3>
+                  <h3 className="text-xl font-bold">{t("onboarding.selectCurrency")}</h3>
                   <button
                     onClick={() => {
                       setShowCurrencySearch(false);
@@ -384,7 +386,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
             <Card className="w-full max-w-md border shadow-lg">
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Select Timezone</h3>
+                  <h3 className="text-xl font-bold">{t("onboarding.selectTimezone")}</h3>
                   <button
                     onClick={() => {
                       setShowTimezoneSearch(false);
@@ -429,7 +431,7 @@ export const OnboardingStep2 = forwardRef<OnboardingStep2Handle, OnboardingStep2
                     </button>
                   ))}
                   {filteredTimezones.length === 0 && (
-                    <div className="text-muted-foreground py-8 text-center">No timezones found</div>
+                    <div className="text-muted-foreground py-8 text-center">{t("onboarding.noTimezonesFound")}</div>
                   )}
                 </div>
               </div>

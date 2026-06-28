@@ -5,6 +5,7 @@ import { ScrollArea } from "@wealthfolio/ui/components/ui/scroll-area";
 import { ActivityType } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
 const activityTypes = [
   {
@@ -13,12 +14,14 @@ const activityTypes = [
       {
         value: ActivityType.BUY,
         label: "Buy",
+        labelKey: "activityManager.types.buy",
         icon: "ArrowDown" as const,
         description: "Purchase an asset",
       },
       {
         value: ActivityType.SELL,
         label: "Sell",
+        labelKey: "activityManager.types.sell",
         icon: "ArrowUp" as const,
         description: "Sell an asset",
       },
@@ -30,18 +33,21 @@ const activityTypes = [
       {
         value: ActivityType.DEPOSIT,
         label: "Deposit",
+        labelKey: "activityManager.types.deposit",
         icon: "ArrowDown" as const,
         description: "Add funds to account",
       },
       {
         value: ActivityType.WITHDRAWAL,
         label: "Withdrawal",
+        labelKey: "activityManager.types.withdrawal",
         icon: "ArrowUp" as const,
         description: "Remove funds from account",
       },
       {
         value: ActivityType.TRANSFER_OUT,
         label: "Transfer",
+        labelKey: "activityManager.types.transfer",
         icon: "ArrowLeftRight" as const,
         description: "Move cash or securities between accounts",
       },
@@ -53,12 +59,14 @@ const activityTypes = [
       {
         value: ActivityType.DIVIDEND,
         label: "Dividend",
+        labelKey: "activityManager.types.dividend",
         icon: "Income" as const,
         description: "Dividend payment received",
       },
       {
         value: ActivityType.INTEREST,
         label: "Interest",
+        labelKey: "activityManager.types.interest",
         icon: "Percent" as const,
         description: "Interest earned",
       },
@@ -70,18 +78,21 @@ const activityTypes = [
       {
         value: ActivityType.FEE,
         label: "Fee",
+        labelKey: "activityManager.types.fee",
         icon: "DollarSign" as const,
         description: "Account or transaction fee",
       },
       {
         value: ActivityType.TAX,
         label: "Tax",
+        labelKey: "activityManager.types.tax",
         icon: "Receipt" as const,
         description: "Tax payment",
       },
       {
         value: ActivityType.SPLIT,
         label: "Stock Split",
+        labelKey: "activityManager.types.split",
         icon: "Split" as const,
         description: "Stock split adjustment",
       },
@@ -96,12 +107,13 @@ const activityTypes = [
 ];
 
 export function MobileActivityTypeStep() {
+  const { t } = useTranslation();
   const { control } = useFormContext();
 
   return (
     <div className="flex h-full flex-col">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold">Select Transaction Type</h3>
+        <h3 className="text-lg font-semibold">{t("activityManager.addActivity")}</h3>
       </div>
 
       <ScrollArea>
@@ -149,7 +161,7 @@ export function MobileActivityTypeStep() {
                                     </div>
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="font-medium">{type.label}</div>
+                                    <div className="font-medium">{type.labelKey ? t(type.labelKey) : type.label}</div>
                                     <div className="text-muted-foreground mt-0.5 text-sm">
                                       {type.description}
                                     </div>

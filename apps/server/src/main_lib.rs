@@ -25,6 +25,10 @@ use wealthfolio_core::{
     events::DomainEventSink,
     fx::{FxService, FxServiceTrait},
     goals::{GoalService, GoalServiceTrait},
+    fund_research::{
+        EastmoneyFundResearchFetcher, FundResearchService, HoldingsBasedPositionProvider,
+        theme_mapping::ThemeMappingConfig,
+    },
     health::{HealthService, HealthServiceTrait},
     limits::{ContributionLimitService, ContributionLimitServiceTrait},
     portfolio::allocation::{AllocationService, AllocationServiceTrait},
@@ -61,6 +65,7 @@ use wealthfolio_storage_sqlite::{
     settings::SettingsRepository,
     sync::{AppSyncRepository, BrokerSyncStateRepository, ImportRunRepository, PlatformRepository},
     taxonomies::TaxonomyRepository,
+    fund_research::FundResearchSqliteRepository,
 };
 
 pub struct AppState {
@@ -132,6 +137,7 @@ pub struct AppState {
     pub rebalance_service: Arc<
         dyn wealthfolio_core::portfolio::allocation_targets::RebalanceServiceTrait + Send + Sync,
     >,
+    pub fund_research_service: Arc<FundResearchService>,
 }
 
 pub fn init_tracing() {
@@ -504,6 +510,33 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
     let goal_repository = Arc::new(GoalRepository::new(pool.clone(), writer.clone()));
     let goal_service = Arc::new(GoalService::new(goal_repository, account_service.clone()));
 
+    // Fund Research service
+    let fund_research_repository = Arc::new(FundResearchSqliteRepository::new(
+        pool.clone(),
+        writer.clone(),
+    ));
+    let eastmoney_provider = wealthfolio_market_data::EastmoneyFundProvider::default();
+    let fund_fetcher = Arc::new(EastmoneyFundResearchFetcher::new(eastmoney_provider));
+    let theme_mapping = ThemeMappingConfig::default();
+    let fund_research_position_provider = Arc::new(HoldingsBasedPositionProvider::new(
+        account_service.clone(),
+        holdings_service.clone(),
+        base_currency.read().unwrap().clone(),
+    ));
+    let fund_research_service = Arc::new(
+        FundResearchService::new(
+            fund_research_repository.clone(),
+            fund_fetcher,
+            theme_mapping,
+        )
+        .with_position_provider(fund_research_position_provider),
+    );
+
+    // Clean HTML tags from legacy fund holdings data (one-time startup cleanup)
+    if let Err(e) = fund_research_repository.cleanup_html_from_holdings().await {
+        tracing::warn!("Failed to clean HTML from fund research holdings: {}", e);
+    }
+
     let limits_repository = Arc::new(ContributionLimitRepository::new(
         pool.clone(),
         writer.clone(),
@@ -844,6 +877,7 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
         allocation_target_service,
         drift_service,
         rebalance_service,
+        fund_research_service,
     });
 
     #[cfg(feature = "device-sync")]

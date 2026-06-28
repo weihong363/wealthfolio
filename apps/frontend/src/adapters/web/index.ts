@@ -330,6 +330,14 @@ export {
   updateHealthConfig,
 } from "../shared/health";
 
+// Fund Research Commands
+export {
+  getFundTopHoldings,
+  getPortfolioFundLookthrough,
+  getPortfolioThemeExposure,
+  refreshFundResearch,
+} from "../shared/fund-research";
+
 // Allocation Target Commands
 export {
   archiveAllocationTarget,

@@ -12,6 +12,7 @@ import {
 } from "@wealthfolio/ui";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { GoalCard } from "../components/goal-card";
 import { useGoals } from "../hooks/use-goals";
@@ -63,13 +64,14 @@ function GoalGrid({ goals }: { goals: Goal[] }) {
 }
 
 export default function GoalsDashboardPage() {
+  const { t } = useTranslation();
   const { active, atRisk, achieved, archived, isLoading } = useGoals();
   const [archivedOpen, setArchivedOpen] = useState(false);
 
   if (isLoading) {
     return (
       <Page>
-        <PageHeader heading="Goals" text="Track and plan your financial goals" />
+        <PageHeader heading={t("goals.title")} text={t("goals.description")} />
         <PageContent>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map((i) => (
@@ -93,8 +95,8 @@ export default function GoalsDashboardPage() {
   return (
     <Page>
       <PageHeader
-        heading="Goals"
-        text="Track and plan your financial goals"
+        heading={t("goals.title")}
+        text={t("goals.description")}
         actions={
           <Link to="/goals/new">
             <Button size="sm">
@@ -111,7 +113,7 @@ export default function GoalsDashboardPage() {
               <Icons.Target className="text-muted-foreground h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-semibold">No goals yet</p>
+              <p className="text-lg font-semibold">{t("goals.noGoals")}</p>
               <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
                 Create your first financial goal — whether it's retirement, a home, education, or
                 anything else you're saving toward.

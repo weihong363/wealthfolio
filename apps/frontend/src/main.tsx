@@ -2,6 +2,8 @@ import { isDesktop, getPlatform } from "@/adapters";
 import React from "react";
 import * as ReactDOMLegacy from "react-dom";
 import ReactDOM from "react-dom/client";
+import { I18nextProvider } from "react-i18next";
+import i18n from "@/lib/i18n/config";
 import { debugAddonState, isAddonDevModeEnabled, loadAllAddons } from "./addons/addons-loader";
 import "./addons/addons-runtime-context";
 import App from "./App";
@@ -34,6 +36,8 @@ loadAllAddons();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <I18nextProvider i18n={i18n}>
+      <App />
+    </I18nextProvider>
   </React.StrictMode>,
 );

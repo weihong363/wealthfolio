@@ -17,7 +17,10 @@ const SEVERITY_COLORS: Record<HealthSeverity, string> = {
  * Health status indicator for dashboard header.
  * Shows a warning icon when there are health issues, hidden when healthy.
  */
+import { useTranslation } from "react-i18next";
+
 export function HealthStatusIndicator() {
+  const { t } = useTranslation();
   const { data: status, isLoading } = useHealthStatus();
 
   // Don't render if loading or no issues
@@ -66,14 +69,14 @@ export function HealthStatusIndicator() {
             className="bg-secondary/50 rounded-full"
             asChild
           >
-            <Link to="/health" title="Data Status">
+            <Link to="/health" title={t("health.dataStatus")}>
               <Icons.AlertTriangle className={cn("size-5", severityColor)} />
             </Link>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <div className="space-y-1">
-            <p className="font-medium">Health Issues</p>
+            <p className="font-medium">{t("health.healthIssues")}</p>
             <p className="text-muted-foreground text-xs">{summaryText}</p>
           </div>
         </TooltipContent>

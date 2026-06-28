@@ -19,6 +19,7 @@ import type { IncomeSummary } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { AmountDisplay, AnimatedToggleGroup, GainPercent, PrivacyAmount } from "@wealthfolio/ui";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Cell, Pie, PieChart } from "recharts";
 import { IncomeHistoryChart } from "./income-history-chart";
 import { IncomeMobileFilterSheet } from "./income-mobile-filter-sheet";
@@ -64,6 +65,7 @@ const IncomePeriodSelector: React.FC<{
 );
 
 export default function IncomePage() {
+  const { t } = useTranslation();
   const [selectedPeriod, setSelectedPeriod] = useState<IncomePeriod>("ALL");
   const { isBalanceHidden } = useBalancePrivacy();
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
@@ -120,8 +122,8 @@ export default function IncomePage() {
         <EmptyPlaceholder
           className="mx-auto flex max-w-[420px] items-center justify-center pt-12"
           icon={<Icons.DollarSign className="h-10 w-10" />}
-          title="No income data available"
-          description="There is no income data for the selected period. Try selecting a different time range or check back later."
+          title={t("income_page.noIncomeData")}
+          description={t("income_page.noIncomeDesc")}
         />
         <IncomeMobileFilterSheet
           open={isFilterSheetOpen}
@@ -226,10 +228,10 @@ export default function IncomePage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {selectedPeriod === "ALL"
-                  ? "All Time Income"
+                  ? t("income_page.allTimeIncome")
                   : selectedPeriod === "LAST_YEAR"
-                    ? "Last Year Income"
-                    : "This Year Income"}
+                    ? t("income_page.lastYearIncome")
+                    : t("income_page.thisYearIncome")}
               </CardTitle>
               <Icons.DollarSign className="text-muted-foreground h-4 w-4" />
             </CardHeader>
@@ -252,12 +254,12 @@ export default function IncomePage() {
                           animated={true}
                         />
                         <span className="text-muted-foreground ml-2 text-xs">
-                          Year-over-year growth
+                          {t("income_page.yearOverYear")}
                         </span>
                       </div>
                     ) : (
                       <p className="text-muted-foreground text-xs">
-                        Cumulative income since inception
+                        {t("income_page.cumulativeIncome")}
                       </p>
                     )}
                   </div>
@@ -291,7 +293,7 @@ export default function IncomePage() {
           </Card>
           <Card className="border-yellow-500/10 bg-yellow-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Average</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("income_page.monthlyAverage")}</CardTitle>
               <Icons.DollarSign className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
@@ -304,13 +306,13 @@ export default function IncomePage() {
               </div>
               <div className="flex items-center text-xs">
                 <GainPercent value={monthlyAverageChange} className="text-left text-xs" />
-                <span className="text-muted-foreground ml-2 text-xs">Since last period</span>
+                <span className="text-muted-foreground ml-2 text-xs">{t("income_page.sinceLastPeriod")}</span>
               </div>
             </CardContent>
           </Card>
           <Card className="border-yellow-500/10 bg-yellow-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Income Sources</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("income_page.incomeSources")}</CardTitle>
               <Icons.PieChart className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
@@ -382,15 +384,15 @@ export default function IncomePage() {
           />
           <Card className="flex flex-col">
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Top 10 Dividend Sources</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("income_page.topDividendSources")}</CardTitle>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto">
               {topDividendStocks.length === 0 ? (
                 <EmptyPlaceholder
                   className="mx-auto flex h-[300px] max-w-[420px] items-center justify-center"
                   icon={<Icons.DollarSign className="h-10 w-10" />}
-                  title="No dividend income recorded"
-                  description="There are no dividend sources for the selected period. Try selecting a different time range or check back later."
+                  title={t("income_page.noDividendIncome")}
+                  description={t("income_page.noDividendDesc")}
                 />
               ) : (
                 <div className="space-y-6">

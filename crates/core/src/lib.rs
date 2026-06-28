@@ -13,6 +13,7 @@ pub mod custom_provider;
 pub mod errors;
 pub mod events;
 pub mod exports;
+pub mod fund_research;
 pub mod fx;
 pub mod goals;
 pub mod health;

@@ -19,11 +19,13 @@ import {
 } from "@wealthfolio/ui";
 import { useToast } from "@wealthfolio/ui/components/ui/use-toast";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SettingsHeader } from "../settings-header";
 import { useAddonActions } from "./hooks/use-addon-actions";
 import { useAddonUpdates } from "./hooks/use-addon-updates";
 
 export default function AddonSettingsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"installed" | "store">("installed");
   const [ratingDialog, setRatingDialog] = useState<{
     open: boolean;
@@ -98,8 +100,8 @@ export default function AddonSettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <SettingsHeader
-          heading="Addon Manager"
-          text="Install and manage add-ons to extend Wealthfolio's functionality."
+          heading={t("settings.addons.addonManager")}
+          text={t("settings.addons.addonManagerDesc")}
         />
 
         <div className="flex items-center gap-3">
@@ -144,7 +146,7 @@ export default function AddonSettingsPage() {
             className="flex items-center justify-center gap-1.5 sm:gap-2"
           >
             <Icons.Package className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">Installed</span>
+            <span className="truncate">{t("settings.addons.installed")}</span>
             {installedAddons.length > 0 && (
               <Badge variant="secondary" className="ml-0.5 flex-shrink-0 sm:ml-1">
                 {installedAddons.length}
@@ -153,7 +155,7 @@ export default function AddonSettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="store" className="flex items-center justify-center gap-1.5 sm:gap-2">
             <Icons.Store className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">Available</span>
+            <span className="truncate">{t("settings.addons.available")}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -191,7 +193,7 @@ export default function AddonSettingsPage() {
                         onClick={handleCheckUpdates}
                         disabled={isCheckingUpdates || installedAddons.length === 0}
                         className="hover:bg-muted/50 relative"
-                        title="Check for Updates"
+                        title={t("settings.addons.checkUpdates")}
                       >
                         {isCheckingUpdates ? (
                           <Icons.Loader className="h-4 w-4 animate-spin" />
@@ -208,7 +210,7 @@ export default function AddonSettingsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Icons.Refresh className="h-4 w-4" />
-                        <span className="font-medium">Check for Updates</span>
+                        <span className="font-medium">{t("settings.addons.checkUpdates")}</span>
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Check all installed add-ons for available updates from their sources.
@@ -237,7 +239,7 @@ export default function AddonSettingsPage() {
                         onClick={handleLoadAddon}
                         disabled={isLoading}
                         className="hover:bg-muted/50"
-                        title="Install from File"
+                        title={t("settings.addons.installFromFile")}
                       >
                         {isLoading ? (
                           <Icons.Loader className="h-4 w-4 animate-spin" />
@@ -251,7 +253,7 @@ export default function AddonSettingsPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Icons.Plus className="h-4 w-4" />
-                        <span className="font-medium">Install from File</span>
+                        <span className="font-medium">{t("settings.addons.installFromFile")}</span>
                       </div>
                       <p className="text-muted-foreground text-sm">
                         Install an add-on from a local ZIP file. Only install add-ons from trusted
@@ -269,7 +271,7 @@ export default function AddonSettingsPage() {
                 >
                   <Icons.Store className="h-4 w-4 flex-shrink-0" />
                   <span className="hidden sm:inline">Browse Add-ons</span>
-                  <span className="sm:hidden">Browse</span>
+                  <span className="sm:hidden">{t("common.browse")}</span>
                 </Button>
               </div>
             </div>
@@ -388,7 +390,7 @@ export default function AddonSettingsPage() {
                             className="text-muted-foreground hover:bg-accent hover:text-foreground h-9 w-9 p-0 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100"
                           >
                             <Icons.Eye className="h-4 w-4" />
-                            <span className="sr-only">View permissions</span>
+                            <span className="sr-only">{t("settings.addons.viewPermissions")}</span>
                           </Button>
 
                           {/* Rating button */}

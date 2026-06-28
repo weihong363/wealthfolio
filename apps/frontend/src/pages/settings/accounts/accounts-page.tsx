@@ -14,6 +14,7 @@ import {
 } from "@wealthfolio/ui";
 import { Input } from "@wealthfolio/ui/components/ui/input";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { SettingsHeader } from "../settings-header";
 import { AccountEditModal } from "./components/account-edit-modal";
 import { AccountItem } from "./components/account-item";
@@ -22,6 +23,7 @@ import { useAccountMutations } from "./components/use-account-mutations";
 type FilterType = "all" | "active" | "archived" | "hidden";
 
 const SettingsAccountsPage = () => {
+  const { t } = useTranslation();
   const { accounts, isLoading } = useAccounts({ filterActive: false, includeArchived: true });
 
   const { data: platforms } = useQuery<Platform[], Error>({
@@ -155,8 +157,8 @@ const SettingsAccountsPage = () => {
     <>
       <div className="space-y-6">
         <SettingsHeader
-          heading="Accounts"
-          text=" Manage your investment and saving accounts."
+          heading={t("settings.accounts.title")}
+          text={t("settings.accounts.subtitle")}
           actionsInline
         >
           {/* Mobile: icon button; Desktop: full button */}
@@ -165,13 +167,13 @@ const SettingsAccountsPage = () => {
               size="icon"
               className="sm:hidden"
               onClick={() => handleAddAccount()}
-              aria-label="Add account"
+              aria-label={t("settings.accounts.addAccount")}
             >
               <Icons.Plus className="h-4 w-4" />
             </Button>
             <Button size="sm" className="hidden sm:inline-flex" onClick={() => handleAddAccount()}>
               <Icons.Plus className="mr-2 h-4 w-4" />
-              Add account
+              {t("settings.accounts.addAccount")}
             </Button>
           </>
         </SettingsHeader>
@@ -183,7 +185,7 @@ const SettingsAccountsPage = () => {
             <Icons.Search className="text-muted-foreground absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <Input
               type="text"
-              placeholder="Search accounts..."
+              placeholder={t("common.searchAccounts")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="!h-9 pl-9 pr-9 text-sm"
@@ -193,7 +195,7 @@ const SettingsAccountsPage = () => {
                 type="button"
                 onClick={() => setSearchQuery("")}
                 className="text-muted-foreground hover:text-foreground absolute right-3 top-1/2 -translate-y-1/2"
-                aria-label="Clear search"
+                aria-label={t("common.clearSearch")}
               >
                 <Icons.Close className="h-4 w-4" />
               </button>
@@ -257,7 +259,7 @@ const SettingsAccountsPage = () => {
               {activeAccounts.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-muted-foreground text-sm font-medium">Active Accounts</h3>
+                    <h3 className="text-muted-foreground text-sm font-medium">{t("settings.accounts.activeAccounts")}</h3>
                     <span className="bg-success/20 text-success rounded-full px-2 py-0.5 text-xs font-medium">
                       {counts.active}
                     </span>

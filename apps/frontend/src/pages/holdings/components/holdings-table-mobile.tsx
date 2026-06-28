@@ -242,7 +242,7 @@ export const HoldingsTableMobile = ({
           })
         ) : (
           <div className="flex h-48 flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-            <h3 className="text-lg font-medium">No positions found</h3>
+            <h3 className="text-lg font-medium">{t("holdings.noPositions")}</h3>
             <p className="text-muted-foreground text-sm">
               {holdings.length === 0
                 ? "Add activities to see your positions here."

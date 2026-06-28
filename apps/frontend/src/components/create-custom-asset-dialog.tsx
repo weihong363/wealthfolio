@@ -29,15 +29,16 @@ import {
 } from "@wealthfolio/ui/components/ui/select";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 const ASSET_TYPE_OPTIONS = [
-  { value: "EQUITY", label: "Equity (Stock, ETF, Fund)" },
-  { value: "CRYPTO", label: "Cryptocurrency" },
-  { value: "BOND", label: "Bond" },
-  { value: "OPTION", label: "Option" },
-  { value: "METAL", label: "Metal (Commodity)" },
-  { value: "OTHER", label: "Other" },
+  { value: "EQUITY", labelKey: "assets.instrumentTypes.equity" },
+  { value: "CRYPTO", labelKey: "assets.instrumentTypes.crypto" },
+  { value: "BOND", labelKey: "assets.instrumentTypes.bond" },
+  { value: "OPTION", labelKey: "assets.instrumentTypes.option" },
+  { value: "METAL", labelKey: "assets.instrumentTypes.metal" },
+  { value: "OTHER", labelKey: "assets.instrumentTypes.other" },
 ] as const;
 
 const customAssetSchema = z.object({
@@ -68,6 +69,7 @@ export function CreateCustomAssetDialog({
   defaultSymbol = "",
   defaultCurrency,
 }: CreateCustomAssetDialogProps) {
+  const { t } = useTranslation();
   const { settings } = useSettingsContext();
 
   // Use provided defaultCurrency, or fall back to settings base currency
@@ -146,11 +148,8 @@ export function CreateCustomAssetDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create Custom Asset</DialogTitle>
-          <DialogDescription>
-            You&apos;ll maintain prices manually, or map to a market ticker later for automatic
-            updates.
-          </DialogDescription>
+          <DialogTitle>{t("assets.createCustomAsset")}</DialogTitle>
+          <DialogDescription>{t("assets.createCustomAssetDesc")}</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -160,10 +159,10 @@ export function CreateCustomAssetDialog({
               name="symbol"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Symbol / Ticker</FormLabel>
+                  <FormLabel>{t("assets.symbolTicker")}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g., MYCOIN"
+                      placeholder={t("assets.customSymbolPlaceholder")}
                       {...field}
                       onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                       className="uppercase"
@@ -179,9 +178,9 @@ export function CreateCustomAssetDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>{t("assets.name")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., My Custom Coin" {...field} />
+                    <Input placeholder={t("assets.customNamePlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -194,17 +193,17 @@ export function CreateCustomAssetDialog({
                 name="assetType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Asset Type</FormLabel>
+                    <FormLabel>{t("assets.assetType")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
+                          <SelectValue placeholder={t("common.selectType")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {ASSET_TYPE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {t(option.labelKey)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -219,7 +218,7 @@ export function CreateCustomAssetDialog({
                 name="currency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Currency</FormLabel>
+                    <FormLabel>{t("assets.currency")}</FormLabel>
                     <FormControl>
                       <CurrencyInput {...field} />
                     </FormControl>
@@ -231,10 +230,10 @@ export function CreateCustomAssetDialog({
 
             <DialogFooter className="gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="button" onClick={handleCreateClick}>
-                Create Asset
+                {t("assets.createAsset")}
               </Button>
             </DialogFooter>
           </div>

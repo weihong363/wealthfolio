@@ -105,7 +105,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
           <CardContent className="p-0">
             <div className="grid grid-cols-2 gap-3">
               <MetricDisplay
-                label="Value Return"
+                label={t("account.valueReturn")}
                 value={holdingsValueReturn}
                 emptyReason={unavailableReason}
                 infoText={VALUE_RETURN_INFO}
@@ -113,7 +113,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
                 className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
               />
               <MetricDisplay
-                label="Total P&L"
+                label={t("account.totalPnL")}
                 value={periodPnl}
                 emptyReason={unavailableReason}
                 infoText="Total profit or loss over the selected period."
@@ -122,7 +122,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
                 className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
               />
               <MetricDisplay
-                label="Volatility"
+                label={t("account.volatility")}
                 value={volatility}
                 emptyReason={unavailableReason}
                 infoText={HOLDINGS_MODE_VOLATILITY_INFO}
@@ -131,7 +131,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
                 className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
               />
               <MetricDisplay
-                label="Max Drawdown"
+                label={t("account.maxDrawdown")}
                 value={maxDrawdown}
                 emptyReason={unavailableReason}
                 infoText={HOLDINGS_MODE_MAX_DRAWDOWN_INFO}

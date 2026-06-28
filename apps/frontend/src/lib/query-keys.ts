@@ -159,6 +159,11 @@ export const QueryKeys = {
   HEALTH_CONFIG: "healthConfig",
   DISMISSED_HEALTH_ISSUES: "dismissedHealthIssues",
 
+  // Fund Research
+  FUND_TOP_HOLDINGS: "fundTopHoldings",
+  PORTFOLIO_FUND_LOOKTHROUGH: "portfolioFundLookthrough",
+  PORTFOLIO_THEME_EXPOSURE: "portfolioThemeExposure",
+
   // Snapshot Management
   SNAPSHOTS: "snapshots",
   snapshots: (accountId: string) => [QueryKeys.SNAPSHOTS, accountId],

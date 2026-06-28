@@ -3,8 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import GuidePage from "@/features/goals/retirement-planner/pages/guide-page";
 import { timezoneToCountry } from "@/features/goals/retirement-planner/lib/timezone";
 import { useSettingsContext } from "@/lib/settings-provider";
+import { useTranslation } from "react-i18next";
 
 export default function GoalRetirementGuidePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { goalId } = useParams<{ goalId: string }>();
   const { settings } = useSettingsContext();
@@ -12,7 +14,7 @@ export default function GoalRetirementGuidePage() {
   return (
     <Page>
       <PageHeader
-        heading="Retirement guide"
+        heading={t("goals.retirementGuide")}
         text="How Overview and What If work."
         onBack={() => navigate(goalId ? `/goals/${goalId}` : "/goals")}
       />

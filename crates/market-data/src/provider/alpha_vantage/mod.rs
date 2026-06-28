@@ -1178,6 +1178,11 @@ impl MarketDataProvider for AlphaVantageProvider {
                     "Alpha Vantage does not support bonds".to_string(),
                 ));
             }
+            ProviderInstrument::FundCode { .. } => {
+                return Err(MarketDataError::UnsupportedAssetType(
+                    "Alpha Vantage does not support Eastmoney fund codes".to_string(),
+                ));
+            }
         };
 
         // Return the most recent quote
@@ -1245,6 +1250,11 @@ impl MarketDataProvider for AlphaVantageProvider {
             ProviderInstrument::BondIsin { .. } => {
                 return Err(MarketDataError::UnsupportedAssetType(
                     "Alpha Vantage does not support bonds".to_string(),
+                ));
+            }
+            ProviderInstrument::FundCode { .. } => {
+                return Err(MarketDataError::UnsupportedAssetType(
+                    "Alpha Vantage does not support Eastmoney fund codes".to_string(),
                 ));
             }
         };

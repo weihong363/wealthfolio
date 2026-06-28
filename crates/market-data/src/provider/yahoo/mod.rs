@@ -109,6 +109,7 @@ impl YahooProvider {
             ProviderInstrument::FxPair { from, to } => Ok(format!("{}{}=X", from, to)),
             ProviderInstrument::MetalSymbol { symbol, .. } => Ok(symbol.to_string()),
             ProviderInstrument::BondIsin { isin } => Ok(isin.to_string()),
+            ProviderInstrument::FundCode { code } => Ok(code.to_string()),
         }
     }
 

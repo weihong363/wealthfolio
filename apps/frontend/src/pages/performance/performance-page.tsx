@@ -54,6 +54,7 @@ import {
 } from "@wealthfolio/ui";
 import { isSameDay, subDays, subMonths } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AccountSelector } from "../../components/account-selector";
 import { AccountSelectorMobile } from "../../components/account-selector-mobile";
 import { BenchmarkSymbolSelectorMobile } from "../../components/benchmark-symbol-selector-mobile";
@@ -479,7 +480,7 @@ function AttributionDetailMetric({
               align === "right" && "justify-end",
             )}
           >
-            <span>Period Gain/Loss</span>
+            <span>{t("insights.periodGainLoss")}</span>
             <Icons.Info className="h-3 w-3" />
           </div>
           <div
@@ -511,7 +512,7 @@ function AttributionDetailMetric({
         <SheetHeader className="border-border border-b px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 space-y-2">
-              <SheetTitle className="text-xl">Attribution</SheetTitle>
+              <SheetTitle className="text-xl">{t("insights.attribution")}</SheetTitle>
               <SheetDescription className="truncate">
                 {[itemName, dateRangeLabel].filter(Boolean).join(" · ")}
               </SheetDescription>
@@ -523,13 +524,13 @@ function AttributionDetailMetric({
                 className="text-muted-foreground h-8 w-8 shrink-0"
               >
                 <Icons.X className="h-4 w-4" />
-                <span className="sr-only">Close attribution</span>
+                <span className="sr-only">{t("insights.closeAttribution")}</span>
               </Button>
             </SheetClose>
           </div>
           <div className="pt-3">
             <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-              Period gain/loss
+              {t("insights.periodGainLoss")}
             </div>
             <AttributionAmount
               value={periodPnl}
@@ -541,20 +542,20 @@ function AttributionDetailMetric({
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-2">
           <div className="py-3.5">
             <div className="text-muted-foreground mb-3 text-xs font-medium uppercase tracking-wide">
-              Performance drivers
+              {t("insights.performanceDrivers")}
             </div>
             <AttributionRows rows={driverRows} currency={currency} />
           </div>
 
           <div className="py-3.5">
             <div className="text-muted-foreground mb-3 text-xs font-medium uppercase tracking-wide">
-              Cash flows
+              {t("insights.cashFlows")}
             </div>
             <AttributionRows rows={flowRows} currency={currency} amountTone="neutral" />
           </div>
         </div>
         <div className="border-border bg-background flex items-center justify-between gap-4 border-t px-6 py-4">
-          <div className="text-xs font-medium uppercase tracking-wide">Total gain/loss</div>
+          <div className="text-xs font-medium uppercase tracking-wide">{t("insights.totalGainLoss")}</div>
           <AttributionAmount
             value={periodPnl}
             currency={currency}
@@ -595,8 +596,8 @@ function PerformanceContent({
         <EmptyPlaceholder
           className="mx-auto flex max-w-[420px] items-center justify-center"
           icon={<Icons.BarChart className="h-10 w-10" />}
-          title="No performance data"
-          description="Select accounts to compare their performance over time."
+          title={t("insights.noPerformanceData")}
+          description={t("insights.noPerformanceDesc")}
         />
       )}
 
@@ -610,7 +611,7 @@ function PerformanceContent({
             <div className="bg-background/80 rounded-md border px-3 py-1.5 shadow-sm backdrop-blur-sm">
               <p className="text-muted-foreground flex items-center text-xs font-medium">
                 <span className="bg-primary mr-2 inline-block h-2 w-2 animate-pulse rounded-full"></span>
-                Calculating...
+                {t("insights.calculating")}
               </p>
             </div>
           </div>
@@ -620,7 +621,7 @@ function PerformanceContent({
       {/* Error display using AlertFeedback component */}
       {hasErrors && (
         <div className="w-full">
-          <AlertFeedback title="Error calculating performance data" variant="error">
+          <AlertFeedback title={t("insights.errorCalcPerf")} variant="error">
             <div>
               {errorMessages.map((error, index) => (
                 <p key={index} className="text-sm">
@@ -630,7 +631,7 @@ function PerformanceContent({
             </div>
             <div className="mt-4 flex justify-end">
               <Button size="sm" onClick={() => window.location.reload()} variant="default">
-                Retry
+                {t("common.retry")}
               </Button>
             </div>
           </AlertFeedback>
@@ -701,7 +702,7 @@ const SelectedItemBadge = ({
         </span>
         {!isPlotted && (
           <span className="bg-background/70 text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
-            Not plotted
+            {t("insights.notPlotted")}
           </span>
         )}
         {isPlotted && contextLabel && (
@@ -728,6 +729,7 @@ const SelectedItemBadge = ({
 };
 
 export default function PerformancePage() {
+  const { t } = useTranslation();
   const isMobile = useIsMobileViewport();
   const [storedSelectedItems, setSelectedItems] = usePersistentState<TrackedItem[]>(
     "performance:selectedItems",

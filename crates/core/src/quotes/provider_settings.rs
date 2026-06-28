@@ -103,6 +103,16 @@ impl ProviderCapabilities {
                     "Profiles".to_string(),
                 ],
             }),
+            "EASTMONEY_FUND" => Some(Self {
+                instruments: "China mutual funds".to_string(),
+                coverage: "Eastmoney fund codes".to_string(),
+                features: vec![
+                    "Real-time".to_string(),
+                    "Historical".to_string(),
+                    "Fund research snapshot".to_string(),
+                    "No API key".to_string(),
+                ],
+            }),
             "OPENFIGI" => Some(Self {
                 instruments: "Bonds".to_string(),
                 coverage: "Global".to_string(),

@@ -35,6 +35,9 @@ pub enum ProviderInstrument {
 
     /// Bond identified by ISIN
     BondIsin { isin: ProviderSymbol },
+
+    /// Mutual fund identified by fund code
+    FundCode { code: ProviderSymbol },
 }
 
 impl ProviderInstrument {
@@ -51,6 +54,7 @@ impl ProviderInstrument {
             ProviderInstrument::FxPair { from, to } => format!("{}{}=X", from, to),
             ProviderInstrument::MetalSymbol { symbol, .. } => symbol.to_string(),
             ProviderInstrument::BondIsin { isin } => isin.to_string(),
+            ProviderInstrument::FundCode { code } => code.to_string(),
         }
     }
 }

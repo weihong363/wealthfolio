@@ -9,6 +9,7 @@ use super::types::{Currency, Mic};
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum InstrumentKind {
     Equity, // Exchange-traded securities
+    Fund,   // Mutual funds and other non-exchange fund products
     Crypto, // Cryptocurrencies
     Fx,     // Foreign exchange pairs
     Metal,  // Precious metals
@@ -55,6 +56,9 @@ pub enum InstrumentId {
 
     /// Fixed-income instrument (ISIN)
     Bond { isin: Arc<str> },
+
+    /// Mutual fund identified by provider/country-specific fund code
+    Fund { code: Arc<str> },
 }
 
 impl InstrumentId {
@@ -62,6 +66,7 @@ impl InstrumentId {
     pub fn kind(&self) -> AssetKind {
         match self {
             Self::Equity { .. } => AssetKind::Security,
+            Self::Fund { .. } => AssetKind::Security,
             Self::Crypto { .. } => AssetKind::Crypto,
             Self::Fx { .. } => AssetKind::FxRate,
             Self::Metal { .. } => AssetKind::Commodity,
@@ -74,6 +79,7 @@ impl InstrumentId {
     pub fn instrument_kind(&self) -> InstrumentKind {
         match self {
             Self::Equity { .. } => InstrumentKind::Equity,
+            Self::Fund { .. } => InstrumentKind::Fund,
             Self::Crypto { .. } => InstrumentKind::Crypto,
             Self::Fx { .. } => InstrumentKind::Fx,
             Self::Metal { .. } => InstrumentKind::Metal,

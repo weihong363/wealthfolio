@@ -2,6 +2,7 @@ import type { ToolCallMessagePartProps } from "@assistant-ui/react";
 import { makeAssistantToolUI } from "@assistant-ui/react";
 import { Badge, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@wealthfolio/ui";
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { CompactToolCard } from "./shared";
 
@@ -170,10 +171,11 @@ function AccountCard({ account }: { account: AccountDto }) {
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <Card className="bg-muted/40 border-primary/10">
       <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-        <p className="text-muted-foreground text-sm">No accounts found.</p>
+        <p className="text-muted-foreground text-sm">{t("toolUI.noAccountsFound")}</p>
         <p className="text-muted-foreground mt-1 text-xs">
           Add accounts in Settings to track your investments.
         </p>
@@ -183,10 +185,11 @@ function EmptyState() {
 }
 
 function ErrorState({ message }: { message?: string }) {
+  const { t } = useTranslation();
   return (
     <Card className="border-destructive/30 bg-destructive/5">
       <CardContent className="py-4">
-        <p className="text-destructive text-sm font-medium">Failed to load accounts</p>
+        <p className="text-destructive text-sm font-medium">{t("toolUI.failedToLoadAccounts")}</p>
         {message && <p className="text-muted-foreground mt-1 text-xs">{message}</p>}
       </CardContent>
     </Card>

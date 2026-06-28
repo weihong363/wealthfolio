@@ -5,6 +5,7 @@ import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { Input } from "@wealthfolio/ui/components/ui/input";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface QuoteImportFormProps {
   file: File | null;
@@ -21,6 +22,7 @@ export function QuoteImportForm({
   onFileSelect,
   onValidate,
 }: QuoteImportFormProps) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,7 +150,7 @@ export function QuoteImportForm({
                   className="flex items-center gap-1.5 px-3"
                 >
                   <Icons.Trash className="h-4 w-4" />
-                  <span>Remove File</span>
+                  <span>{t("marketData.removeFile")}</span>
                 </Button>
               </div>
             </div>
@@ -222,7 +224,7 @@ export function QuoteImportForm({
                     transition={{ duration: 0.2 }}
                     className="text-xs font-medium"
                   >
-                    Processing file...
+                    {t("marketData.processingFile")}
                   </motion.p>
                 ) : file && error ? (
                   <motion.div
@@ -261,9 +263,10 @@ export function QuoteImportForm({
                     transition={{ duration: 0.2 }}
                   >
                     <p className="text-xs font-medium">
-                      <span className="text-primary">Click to upload</span> or drop
+                      <span className="text-primary">{t("marketData.clickToUpload")}</span>{" "}
+                      {t("marketData.orDrop")}
                     </p>
-                    <p className="text-muted-foreground text-xs">CSV only</p>
+                    <p className="text-muted-foreground text-xs">{t("marketData.csvOnly")}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -290,11 +293,11 @@ export function QuoteImportForm({
 
         <div className="flex items-center justify-between gap-4">
           <p className="text-muted-foreground text-xs">
-            Quotes with the same symbol and date will overwrite existing data.
+            {t("marketData.overwriteExistingQuotes")}
           </p>
 
           <Button onClick={onValidate} disabled={!file || isValidating}>
-            {isValidating ? "Validating..." : "Validate File"}
+            {isValidating ? t("marketData.validating") : t("marketData.validateFile")}
           </Button>
         </div>
       </CardContent>

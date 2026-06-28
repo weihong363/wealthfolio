@@ -21,6 +21,7 @@ import {
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { Textarea } from "@wealthfolio/ui/components/ui/textarea";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useCreateGoalFlow } from "../hooks/use-create-goal-flow";
 import { useGoals } from "../hooks/use-goals";
@@ -100,8 +101,8 @@ const GOAL_TEMPLATES: {
 function hasRetirementGoal(goals: Goal[]): boolean {
   return goals.some((g) => g.goalType === "retirement" && g.statusLifecycle !== "archived");
 }
-
 export default function GoalNewPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const createGoalFlow = useCreateGoalFlow();
   const { goals } = useGoals();
@@ -214,7 +215,7 @@ export default function GoalNewPage() {
   return (
     <Page>
       <PageHeader
-        heading="Create Goal"
+        heading={t("goals.createGoal")}
         text="Choose what you want to plan for"
         onBack={() => navigate("/goals")}
       />
@@ -284,7 +285,7 @@ export default function GoalNewPage() {
               <CardContent className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="goal-title">Title</Label>
+                    <Label htmlFor="goal-title">{t("goals.title_label")}</Label>
                     <Input
                       id="goal-title"
                       value={title}
@@ -298,7 +299,7 @@ export default function GoalNewPage() {
                   </div>
 
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="goal-description">Description</Label>
+                    <Label htmlFor="goal-description">{t("goals.description_label")}</Label>
                     <Textarea
                       id="goal-description"
                       value={description}
@@ -311,7 +312,7 @@ export default function GoalNewPage() {
                   {template?.requiresPlannerMode && (
                     <div className="border-border/60 space-y-3 border-t pt-4 sm:col-span-2">
                       <div>
-                        <p className="text-sm font-medium">Planning style</p>
+                        <p className="text-sm font-medium">{t("goals.planningStyle")}</p>
                         <p className="text-muted-foreground mt-1 text-xs">
                           Choose how you want to measure retirement readiness. You can change this
                           later.
@@ -327,7 +328,7 @@ export default function GoalNewPage() {
                           }`}
                           onClick={() => setPlannerModeWithDefaultAge("traditional")}
                         >
-                          <p className="text-sm font-medium">Traditional</p>
+                          <p className="text-sm font-medium">{t("goals.traditional")}</p>
                           <p className="text-muted-foreground text-xs">
                             Plan around a specific retirement age
                           </p>
@@ -341,7 +342,7 @@ export default function GoalNewPage() {
                           }`}
                           onClick={() => setPlannerModeWithDefaultAge("fire")}
                         >
-                          <p className="text-sm font-medium">FIRE</p>
+                          <p className="text-sm font-medium">{t("goals.fire")}</p>
                           <p className="text-muted-foreground text-xs">
                             Find when financial independence becomes possible
                           </p>
@@ -353,14 +354,14 @@ export default function GoalNewPage() {
                   {isRetirement && (
                     <div className="border-border/60 space-y-4 border-t pt-4 sm:col-span-2">
                       <div>
-                        <p className="text-sm font-medium">Retirement timeline</p>
+                        <p className="text-sm font-medium">{t("goals.retirementTimeline")}</p>
                         <p className="text-muted-foreground mt-1 text-xs">
                           Your birth month keeps your current age accurate over time.
                         </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="retirement-birth-month">Birth month</Label>
+                          <Label htmlFor="retirement-birth-month">{t("goals.birthMonth")}</Label>
                           <Input
                             id="retirement-birth-month"
                             type="month"
@@ -396,7 +397,7 @@ export default function GoalNewPage() {
                   {!isRetirement && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="goal-target-amount">Target amount</Label>
+                        <Label htmlFor="goal-target-amount">{t("goals.targetAmount")}</Label>
                         <MoneyInput
                           name="goal-target-amount"
                           value={targetAmount}
@@ -408,7 +409,7 @@ export default function GoalNewPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="goal-target-date">Target date</Label>
+                        <Label htmlFor="goal-target-date">{t("goals.targetDate")}</Label>
                         <DatePickerInput
                           id="goal-target-date"
                           value={targetDate}

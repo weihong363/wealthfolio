@@ -37,6 +37,7 @@ mod device_sync;
 #[cfg(feature = "device-sync")]
 pub(crate) mod device_sync_engine;
 mod exchange_rates;
+mod fund_research;
 mod goals;
 mod health;
 mod holdings;
@@ -117,7 +118,8 @@ pub fn app_router(state: Arc<AppState>, config: &Config) -> Router {
         .merge(health::router())
         .merge(custom_providers::router())
         .merge(spending::router())
-        .merge(allocation_targets::router());
+        .merge(allocation_targets::router())
+        .merge(fund_research::fund_research_routes());
 
     #[cfg(feature = "device-sync")]
     {

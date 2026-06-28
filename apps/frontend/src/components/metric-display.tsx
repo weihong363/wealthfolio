@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@wealthfolio/ui/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { formatPercent, GainAmount, GainPercent } from "@wealthfolio/ui";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -105,7 +106,7 @@ export const MetricDisplay: React.FC<MetricDisplayProps> = ({
             className="text-muted-foreground hover:text-foreground absolute right-2 top-2 hidden h-4 w-4 rounded-full p-0 md:inline-flex"
           >
             <Icons.Info className="h-3 w-3" />
-            <span className="sr-only">More info about {label}</span>
+            <span className="sr-only">{t("metricDisplay.moreInfo", { label })}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-60 text-xs" side="top" align="end">

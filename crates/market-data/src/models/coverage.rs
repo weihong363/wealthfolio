@@ -67,6 +67,9 @@ impl Coverage {
 
             // Bonds: No geographic filtering (ISIN-based routing handled by resolver)
             InstrumentId::Bond { .. } => true,
+
+            // Funds: Provider-specific fund-code routing handles coverage.
+            InstrumentId::Fund { .. } => true,
         }
     }
 

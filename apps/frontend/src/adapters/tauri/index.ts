@@ -121,6 +121,9 @@ export * from "../shared/ai-threads";
 // Health Center Commands
 export * from "../shared/health";
 
+// Fund Research Commands
+export * from "../shared/fund-research";
+
 // Allocation Target Commands
 export * from "../shared/allocation-targets";
 

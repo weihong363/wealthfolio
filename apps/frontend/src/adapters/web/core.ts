@@ -394,6 +394,13 @@ export const COMMANDS: CommandMap = {
   unlink_liability: { method: "DELETE", path: "/alternative-assets" },
   update_alternative_asset_metadata: { method: "PUT", path: "/alternative-assets" },
   get_alternative_holdings: { method: "GET", path: "/alternative-holdings" },
+  // Fund Research
+  get_fund_top_holdings: { method: "GET", path: "/fund-research/funds" },
+  get_portfolio_fund_lookthrough: {
+    method: "GET",
+    path: "/fund-research/portfolios",
+  },
+  refresh_fund_research: { method: "POST", path: "/fund-research/funds" },
 };
 
 /**
@@ -1972,6 +1979,22 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
     case "get_ai_thread_tags": {
       const { threadId } = payload as { threadId: string };
       url += `/${encodeURIComponent(threadId)}/tags`;
+      break;
+    }
+    // Fund Research
+    case "get_fund_top_holdings": {
+      const { fundCode } = payload as { fundCode: string };
+      url += `/${encodeURIComponent(fundCode)}/top-holdings`;
+      break;
+    }
+    case "get_portfolio_fund_lookthrough": {
+      const { portfolioId } = payload as { portfolioId: string };
+      url += `/${encodeURIComponent(portfolioId)}/fund-lookthrough`;
+      break;
+    }
+    case "refresh_fund_research": {
+      const { fundCode } = payload as { fundCode: string };
+      url += `/${encodeURIComponent(fundCode)}/refresh`;
       break;
     }
   }

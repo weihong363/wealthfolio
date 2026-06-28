@@ -5,6 +5,7 @@ use wealthfolio_core::{
     self, accounts, activities,
     assets::{self, AlternativeAssetServiceTrait},
     events::DomainEventSink,
+    fund_research::FundResearchService,
     fx, goals, health, limits,
     lots::LotRepositoryTrait,
     portfolio, portfolios, quotes, settings, taxonomies,
@@ -79,6 +80,7 @@ pub struct ServiceContext {
     pub budget_service: Arc<BudgetService>,
     pub spending_analytics_service: Arc<AnalyticsService>,
     pub spending_insight_service: Arc<InsightService>,
+    pub fund_research_service: Arc<FundResearchService>,
 }
 
 impl ServiceContext {

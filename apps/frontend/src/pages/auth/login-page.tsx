@@ -11,8 +11,10 @@ import {
   Input,
 } from "@wealthfolio/ui";
 import { FormEvent, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login, loginLoading, loginError, clearError, requiresPassword, oidcEnabled } = useAuth();
   const [password, setPassword] = useState("");
 
@@ -42,8 +44,8 @@ export function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <CardTitle>Wealthfolio</CardTitle>
-              <CardDescription>Your private portfolio tracker.</CardDescription>
+              <CardTitle>{t("login.title")}</CardTitle>
+              <CardDescription>{t("login.subtitle")}</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
@@ -64,7 +66,7 @@ export function LoginPage() {
                       }}
                       disabled={loginLoading}
                       required
-                      placeholder="Enter your password"
+                      placeholder={t("login.enterPassword")}
                       className="h-12 rounded-full shadow-none"
                     />
                     {loginError ? (
@@ -75,7 +77,7 @@ export function LoginPage() {
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loginLoading}>
-                    {loginLoading ? "Signing in..." : "Sign In"}
+                    {loginLoading ? t("login.signingIn") : t("login.signIn")}
                   </Button>
                 </form>
               ) : null}
@@ -83,7 +85,7 @@ export function LoginPage() {
               {requiresPassword && oidcEnabled ? (
                 <div className="flex items-center gap-3">
                   <span className="bg-border h-px flex-1" />
-                  <span className="text-muted-foreground text-xs">or</span>
+                  <span className="text-muted-foreground text-xs">{t("common.or")}</span>
                   <span className="bg-border h-px flex-1" />
                 </div>
               ) : null}
@@ -98,7 +100,7 @@ export function LoginPage() {
                       window.location.href = "/api/v1/auth/oidc/login";
                     }}
                   >
-                    Sign in with SSO
+                    {t("login.signInWithSSO")}
                   </Button>
                   {!requiresPassword && loginError ? (
                     <p className="text-destructive text-center text-sm" role="alert">

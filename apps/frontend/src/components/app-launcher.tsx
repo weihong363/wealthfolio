@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
 import {
@@ -76,6 +77,7 @@ const accountTypeIcons: Record<AccountType | typeof PORTFOLIO_ACCOUNT_TYPE, Icon
 };
 
 export function AppLauncher() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -620,7 +622,7 @@ export function AppLauncher() {
   const commandContent = (
     <>
       <CommandInput
-        placeholder="Search actions, holdings, or accounts..."
+        placeholder={t("common.searchActions")}
         autoFocus={!isMobileViewport && open}
         value={search}
         onValueChange={setSearch}
@@ -634,7 +636,7 @@ export function AppLauncher() {
       >
         {!hasResults && <CommandEmpty>No matches found.</CommandEmpty>}
         {showRecent && (
-          <CommandGroup heading="Recent">
+          <CommandGroup heading={t("launcher.recent")}>
             {(searchLower ? filteredRecent : recentItems).map((item) => {
               const getRecentIcon = () => {
                 switch (item.type) {
@@ -667,7 +669,7 @@ export function AppLauncher() {
           </CommandGroup>
         )}
         {filteredActions.length > 0 && (
-          <CommandGroup heading="Actions">
+          <CommandGroup heading={t("launcher.actions")}>
             {filteredActions.map((action, index) => {
               const resizedIcon = renderIcon(action.icon);
               const displayText = action.label ?? action.title;
@@ -689,7 +691,7 @@ export function AppLauncher() {
           </CommandGroup>
         )}
         {(isHoldingsLoading || filteredHoldings.length > 0) && (
-          <CommandGroup heading="Holdings">
+          <CommandGroup heading={t("launcher.holdings")}>
             {isHoldingsLoading ? (
               <CommandItem disabled className={cn(isMobileViewport ? "py-4 text-base" : undefined)}>
                 Loading holdings...
@@ -720,7 +722,7 @@ export function AppLauncher() {
           </CommandGroup>
         )}
         {(isAccountsLoading || filteredAccounts.length > 0) && (
-          <CommandGroup heading="Accounts">
+          <CommandGroup heading={t("launcher.accounts")}>
             {isAccountsLoading ? (
               <CommandItem disabled className={cn(isMobileViewport ? "py-4 text-base" : undefined)}>
                 Loading accounts...
@@ -779,7 +781,7 @@ export function AppLauncher() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <DialogTitle className="sr-only">Command palette</DialogTitle>
+      <DialogTitle className="sr-only">{t("appLauncher.commandPalette")}</DialogTitle>
       <DialogDescription className="sr-only">
         Search for actions, holdings, accounts, or navigation destinations.
       </DialogDescription>

@@ -24,6 +24,7 @@ import {
   PageHeader,
 } from "@wealthfolio/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { AccountSelectOption } from "./components/forms/fields";
 import {
@@ -36,6 +37,7 @@ import { useActivityForm } from "./hooks/use-activity-form";
 import { mapActivityTypeToPicker } from "./utils/activity-form-utils";
 
 const ActivityManagerPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isMobileViewport = useIsMobileViewport();
@@ -146,11 +148,11 @@ const ActivityManagerPage = () => {
     return (
       <Page>
         <PageHeader
-          heading="Add Activity"
+          heading={t("activityManager.addActivity")}
           text={
             selectedAccountName
-              ? `Add a new transaction to ${selectedAccountName}`
-              : "Create a new transaction or activity for your account"
+              ? t("activityManager.addTransactionTo", { account: selectedAccountName })
+              : t("activityManager.createTransaction")
           }
           onBack={handleClose}
         />
@@ -185,7 +187,7 @@ const ActivityManagerPage = () => {
               className="flex items-center gap-1.5"
             >
               <Icons.HelpCircle className="h-4 w-4" />
-              Learn more
+              {t("activityManager.learnMore")}
             </ExternalLink>
           </Button>
         }
@@ -198,10 +200,9 @@ const ActivityManagerPage = () => {
               {restrictionLevel === "blocked" && (
                 <Alert>
                   <Icons.Info className="h-4 w-4" />
-                  <AlertTitle>Synced Account</AlertTitle>
+                  <AlertTitle>{t("activityManager.syncedAccount")}</AlertTitle>
                   <AlertDescription>
-                    This account uses Holdings tracking with broker sync. Holdings are updated
-                    automatically when you sync.
+                    {t("activityManager.syncedAccountDesc")}
                   </AlertDescription>
                 </Alert>
               )}
@@ -210,11 +211,10 @@ const ActivityManagerPage = () => {
               {restrictionLevel === "limited" && selectedAccount && (
                 <Alert>
                   <Icons.Info className="h-4 w-4" />
-                  <AlertTitle>Holdings Tracking Mode</AlertTitle>
+                  <AlertTitle>{t("activityManager.holdingsTrackingMode")}</AlertTitle>
                   <AlertDescription className="flex flex-col gap-2">
                     <span>
-                      This account uses Holdings tracking. To modify positions, use the Update
-                      button on the account page.
+                      {t("activityManager.holdingsTrackingDesc")}
                     </span>
                     <Button
                       variant="outline"
@@ -223,7 +223,7 @@ const ActivityManagerPage = () => {
                       onClick={() => navigate(`/account/${selectedAccount.id}`)}
                     >
                       <Icons.ExternalLink className="mr-2 h-3 w-3" />
-                      Go to Account
+                      {t("activityManager.goToAccount")}
                     </Button>
                   </AlertDescription>
                 </Alert>
@@ -241,7 +241,7 @@ const ActivityManagerPage = () => {
               {/* When editing, show the activity type as a badge */}
               {isEditing && selectedType && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Activity Type:</span>
+                  <span className="text-muted-foreground">{t("activityManager.activityType")}</span>
                   <span className="bg-primary/10 text-primary rounded-md px-2 py-1 font-medium">
                     {selectedType}
                   </span>
@@ -265,7 +265,7 @@ const ActivityManagerPage = () => {
               {isError && (
                 <Alert variant="destructive">
                   <Icons.AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
+                  <AlertTitle>{t("activityManager.error")}</AlertTitle>
                   <AlertDescription>{String(error)}</AlertDescription>
                 </Alert>
               )}

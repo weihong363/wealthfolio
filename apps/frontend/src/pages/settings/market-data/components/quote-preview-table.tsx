@@ -22,15 +22,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@wealthfolio/ui/components/ui/tooltip";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 
-function formatValidationStatus(status: ImportValidationStatus): string {
+function formatValidationStatus(status: ImportValidationStatus, t: TFunction): string {
   switch (status) {
     case "valid":
-      return "Valid";
+      return t("marketData.statusValid");
     case "warning":
-      return "Warning";
+      return t("marketData.statusWarning");
     case "error":
-      return "Error";
+      return t("marketData.statusError");
     default:
       return status;
   }
@@ -55,6 +57,7 @@ interface QuotePreviewTableProps {
 }
 
 export function QuotePreviewTable({ quotes, maxRows = 10 }: QuotePreviewTableProps) {
+  const { t } = useTranslation();
   const displayQuotes = quotes.slice(0, maxRows);
 
   return (
@@ -62,24 +65,24 @@ export function QuotePreviewTable({ quotes, maxRows = 10 }: QuotePreviewTablePro
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Icons.FileText className="h-5 w-5" />
-          Preview Data ({quotes.length} rows)
+          {t("marketData.previewDataWithRows", { count: quotes.length })}
         </CardTitle>
-        <CardDescription>Review the first {maxRows} rows of your CSV data</CardDescription>
+        <CardDescription>{t("marketData.reviewFirstRows", { count: maxRows })}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Open</TableHead>
-                <TableHead>High</TableHead>
-                <TableHead>Low</TableHead>
-                <TableHead>Close</TableHead>
-                <TableHead>Volume</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t("marketData.symbol")}</TableHead>
+                <TableHead>{t("marketData.date")}</TableHead>
+                <TableHead>{t("marketData.open")}</TableHead>
+                <TableHead>{t("marketData.high")}</TableHead>
+                <TableHead>{t("marketData.low")}</TableHead>
+                <TableHead>{t("marketData.close")}</TableHead>
+                <TableHead>{t("marketData.volume")}</TableHead>
+                <TableHead>{t("marketData.currency")}</TableHead>
+                <TableHead>{t("marketData.status")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -130,7 +133,7 @@ export function QuotePreviewTable({ quotes, maxRows = 10 }: QuotePreviewTablePro
                           variant={getStatusVariant(quote.validationStatus)}
                           className="whitespace-nowrap"
                         >
-                          {formatValidationStatus(quote.validationStatus)}
+                          {formatValidationStatus(quote.validationStatus, t)}
                         </Badge>
                       </TableCell>
                     </TableRow>
@@ -142,7 +145,7 @@ export function QuotePreviewTable({ quotes, maxRows = 10 }: QuotePreviewTablePro
         </div>
         {quotes.length > maxRows && (
           <p className="text-muted-foreground mt-2 text-sm">
-            Showing first {maxRows} of {quotes.length} rows
+            {t("marketData.showingRows", { shown: maxRows, total: quotes.length })}
           </p>
         )}
       </CardContent>

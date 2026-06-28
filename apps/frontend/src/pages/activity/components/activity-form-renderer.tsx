@@ -1,4 +1,5 @@
 import type { AccountSelectOption } from "./forms/fields";
+import { useTranslation } from "react-i18next";
 import {
   ACTIVITY_FORM_CONFIG,
   type ActivityFormValues,
@@ -28,10 +29,11 @@ export function ActivityFormRenderer({
   isLoading,
   isEditing,
 }: ActivityFormRendererProps) {
+  const { t } = useTranslation();
   if (!selectedType) {
     return (
       <div className="text-muted-foreground flex h-40 items-center justify-center">
-        Select an activity type above to continue
+        {t("activityManager.selectTypeToContinue")}
       </div>
     );
   }

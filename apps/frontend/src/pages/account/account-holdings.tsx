@@ -16,6 +16,7 @@ import {
   TooltipTrigger,
 } from "@wealthfolio/ui";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 interface AccountHoldingsProps {
@@ -31,6 +32,7 @@ const AccountHoldings = ({
   showTitle = true,
   onAddHoldings,
 }: AccountHoldingsProps) => {
+  const { t } = useTranslation();
   const isMobile = useIsMobileViewport();
   const navigate = useNavigate();
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -104,7 +106,7 @@ const AccountHoldings = ({
         <div className="flex items-center justify-center py-16">
           <EmptyPlaceholder
             icon={<Icons.TrendingUp className="text-muted-foreground h-10 w-10" />}
-            title="No activity yet"
+            title={t("account.noActivity")}
             description="Get started by adding your first transaction or importing activity from a CSV file."
           >
             <div className="flex flex-col items-center gap-3 sm:flex-row">
@@ -139,7 +141,7 @@ const AccountHoldings = ({
         <div className="flex items-center justify-center py-16">
           <EmptyPlaceholder
             icon={<Icons.TrendingUp className="text-muted-foreground h-10 w-10" />}
-            title="No holdings yet"
+            title={t("account.noHoldings")}
             description={
               canEditHoldingsDirectly
                 ? "Add your current holdings snapshot or import from a CSV file to get started."

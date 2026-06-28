@@ -493,6 +493,10 @@ pub fn run() {
             commands::goal::get_retirement_overview,
             commands::goal::get_save_up_overview,
             commands::goal::preview_save_up_overview,
+            // Fund Research commands
+            commands::fund_research::get_fund_top_holdings,
+            commands::fund_research::get_portfolio_fund_lookthrough,
+            commands::fund_research::refresh_fund_research,
             // Portfolios (saved reporting scopes)
             commands::portfolios::get_portfolios,
             commands::portfolios::get_portfolio,

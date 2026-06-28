@@ -15,6 +15,7 @@ pub mod device_enroll_service;
 pub mod device_sync;
 pub mod error;
 pub mod fire;
+pub mod fund_research;
 pub mod goal;
 pub mod health;
 pub mod limits;

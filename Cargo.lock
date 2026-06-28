@@ -8748,6 +8748,7 @@ dependencies = [
  "log",
  "num-traits",
  "r2d2",
+ "regex",
  "rusqlite",
  "rust_decimal",
  "serde",

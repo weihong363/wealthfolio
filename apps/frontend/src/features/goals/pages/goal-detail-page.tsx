@@ -19,6 +19,7 @@ import {
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { Badge } from "@wealthfolio/ui/components/ui/badge";
 import { useState, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { ActionPalette, type ActionPaletteGroup } from "@/components/action-palette";
 import {
@@ -52,6 +53,7 @@ const GOAL_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function GoalDetailPage() {
+  const { t } = useTranslation();
   const { goalId } = useParams<{ goalId: string }>();
   const navigate = useNavigate();
 
@@ -131,7 +133,7 @@ export default function GoalDetailPage() {
   if (isLoading) {
     return (
       <Page>
-        <PageHeader heading="Loading..." />
+        <PageHeader heading={t("common.loading")} />
         <PageContent>
           <Skeleton className="h-64 w-full" />
         </PageContent>
@@ -142,7 +144,7 @@ export default function GoalDetailPage() {
   if (error || !goal) {
     return (
       <Page>
-        <PageHeader heading="Goal not found" />
+        <PageHeader heading={t("goals.goalNotFound")} />
         <PageContent>
           <div className="flex flex-col items-center gap-4 py-24">
             <p className="text-muted-foreground">This goal could not be found.</p>
@@ -212,7 +214,7 @@ export default function GoalDetailPage() {
         variant="ghost"
         size="icon"
         className="h-9 w-9 rounded-full"
-        aria-label="Open retirement guide"
+        aria-label={t("goals.openRetirementGuide")}
         onClick={() => navigate(`/goals/${goalId}/guide`)}
       >
         <Icons.HelpCircle className="size-4" />
@@ -235,7 +237,7 @@ export default function GoalDetailPage() {
     <div className="flex items-center gap-2">
       {retirementGuideAction}
       {retirementTabs}
-      {goal.statusLifecycle === "achieved" && <Badge variant="default">Achieved</Badge>}
+      {goal.statusLifecycle === "achieved" && <Badge variant="default">{t("goals.achieved")}</Badge>}
       <ActionPalette
         open={actionPaletteOpen}
         onOpenChange={setActionPaletteOpen}

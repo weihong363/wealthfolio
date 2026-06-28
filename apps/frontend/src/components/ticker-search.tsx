@@ -18,6 +18,7 @@ import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
 import { useComposedRefs } from "@wealthfolio/ui/hooks";
 import { Command as CommandPrimitive } from "cmdk";
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CreateCustomAssetDialog } from "./create-custom-asset-dialog";
 
 interface QuoteInfo {
@@ -87,6 +88,7 @@ const SearchResults = memo(
     onCreateCustomAsset,
     hideCustomCreate,
   }: SearchResultsProps) => {
+    const { t } = useTranslation();
     const hasResults = results && results.length > 0;
     const showNoResults = !isLoading && !hasResults && query.length > 1;
     const selectedKey = selectedResult ? getSearchResultKey(selectedResult) : null;
@@ -106,7 +108,7 @@ const SearchResults = memo(
         {/* No results message */}
         {showNoResults && (
           <div className="text-muted-foreground px-2 py-3 text-center text-sm">
-            No matches found for &quot;{query}&quot;
+            {t("assets.noMatchesFor", { query })}
           </div>
         )}
 
@@ -156,7 +158,9 @@ const SearchResults = memo(
                 <span className="font-mono text-xs font-semibold uppercase">
                   {query.trim().toUpperCase() || "..."}
                 </span>
-                <span className="text-muted-foreground text-xs">Create custom (manual)</span>
+                <span className="text-muted-foreground text-xs">
+                  {t("assets.createCustomManual")}
+                </span>
               </div>
             </CommandItem>
           </>
@@ -220,6 +224,7 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
     },
     ref,
   ) => {
+    const { t } = useTranslation();
     const isControlled = openProp !== undefined;
     const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
     const open = isControlled ? openProp : uncontrolledOpen;
@@ -559,7 +564,7 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
                 autoFocus={autoFocusSearch}
                 value={searchQuery}
                 onValueChange={handleSearchChange}
-                placeholder="Search for symbol"
+                placeholder={t("assets.searchForSymbol")}
                 onKeyDown={handleInputKeyDown}
               />
 

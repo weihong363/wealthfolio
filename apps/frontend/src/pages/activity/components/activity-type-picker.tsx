@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Carousel,
   CarouselContent,
@@ -28,23 +29,24 @@ export type ActivityType = PrimaryActivityType | SecondaryActivityType;
 interface ActivityTypeConfig<T extends string> {
   value: T;
   label: string;
+  labelKey: string;
   icon: IconName;
 }
 
 const PRIMARY_ACTIVITY_TYPES: ActivityTypeConfig<PrimaryActivityType>[] = [
-  { value: CanonicalActivityType.BUY, label: "Buy", icon: "TrendingUp" },
-  { value: CanonicalActivityType.SELL, label: "Sell", icon: "TrendingDown" },
-  { value: CanonicalActivityType.DEPOSIT, label: "Deposit", icon: "ArrowDownLeft" },
-  { value: CanonicalActivityType.WITHDRAWAL, label: "Withdrawal", icon: "ArrowUpRight" },
-  { value: CanonicalActivityType.DIVIDEND, label: "Dividend", icon: "Coins" },
-  { value: "TRANSFER", label: "Transfer", icon: "ArrowLeftRight" },
+  { value: CanonicalActivityType.BUY, label: "Buy", labelKey: "activityManager.types.buy", icon: "TrendingUp" },
+  { value: CanonicalActivityType.SELL, label: "Sell", labelKey: "activityManager.types.sell", icon: "TrendingDown" },
+  { value: CanonicalActivityType.DEPOSIT, label: "Deposit", labelKey: "activityManager.types.deposit", icon: "ArrowDownLeft" },
+  { value: CanonicalActivityType.WITHDRAWAL, label: "Withdrawal", labelKey: "activityManager.types.withdrawal", icon: "ArrowUpRight" },
+  { value: CanonicalActivityType.DIVIDEND, label: "Dividend", labelKey: "activityManager.types.dividend", icon: "Coins" },
+  { value: "TRANSFER", label: "Transfer", labelKey: "activityManager.types.transfer", icon: "ArrowLeftRight" },
 ];
 
 const SECONDARY_ACTIVITY_TYPES: ActivityTypeConfig<SecondaryActivityType>[] = [
-  { value: CanonicalActivityType.SPLIT, label: "Split", icon: "Split" },
-  { value: CanonicalActivityType.FEE, label: "Fee", icon: "Receipt" },
-  { value: CanonicalActivityType.INTEREST, label: "Interest", icon: "Percent" },
-  { value: CanonicalActivityType.TAX, label: "Tax", icon: "ReceiptText" },
+  { value: CanonicalActivityType.SPLIT, label: "Split", labelKey: "activityManager.types.split", icon: "Split" },
+  { value: CanonicalActivityType.FEE, label: "Fee", labelKey: "activityManager.types.fee", icon: "Receipt" },
+  { value: CanonicalActivityType.INTEREST, label: "Interest", labelKey: "activityManager.types.interest", icon: "Percent" },
+  { value: CanonicalActivityType.TAX, label: "Tax", labelKey: "activityManager.types.tax", icon: "ReceiptText" },
 ];
 
 const ALL_ACTIVITY_TYPES = [...PRIMARY_ACTIVITY_TYPES, ...SECONDARY_ACTIVITY_TYPES];
@@ -73,6 +75,7 @@ function ActivityTypeButton({
   buttonRef?: (el: HTMLButtonElement | null) => void;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const Icon = Icons[type.icon];
 
   return (
@@ -103,7 +106,7 @@ function ActivityTypeButton({
           isSelected ? "text-primary" : "text-foreground",
         )}
       >
-        {type.label}
+        {t(type.labelKey)}
       </span>
     </button>
   );

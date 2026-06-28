@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@wealthfolio/ui/components/ui/button";
 import { Input } from "@wealthfolio/ui/components/ui/input";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
@@ -96,6 +97,7 @@ export function ThreadSidebar({
   }, [threads, searchQuery, filterTag]);
 
   // Separate pinned and unpinned threads
+  const { t } = useTranslation();
   const { pinnedThreads, unpinnedThreads } = useMemo(() => {
     const pinned = filteredThreads.filter((t) => t.isPinned);
     const unpinned = filteredThreads.filter((t) => !t.isPinned);
@@ -257,7 +259,7 @@ export function ThreadSidebar({
     <div className={cn("flex h-full flex-col border-r", className)}>
       {/* Header */}
       <div className="flex items-center justify-between border-b p-3">
-        <h2 className="text-sm font-semibold">Conversations</h2>
+        <h2 className="text-sm font-semibold">{t("ai.conversations")}</h2>
         <Button variant="ghost" size="icon" onClick={onNewThread} className="h-8 w-8">
           <Icons.Plus className="h-4 w-4" />
           <span className="sr-only">New conversation</span>
@@ -270,7 +272,7 @@ export function ThreadSidebar({
           <Icons.Search className="text-muted-foreground absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2" />
           <Input
             type="search"
-            placeholder="Search conversations..."
+            placeholder={t("common.searchConversations")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-8 pl-8 text-sm"
@@ -304,7 +306,7 @@ export function ThreadSidebar({
         ) : threads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Icons.Sparkles className="text-muted-foreground mb-2 h-8 w-8" />
-            <p className="text-muted-foreground text-sm">No conversations yet</p>
+            <p className="text-muted-foreground text-sm">{t("common.noConversations")}</p>
             <p className="text-muted-foreground mt-1 text-xs">
               Start a new chat to ask questions about your portfolio
             </p>
@@ -312,7 +314,7 @@ export function ThreadSidebar({
         ) : filteredThreads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Icons.Search className="text-muted-foreground mb-2 h-6 w-6" />
-            <p className="text-muted-foreground text-sm">No matches found</p>
+            <p className="text-muted-foreground text-sm">{t("common.noMatches")}</p>
             <p className="text-muted-foreground mt-1 text-xs">
               {filterTag ? "Try clearing the tag filter" : "Try a different search term"}
             </p>
@@ -334,7 +336,7 @@ export function ThreadSidebar({
             {unpinnedThreads.length > 0 && (
               <div>
                 {pinnedThreads.length > 0 && (
-                  <div className="text-muted-foreground mb-1 px-2 text-xs font-medium">Recent</div>
+                  <div className="text-muted-foreground mb-1 px-2 text-xs font-medium">{t("ai.recent")}</div>
                 )}
                 <div className="space-y-0.5">{unpinnedThreads.map(renderThread)}</div>
               </div>

@@ -19,6 +19,7 @@ import {
 import { useIsMobileViewport } from "@/hooks";
 import { cn } from "@/lib/utils";
 import { forwardRef, useState, type ComponentPropsWithoutRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useAccounts } from "@/hooks/use-accounts";
 import { usePortfolios } from "@/hooks/use-portfolios";
 import type { AccountScope } from "@/lib/types";
@@ -132,9 +133,10 @@ function AccountScopeCommand({
   itemClassName?: string;
   groupClassName?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Command className={commandClassName}>
-      <CommandInput placeholder="Search accounts..." />
+      <CommandInput placeholder={t("common.searchAccounts")} />
       <CommandList className={listClassName}>
         <CommandEmpty>No results.</CommandEmpty>
 
@@ -149,7 +151,7 @@ function AccountScopeCommand({
         </CommandGroup>
 
         {portfolios.length > 0 && (
-          <CommandGroup heading="Portfolios" className={groupClassName}>
+          <CommandGroup heading={t("settings.portfolios.title")} className={groupClassName}>
             {portfolios.map((p) => (
               <CommandItem
                 key={p.id}
@@ -174,7 +176,7 @@ function AccountScopeCommand({
         )}
 
         {accounts.length > 0 && (
-          <CommandGroup heading="Accounts" className={groupClassName}>
+          <CommandGroup heading={t("settings.accounts.title")} className={groupClassName}>
             {accounts.map((a) => {
               const checked = isAccountChecked(value, a.id);
               return (

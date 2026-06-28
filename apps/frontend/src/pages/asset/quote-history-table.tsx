@@ -1,6 +1,7 @@
 import { Quote } from "@/lib/types";
 import { format } from "date-fns";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { formatQuantity } from "@/lib/utils";
@@ -79,6 +80,7 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
   onDeleteQuote,
   onChangeDataSource,
 }) => {
+  const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedValues, setEditedValues] = useState<Partial<Quote>>({});
   const [isAddingQuote, setIsAddingQuote] = useState(false);
@@ -307,21 +309,20 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                       </PopoverTrigger>
                       <PopoverContent>
                         <div className="flex flex-col items-center space-y-2">
-                          <h4 className="font-medium">Delete Quote</h4>
+                          <h4 className="font-medium">{t("assets.deleteQuote")}</h4>
                           <p className="text-muted-foreground text-center text-sm">
-                            Are you sure you want to delete this historical quote? This action
-                            cannot be undone.
+                            {t("assets.deleteQuoteDesc")}
                           </p>
                           <div className="flex space-x-2">
                             <Button variant="ghost" size="sm">
-                              Cancel
+                              {t("common.cancel")}
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDelete(quote.id)}
                             >
-                              Delete
+                              {t("common.delete")}
                             </Button>
                           </div>
                         </div>
@@ -334,7 +335,7 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
           ]
         : []),
     ],
-    [isManualDataSource, handleInputChange, handleEdit, handleSave, handleCancel, handleDelete],
+    [isManualDataSource, handleInputChange, handleEdit, handleSave, handleCancel, handleDelete, t],
   );
 
   const table = useReactTable({
@@ -378,45 +379,42 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                 <div className="flex items-center space-x-2">
                   <Switch id="manual-tracking" checked={isManualDataSource} />
                   <Label htmlFor="manual-tracking" className="cursor-pointer">
-                    Manual tracking
+                    {t("assets.manualTracking")}
                   </Label>
                 </div>
               </PopoverTrigger>
               <PopoverContent className="w-[360px] p-4">
                 <div className="space-y-4">
-                  <h4 className="font-medium">Change Tracking Mode</h4>
+                  <h4 className="font-medium">{t("assets.changeTrackingMode")}</h4>
                   {isManualDataSource ? (
                     <>
                       <p className="text-muted-foreground text-sm">
-                        Switching to automatic tracking will enable data fetching from Market Data
-                        Provider. Please note that this will override any manually entered quotes on
-                        the next sync.
+                        {t("assets.switchToAutomaticTrackingDesc")}
                       </p>
                       <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                        ⚠️ Your manually entered historical data may be lost.
+                        {t("assets.manualHistoricalDataMayBeLost")}
                       </p>
                     </>
                   ) : (
                     <>
                       <p className="text-muted-foreground text-sm">
-                        Switching to manual tracking will stop automatic data fetching from Market
-                        Data Provider. You&apos;ll need to enter and maintain price data manually.
+                        {t("assets.switchToManualTrackingDesc")}
                       </p>
                       <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                        ⚠️ Automatic price updates will be disabled.
+                        {t("assets.automaticUpdatesDisabled")}
                       </p>
                     </>
                   )}
                   <div className="flex justify-end space-x-2">
                     <Button variant="ghost" size="sm">
-                      Cancel
+                      {t("common.cancel")}
                     </Button>
                     <Button
                       variant="default"
                       size="sm"
                       onClick={() => onChangeDataSource?.(!isManualDataSource)}
                     >
-                      Confirm Change
+                      {t("assets.confirmChange")}
                     </Button>
                   </div>
                 </div>
@@ -431,12 +429,12 @@ export const QuoteHistoryTable: React.FC<QuoteHistoryTableProps> = ({
                   disabled={isAddingQuote}
                 >
                   <Icons.PlusCircle className="mr-2 h-4 w-4" />
-                  Add Quote
+                  {t("assets.addQuote")}
                 </Button>
                 <Button asChild variant="outline" size="sm">
                   <Link to="/settings/market-data/import" className="flex items-center gap-2">
                     <Icons.Import className="h-4 w-4" />
-                    Import Quotes
+                    {t("assets.importQuotes")}
                   </Link>
                 </Button>
               </div>

@@ -14,6 +14,7 @@ import { Icons, type Icon } from "@wealthfolio/ui";
 import { Fragment, forwardRef, useState } from "react";
 
 import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 import { useAccounts } from "@/hooks/use-accounts";
 import { usePortfolios } from "@/hooks/use-portfolios";
 import { useSettings } from "@/hooks/use-settings";
@@ -144,6 +145,7 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
     },
     ref,
   ) => {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const { accounts, isLoading: isLoadingAccounts } = useAccounts({
       filterActive,
@@ -249,7 +251,7 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              aria-label="Select an account"
+              aria-label={t("common.selectAccount")}
               className={cn(
                 "h-full w-full justify-center rounded-lg border p-2 transition-colors",
                 !selectedAccount && "border-dashed",
@@ -321,8 +323,8 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
                         exit={{ opacity: 0, y: -5 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <p className="text-xs font-medium">Click to select an account</p>
-                        <p className="text-muted-foreground text-xs">Required for import</p>
+                        <p className="text-xs font-medium">{t("accountSelector.clickToSelect")}</p>
+                        <p className="text-muted-foreground text-xs">{t("accountSelector.requiredForImport")}</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -367,7 +369,7 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
                         <span>{selectedAccount.name}</span>
                       </>
                     ) : (
-                      <span className="text-muted-foreground">Select an account</span>
+                      <span className="text-muted-foreground">{t("common.selectAccount")}</span>
                     )}
                   </div>
                   <Icons.ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -442,7 +444,7 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
           }}
         >
           <Command className="w-full">
-            <CommandInput placeholder="Search accounts..." />
+            <CommandInput placeholder={t("common.searchAccounts")} />
             <CommandList>
               {isLoading ? (
                 <div className="px-2 py-6 text-center">
@@ -465,7 +467,7 @@ export const AccountSelector = forwardRef<HTMLButtonElement, AccountSelectorProp
                       ([t]) => t === PORTFOLIO_ACCOUNT_TYPE,
                     );
                     const portfoliosGroup = showPortfolios ? (
-                      <CommandGroup key="__portfolios__" heading="Portfolios">
+                      <CommandGroup key="__portfolios__" heading={t("settings.portfolios.title")}>
                         {portfolios.map((p) => (
                           <CommandItem
                             key={p.id}

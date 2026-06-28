@@ -4,12 +4,12 @@
 //! combines multiple resolvers and tries them in order until one succeeds.
 
 use crate::errors::MarketDataError;
-use crate::models::{Currency, InstrumentId, ProviderId, QuoteContext};
+use crate::models::{Currency, InstrumentId, ProviderId, ProviderInstrument, QuoteContext};
 
 use super::asset_resolver::AssetResolver;
 use super::exchange_suffixes::ExchangeMap;
 use super::rules_resolver::RulesResolver;
-use super::traits::{ResolvedInstrument, Resolver, SymbolResolver};
+use super::traits::{ResolutionSource, ResolvedInstrument, Resolver, SymbolResolver};
 
 /// Composite resolver that tries multiple resolvers in order.
 ///
@@ -83,6 +83,15 @@ impl SymbolResolver for ResolverChain {
         provider: &ProviderId,
         context: &QuoteContext,
     ) -> Result<ResolvedInstrument, MarketDataError> {
+        if provider.as_ref() == "EASTMONEY_FUND" {
+            if let InstrumentId::Fund { code } = &context.instrument {
+                return Ok(ResolvedInstrument {
+                    instrument: ProviderInstrument::FundCode { code: code.clone() },
+                    source: ResolutionSource::Rules,
+                });
+            }
+        }
+
         // Try each resolver in order
         for resolver in &self.resolvers {
             if let Some(result) = resolver.resolve(provider, context) {
@@ -111,6 +120,9 @@ impl SymbolResolver for ResolverChain {
             InstrumentId::Metal { quote, .. } => Some(quote.clone()),
             InstrumentId::Option { .. } => None,
             InstrumentId::Bond { .. } => None,
+            InstrumentId::Fund { .. } => {
+                context.currency_hint.clone().or_else(|| Some("CNY".into()))
+            }
         }
     }
 }

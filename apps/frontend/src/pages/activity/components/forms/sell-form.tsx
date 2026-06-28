@@ -9,6 +9,7 @@ import { Button } from "@wealthfolio/ui/components/ui/button";
 import { Card, CardContent } from "@wealthfolio/ui/components/ui/card";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { FormProvider, useForm, type Resolver } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -151,6 +152,7 @@ export function SellForm({
   isEditing = false,
   assetCurrency,
 }: SellFormProps) {
+  const { t } = useTranslation();
   const { data: settings } = useSettings();
   const baseCurrency = settings?.baseCurrency;
 
@@ -246,8 +248,8 @@ export function SellForm({
     setValue("assetMetadata", undefined);
   };
 
-  const quantityLabel = isOption ? "Contracts" : assetType === "bond" ? "Bonds" : "Quantity";
-  const priceLabel = isOption ? "Premium/Share" : "Price";
+  const quantityLabel = isOption ? t("activityManager.form.contracts") : assetType === "bond" ? t("activityManager.form.bonds") : t("activityManager.form.quantity");
+  const priceLabel = isOption ? t("activityManager.form.premiumShare") : t("activityManager.form.price");
 
   // Get account currency from selected account
   const selectedAccount = useMemo(
@@ -393,7 +395,7 @@ export function SellForm({
             <AccountSelect name="accountId" accounts={accounts} currencyName="currency" />
 
             {/* Date Picker */}
-            <DatePicker name="activityDate" label="Date" enableTime={true} />
+            <DatePicker name="activityDate" label={t("activityManager.form.date")} enableTime={true} />
 
             {/* Symbol / Option Contract Fields */}
             {isOption ? (
@@ -431,7 +433,7 @@ export function SellForm({
 
             {/* Quantity, Price, Fee Row */}
             {isOption && (
-              <h4 className="text-muted-foreground text-sm font-medium">Trade Details</h4>
+              <h4 className="text-muted-foreground text-sm font-medium">{t("activityManager.form.tradeDetails")}</h4>
             )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
@@ -445,7 +447,7 @@ export function SellForm({
                       type="number"
                       {...form.register("contractMultiplier", { valueAsNumber: true })}
                       className="hover:border-input focus:border-input focus:bg-background focus:ring-ring h-5 w-14 rounded border border-transparent bg-transparent px-1 text-center text-xs tabular-nums focus:outline-none focus:ring-1"
-                      aria-label="Contract Multiplier"
+                      aria-label={t("activityManager.form.contractMultiplier")}
                     />
                     <span>x</span>
                   </div>
@@ -467,7 +469,7 @@ export function SellForm({
                 maxDecimalPlaces={4}
                 currency={currency}
               />
-              <AmountInput name="fee" label="Fee" currency={currency} />
+              <AmountInput name="fee" label={t("activityManager.form.fee")} currency={currency} />
             </div>
 
             {/* Option Total Credit with formula breakdown */}
@@ -476,7 +478,7 @@ export function SellForm({
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-muted-foreground text-xs font-medium uppercase">
-                      Total Credit
+                      {t("activityManager.form.totalCredit")}
                     </span>
                     <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
                       {Number(optQuantity)} ×{" "}
@@ -536,7 +538,7 @@ export function SellForm({
             />
 
             {/* Notes */}
-            <NotesInput name="comment" label="Notes" placeholder="Add an optional note..." />
+            <NotesInput name="comment" label={t("activityManager.form.notes")} placeholder={t("activityManager.form.optionalNote")} />
           </CardContent>
         </Card>
 
@@ -544,7 +546,7 @@ export function SellForm({
         <div className="flex justify-end gap-2">
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-              Cancel
+              {t("activityManager.form.cancel")}
             </Button>
           )}
           <Button type="submit" disabled={isLoading}>
@@ -554,7 +556,7 @@ export function SellForm({
             ) : (
               <Icons.Plus className="mr-2 h-4 w-4" />
             )}
-            {isEditing ? "Update" : isOption ? "Sell to Close" : "Add Sell"}
+            {isEditing ? t("activityManager.form.update") : isOption ? t("activityManager.form.sellToClose") : t("activityManager.form.addSell")}
           </Button>
         </div>
       </form>
