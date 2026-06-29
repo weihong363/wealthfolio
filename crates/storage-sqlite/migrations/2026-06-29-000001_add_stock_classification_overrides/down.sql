@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_stock_classification_overrides_asset_code;
+DROP TABLE IF EXISTS stock_classification_overrides;
