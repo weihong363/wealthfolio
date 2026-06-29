@@ -20,6 +20,7 @@ import {
 } from "@/lib/performance";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export interface PerformanceGridProps {
   performance?: PerformanceResult | null;
@@ -37,6 +38,8 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
   className,
   isHoldingsMode = false,
 }) => {
+  const { t } = useTranslation();
+
   if (performanceError) {
     return (
       <div className={cn("w-full", className)}>

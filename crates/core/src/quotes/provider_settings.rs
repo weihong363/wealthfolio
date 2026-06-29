@@ -113,6 +113,16 @@ impl ProviderCapabilities {
                     "No API key".to_string(),
                 ],
             }),
+            "EASTMONEY_STOCK" => Some(Self {
+                instruments: "Stocks".to_string(),
+                coverage: "China A/BJ • Hong Kong • US".to_string(),
+                features: vec![
+                    "Profiles".to_string(),
+                    "Industry".to_string(),
+                    "Concept tags".to_string(),
+                    "No API key".to_string(),
+                ],
+            }),
             "OPENFIGI" => Some(Self {
                 instruments: "Bonds".to_string(),
                 coverage: "Global".to_string(),

@@ -96,6 +96,8 @@ pub fn fund_top_holdings(snapshot: &FundResearchSnapshot) -> Vec<FundTopHolding>
             asset_name: h.asset_name.clone(),
             asset_type: h.asset_type.clone(),
             market: h.market.clone(),
+            sector: h.sector.clone(),
+            industry: h.industry.clone(),
             weight_pct: h.weight_pct.unwrap_or(0.0),
             theme_tags: h.theme_tags.clone(),
         })
@@ -116,9 +118,8 @@ pub fn portfolio_fund_lookthrough(
 
     let mut missing_funds: Vec<String> = Vec::new();
 
-    // Group: holdings_key → (total_exposure, contributions, theme_tags)
-    let mut by_asset: BTreeMap<HoldingsKey, (f64, Vec<FundLookthroughContribution>, Vec<String>)> =
-        BTreeMap::new();
+    // Group: holdings_key → aggregate lookthrough fields.
+    let mut by_asset: BTreeMap<HoldingsKey, LookthroughAccumulator> = BTreeMap::new();
 
     for position in positions {
         let Some(snapshot) = snapshots.iter().find(|s| s.fund_code == position.fund_code) else {
@@ -144,9 +145,9 @@ pub fn portfolio_fund_lookthrough(
 
             let entry = by_asset
                 .entry(key.clone())
-                .or_insert_with(|| (0.0, Vec::new(), Vec::new()));
-            entry.0 += exposure_value;
-            entry.1.push(FundLookthroughContribution {
+                .or_insert_with(LookthroughAccumulator::default);
+            entry.exposure_value_base += exposure_value;
+            entry.source_funds.push(FundLookthroughContribution {
                 fund_code: position.fund_code.clone(),
                 fund_name: Some(snapshot.fund_name.clone()),
                 fund_market_value_base: position.market_value_base,
@@ -154,9 +155,15 @@ pub fn portfolio_fund_lookthrough(
                 exposure_value_base: exposure_value,
                 report_date: holding.report_date,
             });
+            if entry.sector.is_none() {
+                entry.sector = holding.sector.clone();
+            }
+            if entry.industry.is_none() {
+                entry.industry = holding.industry.clone();
+            }
             for tag in &holding.theme_tags {
-                if !entry.2.contains(tag) {
-                    entry.2.push(tag.clone());
+                if !entry.theme_tags.contains(tag) {
+                    entry.theme_tags.push(tag.clone());
                 }
             }
         }
@@ -164,22 +171,22 @@ pub fn portfolio_fund_lookthrough(
 
     let mut holdings: Vec<PortfolioFundLookthroughHolding> = by_asset
         .into_iter()
-        .map(
-            |(key, (total_exposure, source_funds, theme_tags))| PortfolioFundLookthroughHolding {
-                asset_code: key.asset_code,
-                asset_name: key.asset_name,
-                asset_type: key.asset_type,
-                market: key.market,
-                theme_tags,
-                exposure_value_base: total_exposure,
-                weight_pct: if total_value > 0.0 {
-                    total_exposure / total_value * 100.0
-                } else {
-                    0.0
-                },
-                source_funds,
+        .map(|(key, accumulator)| PortfolioFundLookthroughHolding {
+            asset_code: key.asset_code,
+            asset_name: key.asset_name,
+            asset_type: key.asset_type,
+            market: key.market,
+            sector: accumulator.sector,
+            industry: accumulator.industry,
+            theme_tags: accumulator.theme_tags,
+            exposure_value_base: accumulator.exposure_value_base,
+            weight_pct: if total_value > 0.0 {
+                accumulator.exposure_value_base / total_value * 100.0
+            } else {
+                0.0
             },
-        )
+            source_funds: accumulator.source_funds,
+        })
         .collect();
 
     // Sort by exposure value descending
@@ -206,12 +213,23 @@ struct HoldingsKey {
     market: Option<String>,
 }
 
+#[derive(Clone, Debug, Default)]
+struct LookthroughAccumulator {
+    exposure_value_base: f64,
+    source_funds: Vec<FundLookthroughContribution>,
+    theme_tags: Vec<String>,
+    sector: Option<String>,
+    industry: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use chrono::{NaiveDate, Utc};
 
     use super::*;
-    use crate::fund_research::models::{FundAiFeatures, FundInternalHolding, HoldingAssetType, ThemeExposureSource};
+    use crate::fund_research::models::{
+        FundAiFeatures, FundInternalHolding, HoldingAssetType, ThemeExposureSource,
+    };
 
     #[test]
     fn calculates_user_theme_lookthrough() {
@@ -296,6 +314,8 @@ mod tests {
             asset_name: name.to_string(),
             asset_type: HoldingAssetType::Stock,
             market: None,
+            sector: None,
+            industry: None,
             weight_pct: weight,
             theme_tags: vec![],
         }
@@ -384,6 +404,8 @@ mod tests {
             asset_name: "Same".into(),
             asset_type: HoldingAssetType::Stock,
             market: None,
+            sector: None,
+            industry: None,
             weight_pct: Some(10.0),
             theme_tags: vec![],
         };
@@ -414,6 +436,8 @@ mod tests {
             asset_name: "A".into(),
             asset_type: HoldingAssetType::Stock,
             market: None,
+            sector: None,
+            industry: None,
             weight_pct: Some(8.0),
             theme_tags: vec![],
         };
@@ -435,6 +459,8 @@ mod tests {
             asset_name: "NoCode".into(),
             asset_type: HoldingAssetType::Stock,
             market: None,
+            sector: None,
+            industry: None,
             weight_pct: Some(10.0),
             theme_tags: vec![],
         };
@@ -479,6 +505,8 @@ mod tests {
             asset_name: "A".into(),
             asset_type: HoldingAssetType::Stock,
             market: None,
+            sector: None,
+            industry: None,
             weight_pct: Some(10.0),
             theme_tags: vec!["AI".into(), "5G".into()],
         };
@@ -490,6 +518,8 @@ mod tests {
             asset_name: "A".into(),
             asset_type: HoldingAssetType::Stock,
             market: None,
+            sector: None,
+            industry: None,
             weight_pct: Some(5.0),
             theme_tags: vec!["AI".into(), "Chip".into()],
         };

@@ -16,8 +16,8 @@ use wealthfolio_core::{
     assets::{AlternativeAssetService, AssetClassificationService, AssetService},
     events::DomainEvent,
     fund_research::{
-        EastmoneyFundResearchFetcher, FundResearchService, HoldingsBasedPositionProvider,
-        theme_mapping::ThemeMappingConfig,
+        theme_mapping::ThemeMappingConfig, EastmoneyFundResearchFetcher, FundResearchService,
+        HoldingsBasedPositionProvider,
     },
     fx::{FxService, FxServiceTrait},
     goals::GoalService,
@@ -45,6 +45,7 @@ use wealthfolio_storage_sqlite::{
     ai_chat::AiChatRepository,
     assets::{AlternativeAssetRepository, AssetRepository},
     db::{self, write_actor},
+    fund_research::FundResearchSqliteRepository,
     fx::FxRepository,
     goals::GoalRepository,
     health::HealthDismissalRepository,
@@ -58,7 +59,6 @@ use wealthfolio_storage_sqlite::{
     settings::SettingsRepository,
     sync::{AppSyncRepository, BrokerSyncStateRepository, ImportRunRepository, PlatformRepository},
     taxonomies::TaxonomyRepository,
-    fund_research::FundResearchSqliteRepository,
 };
 
 /// Result of context initialization, including the receiver for domain events.
@@ -453,12 +453,8 @@ pub async fn initialize_context(
         base_currency.read().unwrap().clone(),
     ));
     let fund_research_service = Arc::new(
-        FundResearchService::new(
-            fund_research_repository,
-            fund_fetcher,
-            theme_mapping,
-        )
-        .with_position_provider(fund_research_position_provider),
+        FundResearchService::new(fund_research_repository, fund_fetcher, theme_mapping)
+            .with_position_provider(fund_research_position_provider),
     );
 
     let allocation_service = Arc::new(

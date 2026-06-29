@@ -4,7 +4,7 @@ use crate::errors::Result;
 
 use super::models::{
     FundResearchSnapshot, PortfolioFundPosition, RebalanceAlert, SectorRotationSignal,
-    ThemeExposure,
+    StockClassificationOverride, ThemeExposure, UpsertStockClassificationOverride,
 };
 
 #[async_trait]
@@ -24,6 +24,12 @@ pub trait FundResearchRepository: Send + Sync {
     async fn rotation_signals(&self, themes: &[String]) -> Result<Vec<SectorRotationSignal>>;
     async fn upsert_rebalance_alerts(&self, alerts: &[RebalanceAlert]) -> Result<()>;
     async fn rebalance_alerts(&self, fund_code: Option<&str>) -> Result<Vec<RebalanceAlert>>;
+    async fn stock_classification_overrides(&self) -> Result<Vec<StockClassificationOverride>>;
+    async fn upsert_stock_classification_override(
+        &self,
+        input: UpsertStockClassificationOverride,
+    ) -> Result<StockClassificationOverride>;
+    async fn delete_stock_classification_override(&self, stock_key: &str) -> Result<()>;
 }
 
 #[async_trait]

@@ -10,6 +10,7 @@ import { Card } from "@wealthfolio/ui/components/ui/card";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { HoldingsMobileFilterSheet } from "./holdings-mobile-filter-sheet";
 
@@ -52,6 +53,7 @@ export const HoldingsTableMobile = ({
   setPerformanceMode: controlledSetPerformanceMode,
   typeOptions,
 }: HoldingsTableMobileProps) => {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");

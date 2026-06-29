@@ -1,12 +1,8 @@
 import { AmountDisplay } from "@wealthfolio/ui";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@wealthfolio/ui/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@wealthfolio/ui/components/ui/sheet";
 import { useTranslation } from "react-i18next";
 import type { PortfolioFundLookthroughHolding } from "../types";
+import { cleanAssetName } from "../utils";
 
 export function SourceFundsSheet({
   holding,
@@ -24,7 +20,7 @@ export function SourceFundsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle className="text-lg">{holding.assetName}</SheetTitle>
+          <SheetTitle className="text-lg">{cleanAssetName(holding.assetName)}</SheetTitle>
           <p className="text-muted-foreground text-sm">
             {t("fundResearch.indirectExposure")} ·{" "}
             {t("fundResearch.fundsCount", { count: holding.sourceFunds.length })}
@@ -32,14 +28,9 @@ export function SourceFundsSheet({
         </SheetHeader>
         <div className="mt-6 space-y-3">
           {holding.sourceFunds.map((sf) => (
-            <div
-              key={sf.fundCode}
-              className="bg-muted/30 rounded-lg border p-3"
-            >
+            <div key={sf.fundCode} className="bg-muted/30 rounded-lg border p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {sf.fundName ?? sf.fundCode}
-                </span>
+                <span className="text-sm font-medium">{sf.fundName ?? sf.fundCode}</span>
                 <span className="text-muted-foreground text-xs">{sf.fundCode}</span>
               </div>
               <div className="text-muted-foreground mt-2 grid grid-cols-2 gap-1 text-xs">

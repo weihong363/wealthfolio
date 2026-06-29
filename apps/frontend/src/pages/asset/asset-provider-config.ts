@@ -11,6 +11,10 @@ export function getOverrideTypeForInstrumentType(
   switch (instrumentType) {
     case "BOND":
       return "bond_isin";
+    case "FUND":
+    case "MUTUALFUND":
+    case "MUTUAL_FUND":
+      return "equity_symbol";
     case "CRYPTO":
     case "CRYPTOCURRENCY":
       return "crypto_symbol";

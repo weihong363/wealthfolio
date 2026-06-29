@@ -21,8 +21,9 @@ describe("normalizeInstrumentType", () => {
     // Equity aliases
     expect(normalizeInstrumentType("STOCK")).toBe("EQUITY");
     expect(normalizeInstrumentType("ETF")).toBe("EQUITY");
-    expect(normalizeInstrumentType("MUTUALFUND")).toBe("EQUITY");
-    expect(normalizeInstrumentType("MUTUAL_FUND")).toBe("EQUITY");
+    expect(normalizeInstrumentType("FUND")).toBe("FUND");
+    expect(normalizeInstrumentType("MUTUALFUND")).toBe("FUND");
+    expect(normalizeInstrumentType("MUTUAL_FUND")).toBe("FUND");
     expect(normalizeInstrumentType("INDEX")).toBe("EQUITY");
 
     // Bond aliases
@@ -49,8 +50,8 @@ describe("normalizeInstrumentType", () => {
     expect(normalizeInstrumentType("  BOND  ")).toBe("BOND");
     expect(normalizeInstrumentType("FIXED INCOME")).toBe("BOND");
     expect(normalizeInstrumentType("fixed-income")).toBe("BOND");
-    expect(normalizeInstrumentType("MUTUAL FUND")).toBe("EQUITY");
-    expect(normalizeInstrumentType("mutual-fund")).toBe("EQUITY");
+    expect(normalizeInstrumentType("MUTUAL FUND")).toBe("FUND");
+    expect(normalizeInstrumentType("mutual-fund")).toBe("FUND");
   });
 
   it("returns undefined for unrecognized types", () => {

@@ -13,8 +13,10 @@ use uuid::Uuid;
 use crate::db::{get_connection, WriteHandle};
 use crate::errors::StorageError;
 use wealthfolio_core::errors::{Error, Result};
+use wealthfolio_core::fund_research::service::stock_classification_key;
 use wealthfolio_core::fund_research::{
     FundResearchRepository, FundResearchSnapshot, RebalanceAlert, SectorRotationSignal,
+    StockClassificationOverride, UpsertStockClassificationOverride,
 };
 
 pub struct FundResearchSqliteRepository {
@@ -160,6 +162,26 @@ struct RebalanceAlertRow {
     created_at: String,
     #[diesel(sql_type = Nullable<Text>)]
     read_at: Option<String>,
+}
+
+#[derive(QueryableByName)]
+struct StockClassificationOverrideRow {
+    #[diesel(sql_type = Text)]
+    stock_key: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    asset_code: Option<String>,
+    #[diesel(sql_type = Text)]
+    asset_name: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    sector: Option<String>,
+    #[diesel(sql_type = Nullable<Text>)]
+    industry: Option<String>,
+    #[diesel(sql_type = Text)]
+    theme_tags_json: String,
+    #[diesel(sql_type = Text)]
+    source: String,
+    #[diesel(sql_type = Text)]
+    updated_at: String,
 }
 
 #[async_trait]
@@ -348,6 +370,74 @@ impl FundResearchRepository for FundResearchSqliteRepository {
 
         rows.into_iter().map(TryInto::try_into).collect()
     }
+
+    async fn stock_classification_overrides(&self) -> Result<Vec<StockClassificationOverride>> {
+        let mut conn = get_connection(&self.pool)?;
+        let rows = sql_query(
+            "SELECT stock_key, asset_code, asset_name, sector, industry, theme_tags_json, source, updated_at
+             FROM stock_classification_overrides
+             ORDER BY asset_name ASC",
+        )
+        .load::<StockClassificationOverrideRow>(&mut conn)
+        .map_err(StorageError::QueryFailed)?;
+
+        rows.into_iter().map(TryInto::try_into).collect()
+    }
+
+    async fn upsert_stock_classification_override(
+        &self,
+        input: UpsertStockClassificationOverride,
+    ) -> Result<StockClassificationOverride> {
+        let stock_key = stock_classification_key(input.asset_code.as_deref(), &input.asset_name);
+        let updated_at = Utc::now();
+        let override_item = StockClassificationOverride {
+            stock_key,
+            asset_code: input.asset_code.and_then(non_empty_string),
+            asset_name: input.asset_name.trim().to_string(),
+            sector: input.sector.and_then(non_empty_string),
+            industry: input.industry.and_then(non_empty_string),
+            theme_tags: dedupe_labels(input.theme_tags),
+            source: "manual".to_string(),
+            updated_at,
+        };
+        let saved = override_item.clone();
+
+        self.writer
+            .exec_tx(move |tx| {
+                sql_query(
+                    "REPLACE INTO stock_classification_overrides
+                     (stock_key, asset_code, asset_name, sector, industry, theme_tags_json, source, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                )
+                .bind::<Text, _>(&saved.stock_key)
+                .bind::<Nullable<Text>, _>(saved.asset_code.clone())
+                .bind::<Text, _>(&saved.asset_name)
+                .bind::<Nullable<Text>, _>(saved.sector.clone())
+                .bind::<Nullable<Text>, _>(saved.industry.clone())
+                .bind::<Text, _>(to_json(&saved.theme_tags)?)
+                .bind::<Text, _>(&saved.source)
+                .bind::<Text, _>(saved.updated_at.to_rfc3339())
+                .execute(tx.conn())
+                .map_err(StorageError::QueryFailed)?;
+                Ok(())
+            })
+            .await?;
+
+        Ok(override_item)
+    }
+
+    async fn delete_stock_classification_override(&self, stock_key: &str) -> Result<()> {
+        let stock_key = stock_key.trim().to_uppercase();
+        self.writer
+            .exec_tx(move |tx| {
+                sql_query("DELETE FROM stock_classification_overrides WHERE stock_key = ?")
+                    .bind::<Text, _>(stock_key)
+                    .execute(tx.conn())
+                    .map_err(StorageError::QueryFailed)?;
+                Ok(())
+            })
+            .await
+    }
 }
 
 fn insert_snapshot(conn: &mut SqliteConnection, snapshot: &FundResearchSnapshot) -> Result<()> {
@@ -414,8 +504,8 @@ fn insert_snapshot_children(
         sql_query(
             "REPLACE INTO fund_internal_holdings
              (id, fund_code, report_date, rank, asset_code, asset_name, asset_type, market,
-              weight_pct, theme_tags_json, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              sector, industry, weight_pct, theme_tags_json, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind::<Text, _>(stable_id(
             "fund_holding",
@@ -433,6 +523,8 @@ fn insert_snapshot_children(
         .bind::<Text, _>(&holding.asset_name)
         .bind::<Text, _>(to_json(&holding.asset_type)?)
         .bind::<Nullable<Text>, _>(holding.market.clone())
+        .bind::<Nullable<Text>, _>(holding.sector.clone())
+        .bind::<Nullable<Text>, _>(holding.industry.clone())
         .bind::<Nullable<Double>, _>(holding.weight_pct)
         .bind::<Text, _>(to_json(&holding.theme_tags)?)
         .bind::<Text, _>(&created_at)
@@ -624,6 +716,25 @@ fn json_error(error: serde_json::Error) -> Error {
     Error::Repository(format!("Fund research JSON error: {error}"))
 }
 
+fn non_empty_string(value: String) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+fn dedupe_labels(labels: Vec<String>) -> Vec<String> {
+    let mut result = Vec::new();
+    for label in labels.into_iter().filter_map(non_empty_string) {
+        if !result.contains(&label) {
+            result.push(label);
+        }
+    }
+    result
+}
+
 impl TryFrom<RotationSignalRow> for SectorRotationSignal {
     type Error = Error;
 
@@ -672,6 +783,29 @@ impl TryFrom<RebalanceAlertRow> for RebalanceAlert {
                         })
                 })
                 .transpose()?,
+        })
+    }
+}
+
+impl TryFrom<StockClassificationOverrideRow> for StockClassificationOverride {
+    type Error = Error;
+
+    fn try_from(row: StockClassificationOverrideRow) -> Result<Self> {
+        Ok(Self {
+            stock_key: row.stock_key,
+            asset_code: row.asset_code,
+            asset_name: row.asset_name,
+            sector: row.sector,
+            industry: row.industry,
+            theme_tags: deserialize_json(&row.theme_tags_json)?,
+            source: row.source,
+            updated_at: chrono::DateTime::parse_from_rfc3339(&row.updated_at)
+                .map_err(|error| {
+                    Error::Repository(format!(
+                        "Invalid stock classification override updated_at: {error}"
+                    ))
+                })?
+                .with_timezone(&Utc),
         })
     }
 }

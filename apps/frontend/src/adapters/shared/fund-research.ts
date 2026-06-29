@@ -1,7 +1,9 @@
 // Fund Research Commands
 import type {
   FundTopHolding,
+  HoldingClassificationOverride,
   PortfolioFundLookthroughSummary,
+  SaveHoldingClassificationOverrideInput,
   ThemeExposureItem,
 } from "@/pages/fund-research/types";
 
@@ -45,6 +47,39 @@ export const getPortfolioThemeExposure = async (
     return await invoke<ThemeExposureItem[]>("get_portfolio_theme_exposure", { portfolioId });
   } catch (error) {
     logger.error("Error fetching portfolio theme exposure.");
+    throw error;
+  }
+};
+
+export const getStockClassificationOverrides = async (): Promise<
+  HoldingClassificationOverride[]
+> => {
+  try {
+    return await invoke<HoldingClassificationOverride[]>("get_stock_classification_overrides");
+  } catch (error) {
+    logger.error("Error fetching stock classification overrides.");
+    throw error;
+  }
+};
+
+export const saveStockClassificationOverride = async (
+  input: SaveHoldingClassificationOverrideInput,
+): Promise<HoldingClassificationOverride> => {
+  try {
+    return await invoke<HoldingClassificationOverride>("save_stock_classification_override", {
+      input,
+    });
+  } catch (error) {
+    logger.error("Error saving stock classification override.");
+    throw error;
+  }
+};
+
+export const deleteStockClassificationOverride = async (stockKey: string): Promise<void> => {
+  try {
+    await invoke<void>("delete_stock_classification_override", { stockKey });
+  } catch (error) {
+    logger.error("Error deleting stock classification override.");
     throw error;
   }
 };

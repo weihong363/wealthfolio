@@ -35,8 +35,9 @@ use wealthfolio_market_data::{
 fn parse_instrument_type_from_provider(asset_type: &str) -> Option<InstrumentType> {
     match asset_type.to_uppercase().as_str() {
         "CRYPTOCURRENCY" | "CRYPTO" => Some(InstrumentType::Crypto),
-        "EQUITY" | "STOCK" | "ETF" | "MUTUALFUND" | "MUTUAL FUND" | "INDEX" => {
-            Some(InstrumentType::Equity)
+        "EQUITY" | "STOCK" | "ETF" | "INDEX" => Some(InstrumentType::Equity),
+        "FUND" | "MUTUALFUND" | "MUTUAL FUND" | "MUTUAL_FUND" | "CN_FUND" | "CHINA_FUND" => {
+            Some(InstrumentType::Fund)
         }
         "CURRENCY" | "FOREX" | "FX" => Some(InstrumentType::Fx),
         "OPTION" => Some(InstrumentType::Option),
@@ -678,6 +679,9 @@ impl AssetService {
             Some(InstrumentType::Equity) if expected_is_explicit => {
                 actual.is_none_or(|actual| actual == InstrumentType::Equity)
             }
+            Some(InstrumentType::Fund) if expected_is_explicit => {
+                actual.is_none_or(|actual| actual == InstrumentType::Fund)
+            }
             Some(InstrumentType::Equity) => !matches!(
                 actual,
                 Some(
@@ -685,6 +689,16 @@ impl AssetService {
                         | InstrumentType::Fx
                         | InstrumentType::Option
                         | InstrumentType::Bond
+                )
+            ),
+            Some(InstrumentType::Fund) => !matches!(
+                actual,
+                Some(
+                    InstrumentType::Crypto
+                        | InstrumentType::Fx
+                        | InstrumentType::Option
+                        | InstrumentType::Bond
+                        | InstrumentType::Metal
                 )
             ),
             Some(InstrumentType::Metal) => matches!(actual, Some(InstrumentType::Metal) | None),
@@ -791,6 +805,7 @@ impl AssetService {
             Some(InstrumentType::Equity | InstrumentType::Option) | None => {
                 Some(ProviderInstrument::EquitySymbol { symbol })
             }
+            Some(InstrumentType::Fund) => Some(ProviderInstrument::FundCode { code: symbol }),
             Some(InstrumentType::Crypto) => Some(ProviderInstrument::CryptoSymbol { symbol }),
             Some(InstrumentType::Fx) => Some(ProviderInstrument::FxSymbol { symbol }),
             Some(InstrumentType::Metal) => Some(ProviderInstrument::MetalSymbol {
@@ -808,6 +823,9 @@ impl AssetService {
         quote_ccy: Option<&str>,
     ) -> Option<MarketInstrumentId> {
         match instrument_type {
+            InstrumentType::Fund => Some(MarketInstrumentId::Fund {
+                code: Arc::from(symbol),
+            }),
             InstrumentType::Equity => Some(MarketInstrumentId::Equity {
                 ticker: Arc::from(symbol),
                 mic: exchange_mic.map(|mic| Cow::Owned(mic.to_string())),

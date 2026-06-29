@@ -110,8 +110,9 @@ fn reconcile_quote_currency(quote: &mut Quote, asset: &Asset) {
 
 fn instrument_type_from_search_result(quote_type: &str) -> Option<InstrumentType> {
     match quote_type.to_uppercase().as_str() {
-        "EQUITY" | "STOCK" | "ETF" | "MUTUALFUND" | "MUTUAL FUND" | "INDEX" | "ECNQUOTE" => {
-            Some(InstrumentType::Equity)
+        "EQUITY" | "STOCK" | "ETF" | "INDEX" | "ECNQUOTE" => Some(InstrumentType::Equity),
+        "FUND" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "CN_FUND" | "CHINA_FUND" => {
+            Some(InstrumentType::Fund)
         }
         "CRYPTOCURRENCY" | "CRYPTO" => Some(InstrumentType::Crypto),
         "CURRENCY" | "FOREX" | "FX" => Some(InstrumentType::Fx),
@@ -202,8 +203,10 @@ fn asset_search_display_symbol(asset: &Asset) -> String {
     let Some(instrument_symbol) = asset.instrument_symbol.as_deref().map(str::trim) else {
         return stored_display;
     };
-    if !matches!(asset.instrument_type.as_ref(), Some(InstrumentType::Equity))
-        || instrument_symbol.is_empty()
+    if !matches!(
+        asset.instrument_type.as_ref(),
+        Some(InstrumentType::Equity | InstrumentType::Fund)
+    ) || instrument_symbol.is_empty()
         || !stored_display
             .trim()
             .eq_ignore_ascii_case(instrument_symbol)
@@ -785,6 +788,7 @@ where
 
         let quote_type = match asset.instrument_type {
             Some(InstrumentType::Equity) => "EQUITY",
+            Some(InstrumentType::Fund) => "MUTUALFUND",
             Some(InstrumentType::Crypto) => "CRYPTOCURRENCY",
             Some(InstrumentType::Metal) => "COMMODITY",
             Some(InstrumentType::Option) => "OPTION",

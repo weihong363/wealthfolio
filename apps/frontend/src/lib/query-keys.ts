@@ -163,6 +163,7 @@ export const QueryKeys = {
   FUND_TOP_HOLDINGS: "fundTopHoldings",
   PORTFOLIO_FUND_LOOKTHROUGH: "portfolioFundLookthrough",
   PORTFOLIO_THEME_EXPOSURE: "portfolioThemeExposure",
+  STOCK_CLASSIFICATION_OVERRIDES: "stockClassificationOverrides",
 
   // Snapshot Management
   SNAPSHOTS: "snapshots",

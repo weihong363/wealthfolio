@@ -25,6 +25,7 @@ mod traits;
 pub mod alpha_vantage;
 pub mod boerse_frankfurt;
 pub mod eastmoney_fund;
+pub mod eastmoney_stock;
 pub mod finnhub;
 pub mod fixture;
 pub mod marketdata_app;

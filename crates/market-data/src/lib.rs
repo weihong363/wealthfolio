@@ -87,6 +87,9 @@ pub use provider::eastmoney_fund::{
     FundScalePoint, HolderStructure, HoldingChangeType, HoldingConcentration, MarketQuote, Period,
     PurchaseRules, RegionAllocation, SectorAllocation, ThemeExposure,
 };
+pub use provider::eastmoney_stock::{
+    EastmoneyStockMarket, EastmoneyStockProfile, EastmoneyStockProvider, EastmoneyStockRoute,
+};
 pub use provider::finnhub::FinnhubProvider;
 pub use provider::fixture::FixtureProvider;
 pub use provider::marketdata_app::MarketDataAppProvider;

@@ -68,6 +68,7 @@ export const MetricDisplay: React.FC<MetricDisplayProps> = ({
   emptyReason,
   tone = "gain",
 }) => {
+  const { t } = useTranslation();
   const [mobilePopoverOpen, setMobilePopoverOpen] = useState(false);
 
   const displayValue =

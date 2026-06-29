@@ -23,6 +23,7 @@ export function HoldingsSummaryBar({
   currency,
   className,
 }: HoldingsSummaryBarProps) {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const netWorth = totalAssets - totalLiabilities;
 

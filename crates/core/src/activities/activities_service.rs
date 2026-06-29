@@ -410,8 +410,12 @@ impl ActivityService {
 
     fn parse_instrument_type(value: Option<&str>) -> Option<InstrumentType> {
         match value?.trim().to_uppercase().as_str() {
-            "EQUITY" | "STOCK" | "ETF" | "MUTUALFUND" | "MUTUAL_FUND" | "INDEX" | "FUTURE"
-            | "FUTURES" => Some(InstrumentType::Equity),
+            "EQUITY" | "STOCK" | "ETF" | "INDEX" | "FUTURE" | "FUTURES" => {
+                Some(InstrumentType::Equity)
+            }
+            "FUND" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "CN_FUND" | "CHINA_FUND" => {
+                Some(InstrumentType::Fund)
+            }
             "CRYPTO" | "CRYPTOCURRENCY" => Some(InstrumentType::Crypto),
             "FX" | "FOREX" | "CURRENCY" => Some(InstrumentType::Fx),
             "OPTION" => Some(InstrumentType::Option),
@@ -1554,6 +1558,8 @@ impl ActivityService {
                 "SECURITY" | "INVESTMENT" | "EQUITY" => {
                     return (AssetKind::Investment, Some(InstrumentType::Equity))
                 }
+                "FUND" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "CN_FUND"
+                | "CHINA_FUND" => return (AssetKind::Investment, Some(InstrumentType::Fund)),
                 "CRYPTO" => return (AssetKind::Investment, Some(InstrumentType::Crypto)),
                 "FX_RATE" | "FX" => return (AssetKind::Fx, Some(InstrumentType::Fx)),
                 "OPTION" | "OPT" => return (AssetKind::Investment, Some(InstrumentType::Option)),
@@ -3027,6 +3033,7 @@ impl ActivityService {
             }
             InstrumentType::Crypto
             | InstrumentType::Fx
+            | InstrumentType::Fund
             | InstrumentType::Option
             | InstrumentType::Metal
             | InstrumentType::Bond => true,

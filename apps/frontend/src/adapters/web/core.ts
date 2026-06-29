@@ -401,6 +401,18 @@ export const COMMANDS: CommandMap = {
     path: "/fund-research/portfolios",
   },
   refresh_fund_research: { method: "POST", path: "/fund-research/funds" },
+  get_stock_classification_overrides: {
+    method: "GET",
+    path: "/fund-research/stock-classifications",
+  },
+  save_stock_classification_override: {
+    method: "PUT",
+    path: "/fund-research/stock-classifications",
+  },
+  delete_stock_classification_override: {
+    method: "DELETE",
+    path: "/fund-research/stock-classifications",
+  },
 };
 
 /**
@@ -1995,6 +2007,18 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
     case "refresh_fund_research": {
       const { fundCode } = payload as { fundCode: string };
       url += `/${encodeURIComponent(fundCode)}/refresh`;
+      break;
+    }
+    case "get_stock_classification_overrides":
+      break;
+    case "save_stock_classification_override": {
+      const { input } = payload as { input: Record<string, unknown> };
+      body = JSON.stringify(input);
+      break;
+    }
+    case "delete_stock_classification_override": {
+      const { stockKey } = payload as { stockKey: string };
+      url += `/${encodeURIComponent(stockKey)}`;
       break;
     }
   }

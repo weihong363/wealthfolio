@@ -16,6 +16,7 @@ import {
 import { usePortfolioSyncOptional } from "@/context/portfolio-sync-context";
 import { useIsMobileViewport } from "@/hooks/use-platform";
 import { shouldInvalidateAfterPortfolioUpdate } from "@/lib/query-invalidation";
+import { QueryKeys } from "@/lib/query-keys";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +34,11 @@ const BROKER_SYNC_FAILURE_DESCRIPTION =
   "We couldn't sync your broker data. Please try again later.";
 
 const POST_LOGIN_REQUIRED_LISTENERS = new Set(["broker-sync-complete", "broker-sync-error"]);
+const FUND_NAV_REFRESH_TARGET_HOUR = 20;
+const FUND_NAV_REFRESH_TARGET_MINUTE = 45;
+const FUND_NAV_REFRESH_END_HOUR = 23;
+const FUND_NAV_REFRESH_END_MINUTE = 30;
+const FUND_NAV_REFRESH_IN_WINDOW_DELAY_MS = 60_000;
 
 interface MarketSyncCompletePayload {
   failed_syncs?: [string, string][];
@@ -43,11 +49,30 @@ function getSyncFailures(payload?: MarketSyncCompletePayload | null): [string, s
   return Array.isArray(payload?.failed_syncs) ? payload.failed_syncs : [];
 }
 
+function getFundNavRefreshDelayMs(now = new Date()): number | null {
+  const refreshAt = new Date(now);
+  refreshAt.setHours(FUND_NAV_REFRESH_TARGET_HOUR, FUND_NAV_REFRESH_TARGET_MINUTE, 0, 0);
+
+  const refreshWindowEnd = new Date(now);
+  refreshWindowEnd.setHours(FUND_NAV_REFRESH_END_HOUR, FUND_NAV_REFRESH_END_MINUTE, 0, 0);
+
+  if (now > refreshWindowEnd) {
+    return null;
+  }
+
+  if (now >= refreshAt) {
+    return FUND_NAV_REFRESH_IN_WINDOW_DELAY_MS;
+  }
+
+  return refreshAt.getTime() - now.getTime();
+}
+
 const useGlobalEventListener = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [areListenersReady, setAreListenersReady] = useState(false);
   const hasTriggeredInitialUpdate = useRef(false);
+  const hasScheduledFundNavRefresh = useRef(false);
   const isDesktopEnv = isDesktop;
   const isMobileViewport = useIsMobileViewport();
   const syncContext = usePortfolioSyncOptional();
@@ -69,6 +94,7 @@ const useGlobalEventListener = () => {
   useEffect(() => {
     let isMounted = true;
     let cleanupFn: (() => void) | undefined;
+    let fundNavRefreshTimer: ReturnType<typeof setTimeout> | undefined;
     setAreListenersReady(false);
 
     const handleMarketSyncStart = () => {
@@ -103,6 +129,12 @@ const useGlobalEventListener = () => {
           },
         });
       }
+
+      queryClientRef.current.invalidateQueries({ queryKey: [QueryKeys.QUOTE_HISTORY] });
+      queryClientRef.current.invalidateQueries({ queryKey: [QueryKeys.LATEST_QUOTES] });
+      queryClientRef.current.invalidateQueries({
+        queryKey: [QueryKeys.ASSETS, QueryKeys.LATEST_QUOTES],
+      });
     };
 
     const handleMarketSyncError = (event: { payload: string }) => {
@@ -326,6 +358,19 @@ const useGlobalEventListener = () => {
         });
         // Note: Update check is now handled by useCheckUpdateOnStartup query in UpdateDialog
       }
+
+      if (!hasScheduledFundNavRefresh.current) {
+        const delayMs = getFundNavRefreshDelayMs();
+        if (delayMs !== null) {
+          hasScheduledFundNavRefresh.current = true;
+          fundNavRefreshTimer = setTimeout(() => {
+            logger.debug("Triggering scheduled fund NAV refresh");
+            updatePortfolio().catch((error) => {
+              logger.error("Failed to trigger scheduled fund NAV refresh: " + String(error));
+            });
+          }, delayMs);
+        }
+      }
     };
 
     setupListeners().catch((error) => {
@@ -335,6 +380,9 @@ const useGlobalEventListener = () => {
     return () => {
       isMounted = false;
       setAreListenersReady(false);
+      if (fundNavRefreshTimer) {
+        clearTimeout(fundNavRefreshTimer);
+      }
       cleanupFn?.();
     };
   }, [isDesktopEnv]); // Only re-run if isDesktopEnv changes (which it won't)

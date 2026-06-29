@@ -332,10 +332,13 @@ export {
 
 // Fund Research Commands
 export {
+  deleteStockClassificationOverride,
   getFundTopHoldings,
   getPortfolioFundLookthrough,
   getPortfolioThemeExposure,
+  getStockClassificationOverrides,
   refreshFundResearch,
+  saveStockClassificationOverride,
 } from "../shared/fund-research";
 
 // Allocation Target Commands

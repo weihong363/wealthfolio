@@ -4,9 +4,12 @@ use crate::error::{ApiError, ApiResult};
 use crate::main_lib::AppState;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::{Json, Router};
-use wealthfolio_core::fund_research::{FundTopHolding, PortfolioFundLookthroughSummary};
+use wealthfolio_core::fund_research::{
+    FundTopHolding, PortfolioFundLookthroughSummary, StockClassificationOverride,
+    UpsertStockClassificationOverride,
+};
 
 pub fn fund_research_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -21,6 +24,14 @@ pub fn fund_research_routes() -> Router<Arc<AppState>> {
         .route(
             "/fund-research/funds/{fund_code}/refresh",
             post(refresh_fund_research),
+        )
+        .route(
+            "/fund-research/stock-classifications",
+            get(get_stock_classification_overrides).put(save_stock_classification_override),
+        )
+        .route(
+            "/fund-research/stock-classifications/{stock_key}",
+            delete(delete_stock_classification_override),
         )
 }
 
@@ -58,4 +69,39 @@ async fn refresh_fund_research(
         .await
         .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(StatusCode::OK)
+}
+
+async fn get_stock_classification_overrides(
+    State(state): State<Arc<AppState>>,
+) -> ApiResult<Json<Vec<StockClassificationOverride>>> {
+    let overrides = state
+        .fund_research_service
+        .get_stock_classification_overrides()
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok(Json(overrides))
+}
+
+async fn save_stock_classification_override(
+    State(state): State<Arc<AppState>>,
+    Json(input): Json<UpsertStockClassificationOverride>,
+) -> ApiResult<Json<StockClassificationOverride>> {
+    let override_item = state
+        .fund_research_service
+        .save_stock_classification_override(input)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok(Json(override_item))
+}
+
+async fn delete_stock_classification_override(
+    Path(stock_key): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> ApiResult<StatusCode> {
+    state
+        .fund_research_service
+        .delete_stock_classification_override(&stock_key)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+    Ok(StatusCode::NO_CONTENT)
 }

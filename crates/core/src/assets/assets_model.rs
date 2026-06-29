@@ -45,7 +45,8 @@ pub enum AssetKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum InstrumentType {
-    Equity, // Stocks, ETFs, funds
+    Equity, // Stocks, ETFs
+    Fund,   // Mutual funds and other fund-code instruments
     Crypto, // Cryptocurrencies
     Fx,     // Currency exchange rates
     Option, // Options contracts
@@ -77,6 +78,7 @@ impl InstrumentType {
     pub const fn as_db_str(&self) -> &'static str {
         match self {
             InstrumentType::Equity => "EQUITY",
+            InstrumentType::Fund => "FUND",
             InstrumentType::Crypto => "CRYPTO",
             InstrumentType::Fx => "FX",
             InstrumentType::Option => "OPTION",
@@ -89,6 +91,7 @@ impl InstrumentType {
     pub fn from_db_str(s: &str) -> Option<Self> {
         match s {
             "EQUITY" => Some(InstrumentType::Equity),
+            "FUND" => Some(InstrumentType::Fund),
             "CRYPTO" => Some(InstrumentType::Crypto),
             "FX" => Some(InstrumentType::Fx),
             "OPTION" => Some(InstrumentType::Option),
@@ -101,8 +104,12 @@ impl InstrumentType {
     /// Parses provider/UI instrument labels into the canonical instrument type.
     pub fn from_external_str(s: &str) -> Option<Self> {
         match s.trim().to_uppercase().as_str() {
-            "EQUITY" | "STOCK" | "ETF" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "INDEX"
-            | "FUTURE" | "FUTURES" => Some(InstrumentType::Equity),
+            "EQUITY" | "STOCK" | "ETF" | "INDEX" | "FUTURE" | "FUTURES" => {
+                Some(InstrumentType::Equity)
+            }
+            "FUND" | "MUTUALFUND" | "MUTUAL_FUND" | "MUTUAL FUND" | "CN_FUND" | "CHINA_FUND" => {
+                Some(InstrumentType::Fund)
+            }
             "CRYPTO" | "CRYPTOCURRENCY" => Some(InstrumentType::Crypto),
             "FX" | "FOREX" | "CURRENCY" => Some(InstrumentType::Fx),
             "OPTION" => Some(InstrumentType::Option),
@@ -433,6 +440,12 @@ impl Asset {
         let inst_type = self.instrument_type.as_ref()?;
 
         match inst_type {
+            InstrumentType::Fund => {
+                let symbol = self.instrument_symbol.as_ref()?;
+                Some(InstrumentId::Fund {
+                    code: Arc::from(symbol.as_str()),
+                })
+            }
             InstrumentType::Equity => {
                 let symbol = self.instrument_symbol.as_ref()?;
                 if self.is_cn_fund_candidate(symbol) {
@@ -977,6 +990,7 @@ pub fn canonicalize_market_identity(
 
     match instrument_type {
         Some(InstrumentType::Equity)
+        | Some(InstrumentType::Fund)
         | Some(InstrumentType::Option)
         | Some(InstrumentType::Metal) => {
             if let Some(raw) = instrument_symbol.as_deref() {

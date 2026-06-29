@@ -72,6 +72,8 @@ export default function HistoryChart({
   onActivityMarkerClick?: (marker: HistoryChartActivityMarker) => void;
 }) {
   const [hoveredMarker, setHoveredMarker] = useState(false);
+  const axisCurrency = data[0]?.currency;
+  const yAxisTickCount = interval === "1D" ? 3 : 4;
   const markerByTimestamp = useMemo(() => {
     const markers = new Map<string, HistoryChartActivityMarker>();
     for (const marker of activityMarkers) {
@@ -101,7 +103,7 @@ export default function HistoryChart({
             }}
             margin={{
               top: 0,
-              right: 0,
+              right: 8,
               left: 0,
               bottom: 0,
             }}
@@ -125,9 +127,17 @@ export default function HistoryChart({
               content={(props) => <SymbolToolTip {...(props as unknown as SymbolTooltipProps)} />}
               wrapperStyle={{ pointerEvents: "none" }}
             />
-            {interval !== "ALL" && interval !== "1Y" ? (
-              <YAxis hide={true} type="number" domain={["auto", "auto"]} />
-            ) : null}
+            <YAxis
+              type="number"
+              domain={["auto", "auto"]}
+              orientation="right"
+              width={56}
+              tickCount={yAxisTickCount}
+              tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+              tickFormatter={(value) => formatNavTick(Number(value), axisCurrency)}
+              tickLine={false}
+              axisLine={false}
+            />
             <XAxis hide dataKey="timestamp" type="category" />
             <Area
               isAnimationActive={true}
@@ -163,6 +173,17 @@ export default function HistoryChart({
       </div>
     </div>
   );
+}
+
+function formatNavTick(value: number, currency?: string): string {
+  if (!Number.isFinite(value)) return "-";
+  if (currency && value >= 10_000) {
+    return formatAmount(value, currency, false);
+  }
+  return new Intl.NumberFormat("zh-CN", {
+    minimumFractionDigits: value < 10 ? 3 : 2,
+    maximumFractionDigits: value < 10 ? 4 : 2,
+  }).format(value);
 }
 
 function SymbolToolTip({ active, payload }: SymbolTooltipProps) {

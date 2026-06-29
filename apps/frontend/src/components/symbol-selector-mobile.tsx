@@ -42,6 +42,7 @@ interface SymbolSelectorMobileProps {
 // Asset type options for inline form (values are InstrumentType)
 const ASSET_TYPE_OPTIONS = [
   { value: "EQUITY", labelKey: "assets.instrumentTypes.equity" },
+  { value: "FUND", labelKey: "assets.instrumentTypes.fund" },
   { value: "CRYPTO", labelKey: "assets.instrumentTypes.crypto" },
   { value: "OTHER", labelKey: "assets.instrumentTypes.other" },
 ] as const;
@@ -71,7 +72,9 @@ export const SymbolSelectorMobile = forwardRef<HTMLButtonElement, SymbolSelector
     // Custom asset form state
     const [customSymbol, setCustomSymbol] = useState("");
     const [customName, setCustomName] = useState("");
-    const [customAssetType, setCustomAssetType] = useState<"EQUITY" | "CRYPTO" | "OTHER">("EQUITY");
+    const [customAssetType, setCustomAssetType] = useState<"EQUITY" | "FUND" | "CRYPTO" | "OTHER">(
+      "EQUITY",
+    );
     const [customCurrency, setCustomCurrency] = useState("");
 
     // Reset state when sheet closes

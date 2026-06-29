@@ -497,6 +497,9 @@ pub fn run() {
             commands::fund_research::get_fund_top_holdings,
             commands::fund_research::get_portfolio_fund_lookthrough,
             commands::fund_research::refresh_fund_research,
+            commands::fund_research::get_stock_classification_overrides,
+            commands::fund_research::save_stock_classification_override,
+            commands::fund_research::delete_stock_classification_override,
             // Portfolios (saved reporting scopes)
             commands::portfolios::get_portfolios,
             commands::portfolios::get_portfolio,

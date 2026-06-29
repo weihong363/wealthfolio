@@ -23,12 +23,12 @@ use wealthfolio_core::{
         AssetClassificationService, AssetService, AssetServiceTrait,
     },
     events::DomainEventSink,
+    fund_research::{
+        theme_mapping::ThemeMappingConfig, EastmoneyFundResearchFetcher, FundResearchService,
+        HoldingsBasedPositionProvider,
+    },
     fx::{FxService, FxServiceTrait},
     goals::{GoalService, GoalServiceTrait},
-    fund_research::{
-        EastmoneyFundResearchFetcher, FundResearchService, HoldingsBasedPositionProvider,
-        theme_mapping::ThemeMappingConfig,
-    },
     health::{HealthService, HealthServiceTrait},
     limits::{ContributionLimitService, ContributionLimitServiceTrait},
     portfolio::allocation::{AllocationService, AllocationServiceTrait},
@@ -55,6 +55,7 @@ use wealthfolio_storage_sqlite::{
     ai_chat::AiChatRepository,
     assets::{AlternativeAssetRepository, AssetRepository},
     db::{self, write_actor},
+    fund_research::FundResearchSqliteRepository,
     fx::FxRepository,
     goals::GoalRepository,
     health::HealthDismissalRepository,
@@ -65,7 +66,6 @@ use wealthfolio_storage_sqlite::{
     settings::SettingsRepository,
     sync::{AppSyncRepository, BrokerSyncStateRepository, ImportRunRepository, PlatformRepository},
     taxonomies::TaxonomyRepository,
-    fund_research::FundResearchSqliteRepository,
 };
 
 pub struct AppState {

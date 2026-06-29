@@ -49,6 +49,10 @@ pub struct FundInternalHolding {
     pub asset_name: String,
     pub asset_type: HoldingAssetType,
     pub market: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sector: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industry: Option<String>,
     pub weight_pct: Option<f64>,
     pub theme_tags: Vec<String>,
 }
@@ -239,6 +243,29 @@ pub struct RebalanceAlert {
     pub read_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StockClassificationOverride {
+    pub stock_key: String,
+    pub asset_code: Option<String>,
+    pub asset_name: String,
+    pub sector: Option<String>,
+    pub industry: Option<String>,
+    pub theme_tags: Vec<String>,
+    pub source: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertStockClassificationOverride {
+    pub asset_code: Option<String>,
+    pub asset_name: String,
+    pub sector: Option<String>,
+    pub industry: Option<String>,
+    pub theme_tags: Vec<String>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RebalanceAlertType {
@@ -297,6 +324,8 @@ pub struct FundTopHolding {
     pub asset_name: String,
     pub asset_type: HoldingAssetType,
     pub market: Option<String>,
+    pub sector: Option<String>,
+    pub industry: Option<String>,
     pub weight_pct: f64,
     pub theme_tags: Vec<String>,
 }
@@ -321,6 +350,8 @@ pub struct PortfolioFundLookthroughHolding {
     pub asset_name: String,
     pub asset_type: HoldingAssetType,
     pub market: Option<String>,
+    pub sector: Option<String>,
+    pub industry: Option<String>,
     pub theme_tags: Vec<String>,
 
     pub exposure_value_base: f64,

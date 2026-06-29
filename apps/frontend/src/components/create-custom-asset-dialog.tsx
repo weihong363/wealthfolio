@@ -34,6 +34,7 @@ import { z } from "zod";
 
 const ASSET_TYPE_OPTIONS = [
   { value: "EQUITY", labelKey: "assets.instrumentTypes.equity" },
+  { value: "FUND", labelKey: "assets.instrumentTypes.fund" },
   { value: "CRYPTO", labelKey: "assets.instrumentTypes.crypto" },
   { value: "BOND", labelKey: "assets.instrumentTypes.bond" },
   { value: "OPTION", labelKey: "assets.instrumentTypes.option" },
@@ -48,7 +49,7 @@ const customAssetSchema = z.object({
     .max(100, "Symbol must be 100 characters or less")
     .transform((val) => val.toUpperCase().trim()),
   name: z.string().min(1, "Name is required").max(100, "Name must be 100 characters or less"),
-  assetType: z.enum(["EQUITY", "CRYPTO", "BOND", "OPTION", "METAL", "OTHER"]),
+  assetType: z.enum(["EQUITY", "FUND", "CRYPTO", "BOND", "OPTION", "METAL", "OTHER"]),
   currency: z.string().min(1, "Currency is required"),
 });
 

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::errors::Result;
@@ -12,7 +13,8 @@ use super::models::{
     FundAnnouncement, FundHoldingChange, FundInternalHolding, FundNavPoint, FundPerformance,
     FundQuote, FundResearchSnapshot, FundRiskMetrics, FundTopHolding, HoldingAssetType,
     HoldingChangeType, PortfolioFundLookthroughSummary, PortfolioThemeExposure, RebalanceAlert,
-    RegionAllocation, SectorAllocation, SectorRotationSignal,
+    RegionAllocation, SectorAllocation, SectorRotationSignal, StockClassificationOverride,
+    UpsertStockClassificationOverride,
 };
 use super::repository::{
     FundResearchFetcher, FundResearchRepository, PortfolioFundPositionProvider,
@@ -73,9 +75,16 @@ impl FundResearchService {
 
     pub async fn refresh_fund_research(&self, fund_code: &str) -> Result<FundResearchSnapshot> {
         let mut snapshot = self.fetcher.fetch_fund_research(fund_code).await?;
+        self.apply_stock_classification_overrides(&mut snapshot)
+            .await?;
         enrich_snapshot(&mut snapshot, &self.theme_mapping);
 
-        let previous = self.repository.latest_snapshot(&snapshot.fund_code).await?;
+        let mut previous = self.repository.latest_snapshot(&snapshot.fund_code).await?;
+        if let Some(previous_snapshot) = previous.as_mut() {
+            self.apply_stock_classification_overrides(previous_snapshot)
+                .await?;
+            enrich_snapshot(previous_snapshot, &self.theme_mapping);
+        }
         let alerts = generate_rebalance_alerts(&snapshot, previous.as_ref());
 
         self.repository.upsert_snapshot(&snapshot).await?;
@@ -84,7 +93,13 @@ impl FundResearchService {
     }
 
     pub async fn get_fund_snapshot(&self, fund_code: &str) -> Result<Option<FundResearchSnapshot>> {
-        self.repository.latest_snapshot(fund_code).await
+        let Some(mut snapshot) = self.repository.latest_snapshot(fund_code).await? else {
+            return Ok(None);
+        };
+        self.apply_stock_classification_overrides(&mut snapshot)
+            .await?;
+        enrich_snapshot(&mut snapshot, &self.theme_mapping);
+        Ok(Some(snapshot))
     }
 
     pub async fn analyze_theme_rotation(
@@ -121,10 +136,14 @@ impl FundResearchService {
             .iter()
             .map(|position| position.fund_code.clone())
             .collect();
-        let snapshots = self
+        let mut snapshots = self
             .repository
             .latest_snapshots_for_funds(&fund_codes)
             .await?;
+        for snapshot in &mut snapshots {
+            self.apply_stock_classification_overrides(snapshot).await?;
+            enrich_snapshot(snapshot, &self.theme_mapping);
+        }
         Ok(lookthrough_theme_exposure(
             portfolio_id,
             &positions,
@@ -137,6 +156,10 @@ impl FundResearchService {
         let Some(snapshot) = self.repository.latest_snapshot(fund_code).await? else {
             return Ok(Vec::new());
         };
+        let mut snapshot = snapshot;
+        self.apply_stock_classification_overrides(&mut snapshot)
+            .await?;
+        enrich_snapshot(&mut snapshot, &self.theme_mapping);
         Ok(fund_top_holdings(&snapshot))
     }
 
@@ -156,16 +179,77 @@ impl FundResearchService {
             .iter()
             .map(|position| position.fund_code.clone())
             .collect();
-        let snapshots = self
+        let mut snapshots = self
             .repository
             .latest_snapshots_for_funds(&fund_codes)
             .await?;
+        for snapshot in &mut snapshots {
+            self.apply_stock_classification_overrides(snapshot).await?;
+            enrich_snapshot(snapshot, &self.theme_mapping);
+        }
         Ok(portfolio_fund_lookthrough(
             portfolio_id,
             &positions,
             &snapshots,
         ))
     }
+
+    pub async fn get_stock_classification_overrides(
+        &self,
+    ) -> Result<Vec<StockClassificationOverride>> {
+        self.repository.stock_classification_overrides().await
+    }
+
+    pub async fn save_stock_classification_override(
+        &self,
+        input: UpsertStockClassificationOverride,
+    ) -> Result<StockClassificationOverride> {
+        self.repository
+            .upsert_stock_classification_override(input)
+            .await
+    }
+
+    pub async fn delete_stock_classification_override(&self, stock_key: &str) -> Result<()> {
+        self.repository
+            .delete_stock_classification_override(stock_key)
+            .await
+    }
+
+    async fn apply_stock_classification_overrides(
+        &self,
+        snapshot: &mut FundResearchSnapshot,
+    ) -> Result<()> {
+        let overrides = self.repository.stock_classification_overrides().await?;
+        let by_key: BTreeMap<String, StockClassificationOverride> = overrides
+            .into_iter()
+            .map(|override_item| (override_item.stock_key.clone(), override_item))
+            .collect();
+
+        for holding in &mut snapshot.fund_holdings {
+            let key = stock_classification_key(holding.asset_code.as_deref(), &holding.asset_name);
+            if let Some(override_item) = by_key.get(&key) {
+                apply_stock_classification_override(holding, override_item);
+            }
+        }
+        Ok(())
+    }
+}
+
+fn apply_stock_classification_override(
+    holding: &mut FundInternalHolding,
+    override_item: &StockClassificationOverride,
+) {
+    holding.sector = override_item.sector.clone();
+    holding.industry = override_item.industry.clone();
+    holding.theme_tags = override_item.theme_tags.clone();
+}
+
+pub fn stock_classification_key(asset_code: Option<&str>, asset_name: &str) -> String {
+    let key = match asset_code.filter(|code| !code.trim().is_empty()) {
+        Some(code) => code.trim().to_string(),
+        None => clean_html(asset_name).trim().to_string(),
+    };
+    key.to_uppercase()
 }
 
 fn enrich_snapshot(snapshot: &mut FundResearchSnapshot, mapping: &ThemeMappingConfig) {
@@ -183,9 +267,30 @@ fn enrich_snapshot(snapshot: &mut FundResearchSnapshot, mapping: &ThemeMappingCo
 /// Strip HTML tags and decode common entities from Eastmoney scraped text.
 fn clean_html(input: &str) -> String {
     // Remove HTML tags like <a class='tol'>...</a>
-    let s = regex::Regex::new(r"<[^>]*>").unwrap().replace_all(input, "");
+    let s = regex::Regex::new(r"<[^>]*>")
+        .unwrap()
+        .replace_all(input, "");
     // Trim whitespace
     s.trim().to_string()
+}
+
+/// Try to infer a stock code from the cleaned asset name when
+/// Eastmoney doesn't provide one (common for US stocks in fund holdings).
+/// e.g. "GOOG" → Some("GOOG"), "中际旭创" → None
+fn infer_stock_code_from_name(name: &str) -> Option<String> {
+    let trimmed = name.trim();
+    // Match 1-5 letter alphabetic ticker (e.g. AAPL, GOOG, BRK.B)
+    if let Some(captured) = regex::Regex::new(r"^([A-Z]{1,5}(\.[A-Z]{1,3})?)$")
+        .unwrap()
+        .captures(trimmed)
+    {
+        return Some(captured[1].to_string());
+    }
+    None
+}
+
+fn resolve_asset_code(stock_code: Option<String>, stock_name: &str) -> Option<String> {
+    stock_code.or_else(|| infer_stock_code_from_name(stock_name))
 }
 
 fn map_eastmoney_snapshot(
@@ -225,12 +330,17 @@ fn map_eastmoney_snapshot(
                 fund_code: fund_code.clone(),
                 report_date: holding.report_date.unwrap_or(snapshot_date),
                 rank: holding.rank,
-                asset_code: holding.stock_code,
+                asset_code: resolve_asset_code(
+                    holding.stock_code,
+                    &clean_html(&holding.stock_name),
+                ),
                 asset_name: clean_html(&holding.stock_name),
                 asset_type: HoldingAssetType::Stock,
-                market: Some("A-share".to_string()),
+                market: holding.market,
+                sector: holding.industry.clone(),
+                industry: holding.industry,
                 weight_pct: holding.weight_pct,
-                theme_tags: Vec::new(),
+                theme_tags: holding.concept_tags,
             })
             .collect(),
         holding_changes: snapshot
@@ -239,7 +349,7 @@ fn map_eastmoney_snapshot(
             .map(|change| FundHoldingChange {
                 fund_code: fund_code.clone(),
                 report_date: snapshot_date,
-                asset_code: change.stock_code,
+                asset_code: resolve_asset_code(change.stock_code, &clean_html(&change.stock_name)),
                 asset_name: clean_html(&change.stock_name),
                 previous_weight_pct: change.previous_weight_pct,
                 current_weight_pct: change.current_weight_pct,
@@ -365,6 +475,7 @@ mod tests {
     struct MemoryRepository {
         snapshots: Mutex<Vec<FundResearchSnapshot>>,
         alerts: Mutex<Vec<RebalanceAlert>>,
+        stock_overrides: Mutex<Vec<StockClassificationOverride>>,
     }
 
     #[async_trait]
@@ -423,6 +534,56 @@ mod tests {
         async fn rebalance_alerts(&self, _fund_code: Option<&str>) -> Result<Vec<RebalanceAlert>> {
             Ok(self.alerts.lock().await.clone())
         }
+
+        async fn stock_classification_overrides(&self) -> Result<Vec<StockClassificationOverride>> {
+            Ok(self.stock_overrides.lock().await.clone())
+        }
+
+        async fn upsert_stock_classification_override(
+            &self,
+            input: UpsertStockClassificationOverride,
+        ) -> Result<StockClassificationOverride> {
+            let stock_key =
+                stock_classification_key(input.asset_code.as_deref(), &input.asset_name);
+            let override_item = StockClassificationOverride {
+                stock_key: stock_key.clone(),
+                asset_code: input
+                    .asset_code
+                    .and_then(|value| non_empty_trimmed_string(&value)),
+                asset_name: input.asset_name.trim().to_string(),
+                sector: input
+                    .sector
+                    .and_then(|value| non_empty_trimmed_string(&value)),
+                industry: input
+                    .industry
+                    .and_then(|value| non_empty_trimmed_string(&value)),
+                theme_tags: input
+                    .theme_tags
+                    .into_iter()
+                    .filter_map(|value| non_empty_trimmed_string(&value))
+                    .collect(),
+                source: "manual".to_string(),
+                updated_at: Utc::now(),
+            };
+            let mut overrides = self.stock_overrides.lock().await;
+            overrides.retain(|existing| existing.stock_key != stock_key);
+            overrides.push(override_item.clone());
+            Ok(override_item)
+        }
+
+        async fn delete_stock_classification_override(&self, stock_key: &str) -> Result<()> {
+            let stock_key = stock_key.trim().to_uppercase();
+            self.stock_overrides
+                .lock()
+                .await
+                .retain(|existing| existing.stock_key != stock_key);
+            Ok(())
+        }
+    }
+
+    fn non_empty_trimmed_string(value: &str) -> Option<String> {
+        let trimmed = value.trim();
+        (!trimmed.is_empty()).then(|| trimmed.to_string())
     }
 
     struct FixtureFetcher;
@@ -446,6 +607,8 @@ mod tests {
                     asset_name: "中际旭创".to_string(),
                     asset_type: HoldingAssetType::Stock,
                     market: None,
+                    sector: None,
+                    industry: None,
                     weight_pct: Some(10.0),
                     theme_tags: vec![],
                 }],
@@ -481,6 +644,7 @@ mod tests {
         let repository = Arc::new(MemoryRepository {
             snapshots: Mutex::new(vec![]),
             alerts: Mutex::new(vec![]),
+            stock_overrides: Mutex::new(vec![]),
         });
         let mapping = ThemeMappingConfig::from_toml(
             r#"

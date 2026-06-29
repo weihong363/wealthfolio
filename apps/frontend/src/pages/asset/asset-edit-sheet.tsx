@@ -118,6 +118,7 @@ function isResolvedByRequestedProvider(
 
 const EDIT_INSTRUMENT_TYPE_OPTIONS = [
   { value: "EQUITY", labelKey: "assets.instrumentTypes.equity" },
+  { value: "FUND", labelKey: "assets.instrumentTypes.fund" },
   { value: "CRYPTO", labelKey: "assets.instrumentTypes.crypto" },
   { value: "BOND", labelKey: "assets.instrumentTypes.bond" },
   { value: "OPTION", labelKey: "assets.instrumentTypes.option" },

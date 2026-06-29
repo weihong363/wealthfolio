@@ -77,6 +77,27 @@ function getSearchResultKey(result: SymbolSearchResult) {
   return parts.join("|");
 }
 
+function searchResultMatchesValue(result: SymbolSearchResult, value: string) {
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return false;
+
+  return [
+    result.existingAssetId,
+    result.symbol,
+    result.canonicalSymbol,
+    result.providerSymbol,
+  ].some((candidate) => candidate?.trim().toUpperCase() === normalized);
+}
+
+function selectedTickerFromResult(result: SymbolSearchResult) {
+  const exchangeDisplay = result.exchangeName || getExchangeDisplayName(result.exchange);
+  return {
+    symbol: result.symbol,
+    name: result.longName || result.shortName || result.symbol,
+    exchangeDisplay: exchangeDisplay || "",
+  };
+}
+
 // Memoize search results component
 const SearchResults = memo(
   ({
@@ -209,7 +230,7 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
       selectedResult,
       defaultValue,
       value,
-      placeholder = "Select symbol...",
+      placeholder,
       onSelectResult,
       open: openProp,
       onOpenChange,
@@ -239,13 +260,7 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
       exchangeDisplay: string;
     } | null>(() => {
       if (selectedResult) {
-        const exchangeDisplay =
-          selectedResult.exchangeName || getExchangeDisplayName(selectedResult.exchange);
-        return {
-          symbol: selectedResult.symbol,
-          name: selectedResult.longName || selectedResult.shortName || selectedResult.symbol,
-          exchangeDisplay: exchangeDisplay || "",
-        };
+        return selectedTickerFromResult(selectedResult);
       }
       if (value) {
         const exchangeDisplay = getExchangeDisplayName(selectedExchangeMic) || "";
@@ -305,11 +320,7 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
         const displayText = ticker ? `${ticker.symbol} - ${ticker.longName}${exchangeSuffix}` : "";
         setSearchQuery(displayText);
         setSelected(displayText);
-        setSelectedTicker({
-          symbol: ticker.symbol,
-          name: ticker.longName || ticker.shortName || ticker.symbol,
-          exchangeDisplay: exchangeDisplay || "",
-        });
+        setSelectedTicker(selectedTickerFromResult(ticker));
         if (isControlled) {
           onOpenChange?.(false);
         } else {
@@ -329,11 +340,7 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
           selectedResult.longName || selectedResult.shortName || selectedResult.symbol
         }${exchangeSuffix}`;
         setSelected(displayText);
-        setSelectedTicker({
-          symbol: selectedResult.symbol,
-          name: selectedResult.longName || selectedResult.shortName || selectedResult.symbol,
-          exchangeDisplay: exchangeDisplay || "",
-        });
+        setSelectedTicker(selectedTickerFromResult(selectedResult));
         return;
       }
 
@@ -373,8 +380,9 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
 
     // Auto-search on mount when a defaultValue is pre-filled
     useEffect(() => {
-      if (defaultValue && defaultValue.length > 1) {
-        setDebouncedQuery(defaultValue);
+      const prefilledValue = defaultValue ?? value;
+      if (prefilledValue && prefilledValue.length > 1) {
+        setDebouncedQuery(prefilledValue);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -394,6 +402,19 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
 
     // Results are already sorted by backend (existing assets first, then by score)
     const sortedTickers = data;
+
+    useEffect(() => {
+      const current = value ?? defaultValue ?? "";
+      if (!current || selectedResult || selectedTicker?.name || !sortedTickers?.length) return;
+
+      const match = sortedTickers.find((result) => searchResultMatchesValue(result, current));
+      if (!match) return;
+
+      const ticker = selectedTickerFromResult(match);
+      const exchangeSuffix = ticker.exchangeDisplay ? ` (${ticker.exchangeDisplay})` : "";
+      setSelected(`${ticker.symbol} - ${ticker.name}${exchangeSuffix}`);
+      setSelectedTicker(ticker);
+    }, [defaultValue, selectedResult, selectedTicker?.name, sortedTickers, value]);
 
     const clearSelection = useCallback(() => {
       setSelected("");
@@ -543,7 +564,9 @@ const TickerSearchInput = forwardRef<HTMLButtonElement, SearchProps>(
                 </div>
               ) : (
                 <>
-                  <span className="text-muted-foreground">{placeholder}</span>
+                  <span className="text-muted-foreground">
+                    {placeholder ?? t("common.selectSymbol")}
+                  </span>
                   <Icons.Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </>
               )}

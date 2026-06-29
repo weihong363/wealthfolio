@@ -1,12 +1,11 @@
 import { getAssets } from "@/adapters";
-import { Button, Icons, Badge, Card, EmptyPlaceholder } from "@wealthfolio/ui";
+import type { Asset } from "@/lib/types";
+import { Button, Card, EmptyPlaceholder, Icons } from "@wealthfolio/ui";
 import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFundTopHoldings, useRefreshFundResearch } from "../hooks/use-fund-research";
-import type { FundTopHolding } from "../types";
-import type { Asset } from "@/lib/types";
 import { FundTopHoldingsTable } from "./fund-top-holdings-table";
 
 /** Assets that may have fund research data. Includes all investment-type
@@ -15,15 +14,13 @@ import { FundTopHoldingsTable } from "./fund-top-holdings-table";
 function isFundAsset(asset: Asset): boolean {
   // Investment-like assets that could be funds
   if (asset.kind !== "INVESTMENT" && asset.kind !== "PRIVATE_EQUITY") return false;
-  // Exclude FX (it's treated as currency, not an investment asset)
-  if (asset.kind === "FX") return false;
   // If providerConfig has a provider_id, check for fund provider
-  const cfg = asset.providerConfig as Record<string, unknown> | null | undefined;
+  const cfg = asset.providerConfig;
   if (cfg) {
     const pid =
-      (cfg.providerId as string) ??
-      (cfg.provider_id as string) ??
-      (cfg.dataSource as string) ??
+      stringValue(cfg.providerId) ??
+      stringValue(cfg.provider_id) ??
+      stringValue(cfg.dataSource) ??
       "";
     if (pid && (pid.includes("FUND") || pid.includes("eastmoney") || pid.includes("Eastmoney"))) {
       return true;
@@ -32,6 +29,10 @@ function isFundAsset(asset: Asset): boolean {
   // For INVESTMENT kind assets without a specific fund provider check,
   // include them all — the API will just return empty for non-funds.
   return asset.kind === "INVESTMENT";
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 /** Extract the fund code (e.g. "014002") from an asset. */
@@ -73,13 +74,11 @@ export function FundsTab() {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-20">
         <div className="bg-muted/60 flex h-16 w-16 items-center justify-center rounded-2xl">
-          <Icons.Search2 className="text-muted-foreground h-8 w-8" />
+          <Icons.Insight className="text-muted-foreground h-8 w-8" />
         </div>
         <div className="space-y-2 text-center">
           <p className="text-lg font-semibold">{t("fundResearch.noData")}</p>
-          <p className="text-muted-foreground max-w-sm text-sm">
-            {t("fundResearch.noDataDesc")}
-          </p>
+          <p className="text-muted-foreground max-w-sm text-sm">{t("fundResearch.noDataDesc")}</p>
         </div>
       </div>
     );
@@ -155,7 +154,7 @@ export function FundsTab() {
         </EmptyPlaceholder>
       ) : selectedCode && !holdings?.length ? (
         <EmptyPlaceholder
-          icon={<Icons.Search2 className="h-10 w-10" />}
+          icon={<Icons.Insight className="h-10 w-10" />}
           title={t("fundResearch.noData")}
           description={t("fundResearch.noDataDesc")}
         >

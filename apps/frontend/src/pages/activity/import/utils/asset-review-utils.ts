@@ -42,10 +42,14 @@ export function mapQuoteTypeToInstrumentType(quoteType?: string): string | undef
   switch ((quoteType ?? "").toUpperCase()) {
     case "EQUITY":
     case "ETF":
-    case "MUTUALFUND":
     case "INDEX":
     case "ECNQUOTE":
       return "EQUITY";
+    case "FUND":
+    case "MUTUALFUND":
+    case "MUTUAL_FUND":
+    case "MUTUAL FUND":
+      return "FUND";
     case "CRYPTO":
     case "CRYPTOCURRENCY":
       return "CRYPTO";

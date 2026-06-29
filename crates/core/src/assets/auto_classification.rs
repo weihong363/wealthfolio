@@ -101,6 +101,7 @@ fn map_instrument_type_to_taxonomy_category(
 ) -> Option<&'static str> {
     match instrument_type {
         InstrumentType::Equity => Some("STOCK_COMMON"),
+        InstrumentType::Fund => Some("FUND_MUTUAL"),
         InstrumentType::Crypto => Some("CRYPTO_NATIVE"),
         InstrumentType::Option => Some("OPTION"),
         InstrumentType::Bond => Some("BOND_CORPORATE"),
@@ -114,6 +115,7 @@ fn map_instrument_type_to_taxonomy_category(
 fn map_instrument_type_to_asset_class(instrument_type: &InstrumentType) -> Option<&'static str> {
     match instrument_type {
         InstrumentType::Equity => Some("EQUITY"),
+        InstrumentType::Fund => Some("EQUITY"),
         InstrumentType::Crypto => Some("DIGITAL_ASSETS"),
         InstrumentType::Option => Some("EQUITY"),
         InstrumentType::Bond => Some("FIXED_INCOME"),

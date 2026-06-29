@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::MarketDataError;
 use crate::models::{Coverage, InstrumentKind, ProviderInstrument, Quote, QuoteContext};
+use crate::provider::eastmoney_stock::EastmoneyStockProvider;
 use crate::provider::{MarketDataProvider, ProviderCapabilities, RateLimit};
 
 const PROVIDER_ID: &str = "EASTMONEY_FUND";
@@ -111,6 +112,12 @@ pub struct FundHolding {
     pub weight_pct: Option<f64>,
     pub rank: Option<u32>,
     pub report_date: Option<NaiveDate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub industry: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub concept_tags: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -314,6 +321,7 @@ pub struct EastmoneyFundProvider {
     client: reqwest::Client,
     base_url: String,
     f10_base_url: String,
+    stock_provider: EastmoneyStockProvider,
 }
 
 impl EastmoneyFundProvider {
@@ -332,6 +340,7 @@ impl EastmoneyFundProvider {
             client,
             base_url: base_url.trim_end_matches('/').to_string(),
             f10_base_url: f10_base_url.trim_end_matches('/').to_string(),
+            stock_provider: EastmoneyStockProvider::new(),
         }
     }
 
@@ -374,6 +383,19 @@ impl EastmoneyFundProvider {
 
     pub async fn fetch_quote(&self, code: &str) -> Result<MarketQuote, MarketDataError> {
         let code = normalize_fund_code(code)?;
+        let recent_min_date = Utc::now().date_naive() - chrono::Duration::days(30);
+        if let Ok(history) = self.fetch_lsjz_history(&code, recent_min_date).await {
+            if let Some(latest) = history.into_iter().max_by_key(|price| price.date) {
+                return Ok(MarketQuote {
+                    symbol: code,
+                    price: latest.close,
+                    currency: latest.currency,
+                    as_of_date: latest.date,
+                    source: PROVIDER_ID.to_string(),
+                });
+            }
+        }
+
         let script = self.fetch_pingzhongdata(&code).await?;
         let latest = extract_nav_history(&script)?
             .into_iter()
@@ -394,10 +416,16 @@ impl EastmoneyFundProvider {
         period: Period,
     ) -> Result<Vec<HistoricalPrice>, MarketDataError> {
         let code = normalize_fund_code(code)?;
-        let script = self.fetch_pingzhongdata(&code).await?;
         let min_date = match period {
             Period::OneYear => Utc::now().date_naive() - chrono::Duration::days(370),
         };
+        if let Ok(history) = self.fetch_lsjz_history(&code, min_date).await {
+            if !history.is_empty() {
+                return Ok(history);
+            }
+        }
+
+        let script = self.fetch_pingzhongdata(&code).await?;
         Ok(extract_nav_history(&script)?
             .into_iter()
             .filter(|point| point.date >= min_date)
@@ -414,6 +442,46 @@ impl EastmoneyFundProvider {
     async fn fetch_pingzhongdata(&self, code: &str) -> Result<String, MarketDataError> {
         let url = format!("{}/pingzhongdata/{}.js", self.base_url, code);
         self.get_text(&url).await
+    }
+
+    async fn fetch_lsjz_history(
+        &self,
+        code: &str,
+        min_date: NaiveDate,
+    ) -> Result<Vec<HistoricalPrice>, MarketDataError> {
+        const PAGE_SIZE: usize = 100;
+        const MAX_PAGES: usize = 8;
+
+        let mut prices = Vec::new();
+        for page in 1..=MAX_PAGES {
+            let url = format!(
+                "{}/F10DataApi.aspx?type=lsjz&code={}&page={}&per={}&sdate=&edate=",
+                self.f10_base_url, code, page, PAGE_SIZE
+            );
+            let text = self.get_text(&url).await?;
+            let page_prices = extract_lsjz_prices(&text, code);
+            if page_prices.is_empty() {
+                break;
+            }
+
+            let reached_older_rows = page_prices.iter().any(|price| price.date < min_date);
+            prices.extend(
+                page_prices
+                    .into_iter()
+                    .filter(|price| price.date >= min_date),
+            );
+            if reached_older_rows {
+                break;
+            }
+        }
+
+        if prices.is_empty() {
+            Err(MarketDataError::NoDataForRange)
+        } else {
+            prices.sort_by_key(|price| price.date);
+            prices.dedup_by_key(|price| price.date);
+            Ok(prices)
+        }
     }
 
     async fn get_text(&self, url: &str) -> Result<String, MarketDataError> {
@@ -449,7 +517,23 @@ impl EastmoneyFundProvider {
             self.f10_base_url, code
         );
         let text = self.get_text(&url).await?;
-        Ok(extract_table_holdings(&text))
+        let mut holdings = extract_table_holdings(&text);
+        self.enrich_holdings(&mut holdings).await;
+        Ok(holdings)
+    }
+
+    async fn enrich_holdings(&self, holdings: &mut [FundHolding]) {
+        for holding in holdings {
+            let Some(stock_code) = holding.stock_code.as_deref() else {
+                continue;
+            };
+            let Ok(profile) = self.stock_provider.fetch_stock_profile(stock_code).await else {
+                continue;
+            };
+            holding.market = Some(profile.market.as_label().to_string());
+            holding.industry = profile.industry;
+            holding.concept_tags = profile.concepts;
+        }
     }
 
     async fn fetch_sectors(&self, code: &str) -> Result<Vec<SectorAllocation>, MarketDataError> {
@@ -636,6 +720,54 @@ fn extract_nav_history(script: &str) -> Result<Vec<FundNavPoint>, MarketDataErro
     }
 }
 
+fn extract_lsjz_prices(text: &str, code: &str) -> Vec<HistoricalPrice> {
+    text.split("<tr>")
+        .skip(1)
+        .filter_map(|row| {
+            let (row_html, _) = row.split_once("</tr>")?;
+            let cells = extract_table_cells(row_html);
+            let date = cells.first().and_then(|value| parse_date(value))?;
+            let close = cells
+                .get(1)
+                .and_then(|value| value.trim().parse::<f64>().ok())?;
+
+            Some(HistoricalPrice {
+                symbol: code.to_string(),
+                date,
+                close,
+                currency: DEFAULT_CURRENCY.to_string(),
+                source: PROVIDER_ID.to_string(),
+            })
+        })
+        .collect()
+}
+
+fn extract_table_cells(row_html: &str) -> Vec<String> {
+    row_html
+        .split("<td")
+        .skip(1)
+        .filter_map(|cell| {
+            let (_, after_tag) = cell.split_once('>')?;
+            let (content, _) = after_tag.split_once("</td>")?;
+            Some(strip_html_tags(content).trim().to_string())
+        })
+        .collect()
+}
+
+fn strip_html_tags(value: &str) -> String {
+    let mut result = String::new();
+    let mut inside_tag = false;
+    for ch in value.chars() {
+        match ch {
+            '<' => inside_tag = true,
+            '>' => inside_tag = false,
+            _ if !inside_tag => result.push(ch),
+            _ => {}
+        }
+    }
+    result
+}
+
 fn extract_managers(script: &str) -> Vec<FundManager> {
     let Some(raw) = extract_js_array(script, "Data_currentFundManager") else {
         return vec![];
@@ -818,6 +950,9 @@ fn extract_table_holdings(text: &str) -> Vec<FundHolding> {
                     .iter()
                     .find_map(|cell| cell.trim().parse::<u32>().ok()),
                 report_date: cells.iter().find_map(|cell| parse_date(cell)),
+                market: None,
+                industry: None,
+                concept_tags: vec![],
             })
         })
         .take(10)
@@ -1018,6 +1153,20 @@ var Data_currentFundManager = [{"name":"张三","workTime":"2024-01-01"}];
         );
         assert_eq!(history[0].nav, 1.2345);
         assert_eq!(extract_managers(script)[0].name, "张三");
+    }
+
+    #[test]
+    fn parses_lsjz_nav_history() {
+        let text = r#"var apidata={ content:"<table><tbody><tr><td>2026-06-26</td><td class='tor bold'>4.1253</td><td>4.1253</td><td>-6.72%</td></tr><tr><td>2026-06-25</td><td class='tor bold'>4.4227</td><td>4.4227</td><td>7.17%</td></tr></tbody></table>",records:1129,pages:57,curpage:1};"#;
+
+        let history = extract_lsjz_prices(text, "014002");
+
+        assert_eq!(history.len(), 2);
+        assert_eq!(
+            history[0].date,
+            NaiveDate::from_ymd_opt(2026, 6, 26).unwrap()
+        );
+        assert_eq!(history[0].close, 4.1253);
     }
 
     #[test]

@@ -32,6 +32,12 @@ impl ThemeMappingConfig {
             .as_deref()
             .unwrap_or_default()
             .to_lowercase();
+        let sector = holding.sector.as_deref().unwrap_or_default().to_lowercase();
+        let industry = holding
+            .industry
+            .as_deref()
+            .unwrap_or_default()
+            .to_lowercase();
         self.theme_mapping
             .iter()
             .filter(|(_, rule)| {
@@ -39,6 +45,10 @@ impl ThemeMappingConfig {
                     let candidate = name.to_lowercase();
                     !candidate.is_empty()
                         && (asset_name.contains(&candidate) || asset_code == candidate)
+                }) || rule.sectors.iter().any(|name| {
+                    let candidate = name.to_lowercase();
+                    !candidate.is_empty()
+                        && (sector.contains(&candidate) || industry.contains(&candidate))
                 })
             })
             .map(|(theme, _)| theme.clone())
@@ -231,6 +241,8 @@ mod tests {
             asset_name: "中际旭创".to_string(),
             asset_type: HoldingAssetType::Stock,
             market: Some("A-share".to_string()),
+            sector: None,
+            industry: None,
             weight_pct: Some(8.0),
             theme_tags: vec![],
         }];

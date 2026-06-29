@@ -550,6 +550,7 @@ export function apiKindToAlternativeAssetKind(apiKind: string): AlternativeAsset
 // Instrument types (from Rust InstrumentType enum)
 export const InstrumentType = {
   EQUITY: "EQUITY",
+  FUND: "FUND",
   CRYPTO: "CRYPTO",
   FX: "FX",
   OPTION: "OPTION",
@@ -562,6 +563,7 @@ export type InstrumentType = (typeof InstrumentType)[keyof typeof InstrumentType
 /** Display options for instrument type filters */
 export const INSTRUMENT_TYPE_OPTIONS = [
   { value: InstrumentType.EQUITY, label: "Equity" },
+  { value: InstrumentType.FUND, label: "Fund" },
   { value: InstrumentType.CRYPTO, label: "Crypto" },
   { value: InstrumentType.FX, label: "FX" },
   { value: InstrumentType.OPTION, label: "Option" },

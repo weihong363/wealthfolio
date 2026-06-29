@@ -40,6 +40,7 @@ import { z } from "zod";
 
 const INSTRUMENT_TYPE_OPTIONS = [
   { value: "EQUITY", labelKey: "assets.instrumentTypes.equity" },
+  { value: "FUND", labelKey: "assets.instrumentTypes.fund" },
   { value: "CRYPTO", labelKey: "assets.instrumentTypes.crypto" },
   { value: "BOND", labelKey: "assets.instrumentTypes.bond" },
   { value: "OPTION", labelKey: "assets.instrumentTypes.option" },
@@ -58,10 +59,14 @@ function mapQuoteTypeToInstrumentType(quoteType: string): string | null {
   switch (quoteType.toUpperCase()) {
     case "EQUITY":
     case "ETF":
-    case "MUTUALFUND":
     case "INDEX":
     case "ECNQUOTE":
       return "EQUITY";
+    case "FUND":
+    case "MUTUALFUND":
+    case "MUTUAL_FUND":
+    case "MUTUAL FUND":
+      return "FUND";
     case "CRYPTOCURRENCY":
       return "CRYPTO";
     case "BOND":

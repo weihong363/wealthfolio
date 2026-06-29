@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AssistantRuntimeProvider, useThreadRuntime } from "@assistant-ui/react";
 import { cn } from "@/lib/utils";
@@ -201,7 +202,6 @@ function InitialPromptSender() {
  * Inner chat shell component that uses the chat model context.
  */
 function ChatShellInner({ className }: ChatShellProps) {
-  const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const {
     currentProviderId,
@@ -285,8 +285,7 @@ function ChatShellInner({ className }: ChatShellProps) {
  * Main chat shell component with thread sidebar and message panel.
  * Uses @assistant-ui/react for the chat interface.
  * Wraps the inner component in ChatModelProvider to share state.
- */import { useTranslation } from "react-i18next";
-
+ */
 export function ChatShell({ className }: ChatShellProps) {
   return (
     <ChatModelProvider>

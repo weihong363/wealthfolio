@@ -406,6 +406,7 @@ function AttributionDetailMetric({
   valueClassName?: string;
   align?: "left" | "center" | "right";
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   if (!result || result.mode === "symbolPriceBased") return null;
   const periodPnl = performancePeriodPnl(result);
@@ -580,6 +581,7 @@ function PerformanceContent({
   errorMessages: string[];
   isMobile: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="relative flex h-full w-full flex-col">
       {chartData && chartData.length > 0 && (
@@ -660,6 +662,7 @@ const SelectedItemBadge = ({
   onDelete: (e: React.MouseEvent) => void;
   color?: string;
 }) => {
+  const { t } = useTranslation();
   return (
     <Badge
       className={cn(
@@ -729,7 +732,6 @@ const SelectedItemBadge = ({
 };
 
 export default function PerformancePage() {
-  const { t } = useTranslation();
   const isMobile = useIsMobileViewport();
   const [storedSelectedItems, setSelectedItems] = usePersistentState<TrackedItem[]>(
     "performance:selectedItems",

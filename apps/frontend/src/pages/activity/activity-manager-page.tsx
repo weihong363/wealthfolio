@@ -173,11 +173,11 @@ const ActivityManagerPage = () => {
   return (
     <Page>
       <PageHeader
-        heading="Add Activity"
+        heading={t("activityManager.addActivity")}
         text={
           selectedAccountName
-            ? `Add a new transaction to ${selectedAccountName}`
-            : "Create a new transaction or activity for your account"
+            ? t("activityManager.addTransactionTo", { account: selectedAccountName })
+            : t("activityManager.createTransaction")
         }
         onBack={handleClose}
         actions={

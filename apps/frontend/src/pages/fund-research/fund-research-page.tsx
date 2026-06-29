@@ -3,6 +3,7 @@ import { Icons } from "@wealthfolio/ui";
 import { useTranslation } from "react-i18next";
 import { FundsTab } from "./components/fund-research-overview";
 import { PortfolioLookthroughTab } from "./components/portfolio-lookthrough-tab";
+import { ThemeExposureTab } from "./components/theme-exposure-tab";
 
 export default function FundResearchPage() {
   const { t } = useTranslation();
@@ -24,13 +25,7 @@ export default function FundResearchPage() {
       value: "theme",
       label: t("fundResearch.tabs.themeExposure"),
       icon: Icons.BarChart,
-      content: (
-        <div className="flex h-64 items-center justify-center">
-          <p className="text-muted-foreground text-sm">
-            {t("fundResearch.themeExposureDesc")}
-          </p>
-        </div>
-      ),
+      content: <ThemeExposureTab />,
     },
   ];
 

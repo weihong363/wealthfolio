@@ -36,6 +36,7 @@ mod database_backups;
 mod device_sync;
 #[cfg(feature = "device-sync")]
 pub(crate) mod device_sync_engine;
+mod eastmoney_proxy;
 mod exchange_rates;
 mod fund_research;
 mod goals;
@@ -119,7 +120,8 @@ pub fn app_router(state: Arc<AppState>, config: &Config) -> Router {
         .merge(custom_providers::router())
         .merge(spending::router())
         .merge(allocation_targets::router())
-        .merge(fund_research::fund_research_routes());
+        .merge(fund_research::fund_research_routes())
+        .merge(eastmoney_proxy::router());
 
     #[cfg(feature = "device-sync")]
     {
