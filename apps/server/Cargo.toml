@@ -53,7 +53,7 @@ futures = "0.3"
 futures-core = "0.3"
 semver = "1"
 hyper = { version = "0.14", features = ["full"] }
-openidconnect = { version = "4", default-features = false, features = ["reqwest", "rustls-tls"] }
+openidconnect = { version = "4", default-features = false, features = ["reqwest", "native-tls"] }
 
 [features]
 default = ["connect-sync", "device-sync"]

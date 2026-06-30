@@ -46,6 +46,13 @@ export function useNavigation() {
           label: t("nav.viewFundResearch"),
         },
         {
+          icon: <Icons.Globe className="size-6" />,
+          title: t("nav.marketIntelligence"),
+          href: "/market-intelligence",
+          keywords: ["market", "capital", "flow", "sector", "theme", "rotation"],
+          label: t("nav.viewMarketIntelligence"),
+        },
+        {
           icon: <Icons.Holdings className="size-6" />,
           title: t("nav.holdings"),
           href: "/holdings",

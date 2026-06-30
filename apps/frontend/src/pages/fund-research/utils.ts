@@ -7,9 +7,20 @@ import type {
 } from "./types";
 
 /**
- * Strip HTML tags and common CSS class prefixes from Eastmoney-scraped asset names.
+ * Known stock names for assets where EastMoney doesn't provide profile data
+ * (e.g. Japanese stocks, HK stocks with no EastMoney coverage).
+ * Key is the cleaned asset name (ticker), value is the display name.
+ */
+const STOCK_NAME_OVERRIDES: Record<string, string> = {
+  "285AJP": "铠侠 (Kioxia)",
+};
+
+/**
+ * Strip HTML tags and common CSS class prefixes from Eastmoney-scraped asset names,
+ * and apply known name overrides for stocks without EastMoney profiles.
  * e.g. "class='tol'宁德时代" -> "宁德时代"
  *      "<a class='tol'>中际旭创</a>" -> "中际旭创"
+ *      "285AJP" -> "铠侠 (Kioxia)"
  */
 export function cleanAssetName(raw: string): string {
   // Remove HTML tags: <a ...>, </a>, etc.
@@ -18,7 +29,11 @@ export function cleanAssetName(raw: string): string {
   cleaned = cleaned.replace(/^class\s*=\s*['"][^'"]*['"]/, "");
   // Remove style='xxx' prefixes
   cleaned = cleaned.replace(/^style\s*=\s*['"][^'"]*['"]/, "");
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+
+  // Apply known name overrides for stocks without EastMoney coverage
+  const override = STOCK_NAME_OVERRIDES[cleaned];
+  return override ?? cleaned;
 }
 
 export function classifyHolding(input: {

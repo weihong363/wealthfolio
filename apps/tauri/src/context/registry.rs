@@ -8,6 +8,7 @@ use wealthfolio_core::{
     fund_research::FundResearchService,
     fx, goals, health, limits,
     lots::LotRepositoryTrait,
+    market_intelligence::MarketIntelligenceService,
     portfolio, portfolios, quotes, settings, taxonomies,
 };
 use wealthfolio_device_sync::{engine::DeviceSyncRuntimeState, DeviceEnrollService};
@@ -81,6 +82,7 @@ pub struct ServiceContext {
     pub spending_analytics_service: Arc<AnalyticsService>,
     pub spending_insight_service: Arc<InsightService>,
     pub fund_research_service: Arc<FundResearchService>,
+    pub market_intelligence_service: Arc<MarketIntelligenceService>,
 }
 
 impl ServiceContext {

@@ -55,6 +55,7 @@
     "dashboard": "Dashboard",
     "insights": "Insights",
     "fundResearch": "Fund Research",
+    "marketIntelligence": "Market Intelligence",
     "holdings": "Holdings",
     "activities": "Activities",
     "goals": "Goals",
@@ -63,6 +64,7 @@
     "viewDashboard": "View Dashboard",
     "viewInsights": "View Insights",
     "viewFundResearch": "View Fund Research",
+    "viewMarketIntelligence": "View Market Intelligence",
     "viewHoldings": "View Holdings",
     "viewActivities": "View Activities"
   },
@@ -1099,8 +1101,7 @@
         "sortChange": "change",
         "sortName": "name",
         "categoriesShown": "{{shown}} of {{total}} categories shown",
-        "openTransactions": "Open transactions →"
-        ,
+        "openTransactions": "Open transactions →",
         "periodClosed": "{{count}} day · period closed",
         "periodClosed_other": "{{count}} days · period closed",
         "lastDay": "Last day of the period",
@@ -1962,5 +1963,36 @@
     "noTrendData": "No trend data available",
     "closePrice": "Close",
     "stockQuoteLoadFailed": "Quote data failed to load. Please try again later."
+  },
+  "marketIntelligence": {
+    "title": "Market Intelligence",
+    "subtitle": "Market snapshots, flows, rotations, and portfolio exposure from the data layer.",
+    "emptyTitle": "No market intelligence snapshots yet",
+    "emptyDesc": "Import or sync market intelligence data to populate this dashboard.",
+    "errorTitle": "Market intelligence unavailable",
+    "errorDesc": "The saved market intelligence snapshots could not be loaded.",
+    "refresh": "Refresh Market Data",
+    "refreshing": "Refreshing...",
+    "refreshSuccess": "Market intelligence refreshed.",
+    "refreshFailed": "Failed to refresh market intelligence.",
+    "noSnapshots": "No snapshots",
+    "sections": {
+      "marketOverview": "Market Overview",
+      "capitalFlow": "Capital Flow",
+      "sectorRotation": "Sector Rotation",
+      "themeRotation": "Theme Rotation",
+      "portfolioExposure": "Portfolio Exposure"
+    },
+    "quote": {
+      "market": "Market",
+      "price": "Price",
+      "changePct": "Change",
+      "turnover": "Turnover",
+      "timestamp": "Updated",
+      "source": "Source",
+      "trendTitle": "Price Trend",
+      "trendSubtitle": "Recent market snapshot trend",
+      "sourceAction": "Market Source"
+    }
   }
 }

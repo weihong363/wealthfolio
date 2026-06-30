@@ -17,6 +17,7 @@ import HoldingsPage from "@/pages/holdings/holdings-page";
 import FundResearchPage from "@/pages/fund-research/fund-research-page";
 import IncomePage from "@/pages/income/income-page";
 import PortfolioInsightsPage from "@/pages/insights/portfolio-insights";
+import MarketIntelligencePage from "@/pages/market-intelligence/market-intelligence-page";
 import NotFoundPage from "@/pages/not-found";
 import PerformancePage from "@/pages/performance/performance-page";
 import SettingsAccountsPage from "@/pages/settings/accounts/accounts-page";
@@ -93,6 +94,7 @@ export function AppRoutes() {
           <Route path="activities/manage" element={<ActivityManagerPage />} />
           <Route path="holdings" element={<HoldingsPage />} />
           <Route path="fund-research" element={<FundResearchPage />} />
+          <Route path="market-intelligence" element={<MarketIntelligencePage />} />
           <Route path="holdings/:assetId" element={<AssetProfilePage />} />
           <Route path="import" element={<ActivityImportPage />} />
           <Route path="accounts/:id" element={<AccountPage />} />

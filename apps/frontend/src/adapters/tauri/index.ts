@@ -88,6 +88,9 @@ export * from "../shared/portfolio";
 // Market Data Commands
 export * from "../shared/market-data";
 
+// Market Intelligence Commands
+export * from "../shared/market-intelligence";
+
 // Custom Provider Commands
 export * from "../shared/custom-provider";
 

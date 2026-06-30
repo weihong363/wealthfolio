@@ -31,6 +31,7 @@ use wealthfolio_core::{
     goals::{GoalService, GoalServiceTrait},
     health::{HealthService, HealthServiceTrait},
     limits::{ContributionLimitService, ContributionLimitServiceTrait},
+    market_intelligence::MarketIntelligenceService,
     portfolio::allocation::{AllocationService, AllocationServiceTrait},
     portfolio::income::{IncomeService, IncomeServiceTrait},
     portfolio::{
@@ -61,6 +62,7 @@ use wealthfolio_storage_sqlite::{
     health::HealthDismissalRepository,
     limits::ContributionLimitRepository,
     market_data::{MarketDataRepository, QuoteSyncStateRepository},
+    market_intelligence::MarketIntelligenceSqliteRepository,
     portfolio::{snapshot::SnapshotRepository, valuation::ValuationRepository},
     portfolios::PortfolioRepository,
     settings::SettingsRepository,
@@ -138,6 +140,7 @@ pub struct AppState {
         dyn wealthfolio_core::portfolio::allocation_targets::RebalanceServiceTrait + Send + Sync,
     >,
     pub fund_research_service: Arc<FundResearchService>,
+    pub market_intelligence_service: Arc<MarketIntelligenceService>,
 }
 
 pub fn init_tracing() {
@@ -537,6 +540,22 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
         tracing::warn!("Failed to clean HTML from fund research holdings: {}", e);
     }
 
+    let market_intelligence_repository = Arc::new(MarketIntelligenceSqliteRepository::new(
+        pool.clone(),
+        writer.clone(),
+    ));
+    let market_intelligence_service = Arc::new(
+        MarketIntelligenceService::new(
+            market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
+            market_intelligence_repository,
+        )
+        .with_quote_service(quote_service.clone())
+        .with_fund_research_service(fund_research_service.clone()),
+    );
+
     let limits_repository = Arc::new(ContributionLimitRepository::new(
         pool.clone(),
         writer.clone(),
@@ -878,6 +897,7 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
         drift_service,
         rebalance_service,
         fund_research_service,
+        market_intelligence_service,
     });
 
     #[cfg(feature = "device-sync")]

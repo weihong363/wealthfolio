@@ -9,6 +9,9 @@ use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+const EASTMONEY_REFERER: &str = "https://quote.eastmoney.com/center/boardlist.html";
+const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+
 #[derive(Deserialize)]
 struct ProxyRequest {
     url: String,
@@ -32,15 +35,22 @@ async fn proxy_eastmoney(
 ) -> ApiResult<Json<ProxyResponse>> {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+        .user_agent(BROWSER_USER_AGENT)
+        .http1_only()
         .build()
         .map_err(|e| ApiError::Internal(e.to_string()))?;
 
-    let mut request = client.get(&req.url);
+    let mut request = client
+        .get(&req.url)
+        .header(header::ACCEPT, "application/json, text/plain, */*")
+        .header(header::ACCEPT_LANGUAGE, "zh-CN,zh;q=0.9,en;q=0.8")
+        .header(header::CACHE_CONTROL, "no-cache")
+        .header(header::PRAGMA, "no-cache");
 
-    if let Some(ref referer) = req.referer {
-        request = request.header(header::REFERER, referer);
-    }
+    request = request.header(
+        header::REFERER,
+        req.referer.as_deref().unwrap_or(EASTMONEY_REFERER),
+    );
 
     let response = request
         .send()

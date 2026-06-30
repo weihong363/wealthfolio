@@ -29,7 +29,7 @@ num-traits = { workspace = true }
 async-trait = { workspace = true }
 futures = { workspace = true }
 log = { workspace = true }
-reqwest = { workspace = true, features = ["cookies"] }
+reqwest = { workspace = true, features = ["brotli", "cookies", "deflate", "gzip"] }
 
 # Sibling crates
 wealthfolio-market-data = { path = "../market-data" }
@@ -57,3 +57,4 @@ url = "2"
 [dev-dependencies]
 tempfile = "3"
 proptest = "1.4"
+wiremock = "0.6"

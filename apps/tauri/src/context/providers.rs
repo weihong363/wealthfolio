@@ -23,6 +23,7 @@ use wealthfolio_core::{
     goals::GoalService,
     health::HealthService,
     limits::ContributionLimitService,
+    market_intelligence::MarketIntelligenceService,
     portfolio::{
         allocation::AllocationService,
         allocation_targets::{AllocationTargetService, DriftService, RebalanceService},
@@ -51,6 +52,7 @@ use wealthfolio_storage_sqlite::{
     health::HealthDismissalRepository,
     limits::ContributionLimitRepository,
     market_data::{MarketDataRepository, QuoteSyncStateRepository},
+    market_intelligence::MarketIntelligenceSqliteRepository,
     portfolio::{
         allocation_targets::AllocationTargetRepository, snapshot::SnapshotRepository,
         valuation::ValuationRepository,
@@ -457,6 +459,22 @@ pub async fn initialize_context(
             .with_position_provider(fund_research_position_provider),
     );
 
+    let market_intelligence_repository = Arc::new(MarketIntelligenceSqliteRepository::new(
+        pool.clone(),
+        writer.clone(),
+    ));
+    let market_intelligence_service = Arc::new(
+        MarketIntelligenceService::new(
+            market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
+            market_intelligence_repository,
+        )
+        .with_quote_service(quote_service.clone())
+        .with_fund_research_service(fund_research_service.clone()),
+    );
+
     let allocation_service = Arc::new(
         AllocationService::new(holdings_service.clone(), taxonomy_service.clone())
             .with_account_service(account_service.clone()),
@@ -637,6 +655,7 @@ pub async fn initialize_context(
             spending_analytics_service,
             spending_insight_service,
             fund_research_service,
+            market_intelligence_service,
         },
         event_receiver,
         sync_outbox_wake_receiver,

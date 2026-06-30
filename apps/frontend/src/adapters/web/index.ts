@@ -341,6 +341,12 @@ export {
   saveStockClassificationOverride,
 } from "../shared/fund-research";
 
+// Market Intelligence Commands
+export {
+  getMarketIntelligenceSummary,
+  refreshMarketIntelligence,
+} from "../shared/market-intelligence";
+
 // Allocation Target Commands
 export {
   archiveAllocationTarget,

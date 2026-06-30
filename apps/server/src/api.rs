@@ -44,6 +44,7 @@ mod health;
 mod holdings;
 mod limits;
 mod market_data;
+mod market_intelligence;
 mod net_worth;
 mod performance;
 mod portfolio;
@@ -121,6 +122,7 @@ pub fn app_router(state: Arc<AppState>, config: &Config) -> Router {
         .merge(spending::router())
         .merge(allocation_targets::router())
         .merge(fund_research::fund_research_routes())
+        .merge(market_intelligence::router())
         .merge(eastmoney_proxy::router());
 
     #[cfg(feature = "device-sync")]

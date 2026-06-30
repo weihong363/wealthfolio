@@ -55,6 +55,7 @@
     "dashboard": "仪表盘",
     "insights": "洞察分析",
     "fundResearch": "基金研究",
+    "marketIntelligence": "市场情报",
     "holdings": "持仓",
     "activities": "活动记录",
     "goals": "目标",
@@ -63,6 +64,7 @@
     "viewDashboard": "查看仪表盘",
     "viewInsights": "查看洞察分析",
     "viewFundResearch": "查看基金研究",
+    "viewMarketIntelligence": "查看市场情报",
     "viewHoldings": "查看持仓",
     "viewActivities": "查看活动记录"
   },
@@ -1976,5 +1978,36 @@
     "noTrendData": "暂无走势数据",
     "closePrice": "收盘价",
     "stockQuoteLoadFailed": "行情数据暂时加载失败，请稍后重试。"
+  },
+  "marketIntelligence": {
+    "title": "市场情报",
+    "subtitle": "来自数据层的市场快照、资金流、行业/主题轮动与组合暴露。",
+    "emptyTitle": "暂无市场情报快照",
+    "emptyDesc": "导入或同步市场情报数据后，这里会展示对应看板。",
+    "errorTitle": "市场情报不可用",
+    "errorDesc": "无法加载已保存的市场情报快照。",
+    "refresh": "刷新市场数据",
+    "refreshing": "正在刷新...",
+    "refreshSuccess": "市场情报已刷新。",
+    "refreshFailed": "市场情报刷新失败。",
+    "noSnapshots": "暂无快照",
+    "sections": {
+      "marketOverview": "市场概览",
+      "capitalFlow": "资金流向",
+      "sectorRotation": "行业轮动",
+      "themeRotation": "主题轮动",
+      "portfolioExposure": "组合暴露"
+    },
+    "quote": {
+      "market": "市场",
+      "price": "价格",
+      "changePct": "涨跌幅",
+      "turnover": "成交额",
+      "timestamp": "更新时间",
+      "source": "来源",
+      "trendTitle": "价格走势",
+      "trendSubtitle": "近期市场快照趋势",
+      "sourceAction": "行情来源"
+    }
   }
 }

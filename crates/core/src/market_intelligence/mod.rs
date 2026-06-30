@@ -1,0 +1,35 @@
+//! Market Intelligence data layer.
+//!
+//! This module intentionally contains objective market data models and
+//! provider/repository traits only. AI inference and evidence ingestion are
+//! separate future layers.
+
+pub mod capital_flow;
+pub mod eastmoney;
+pub mod evidence;
+pub mod market_overview;
+pub mod portfolio_exposure;
+pub mod repository;
+pub mod sector_rotation;
+pub mod service;
+pub mod theme_rotation;
+
+pub use capital_flow::{
+    CapitalFlowProvider, CapitalFlowRepository, CapitalFlowService, CapitalFlowSnapshot,
+};
+pub use eastmoney::{default_theme_mappings, EastmoneyMarketIntelligenceProvider};
+pub use market_overview::{
+    MarketDataProvider, MarketOverviewService, MarketSnapshot, MarketSnapshotRepository,
+};
+pub use portfolio_exposure::{
+    FundThemeExposureInput, PortfolioExposureInputProvider, PortfolioExposureService,
+    PortfolioThemeExposure, PortfolioThemeExposureRepository,
+};
+pub use sector_rotation::{
+    SectorRotationProvider, SectorRotationRepository, SectorRotationService, SectorRotationSnapshot,
+};
+pub use service::{MarketIntelligenceService, MarketIntelligenceSummary};
+pub use theme_rotation::{
+    ThemeMapping, ThemeMappingProvider, ThemeRotationRepository, ThemeRotationRules,
+    ThemeRotationService, ThemeRotationSnapshot,
+};

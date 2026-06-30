@@ -500,6 +500,10 @@ pub fn run() {
             commands::fund_research::get_stock_classification_overrides,
             commands::fund_research::save_stock_classification_override,
             commands::fund_research::delete_stock_classification_override,
+            // Market Intelligence commands
+            commands::market_intelligence::get_market_intelligence_summary,
+            commands::market_intelligence::refresh_market_intelligence,
+            commands::market_intelligence::ingest_market_intelligence_snapshots,
             // Portfolios (saved reporting scopes)
             commands::portfolios::get_portfolios,
             commands::portfolios::get_portfolio,

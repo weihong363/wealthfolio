@@ -100,22 +100,6 @@ function selectedExistingAsset(
   return id ? { existingAssetId: id } : {};
 }
 
-function activityAssetSymbol(activity: Partial<ActivityDetails> | undefined): string {
-  return activity?.assetSymbol ?? activity?.assetId ?? "";
-}
-
-function selectedActivityAssetDefaults(activity: Partial<ActivityDetails> | undefined) {
-  const symbol = activityAssetSymbol(activity);
-  if (!symbol.trim()) return {};
-
-  return {
-    existingAssetId: activity?.assetId,
-    symbolInstrumentType: activity?.instrumentType,
-    symbolQuoteCcy: activity?.currency,
-    assetMetadata: activity?.assetName ? { name: activity.assetName } : undefined,
-  };
-}
-
 // Configuration for each activity type
 export const ACTIVITY_FORM_CONFIG: Record<
   PickerActivityType,
@@ -127,8 +111,7 @@ export const ACTIVITY_FORM_CONFIG: Record<
     getDefaults: (activity, accounts) => {
       const base = {
         ...getBaseDefaults(activity, accounts),
-        assetId: activityAssetSymbol(activity),
-        ...selectedActivityAssetDefaults(activity),
+        assetId: activity?.assetSymbol ?? activity?.assetId ?? "",
         quantity: absNum(activity?.quantity),
         unitPrice: absNum(activity?.unitPrice),
         amount: absNum(activity?.amount),
@@ -213,8 +196,7 @@ export const ACTIVITY_FORM_CONFIG: Record<
     getDefaults: (activity, accounts) => {
       const base = {
         ...getBaseDefaults(activity, accounts),
-        assetId: activityAssetSymbol(activity),
-        ...selectedActivityAssetDefaults(activity),
+        assetId: activity?.assetSymbol ?? activity?.assetId ?? "",
         quantity: absNum(activity?.quantity),
         unitPrice: absNum(activity?.unitPrice),
         amount: absNum(activity?.amount),
@@ -344,8 +326,7 @@ export const ACTIVITY_FORM_CONFIG: Record<
     activityType: ActivityType.DIVIDEND,
     getDefaults: (activity, accounts) => ({
       ...getBaseDefaults(activity, accounts),
-      symbol: activityAssetSymbol(activity),
-      ...selectedActivityAssetDefaults(activity),
+      symbol: activity?.assetSymbol ?? activity?.assetId ?? "",
       amount: absNum(activity?.amount),
       unitPrice: absNum(activity?.unitPrice),
       quantity: absNum(activity?.quantity),
@@ -429,8 +410,7 @@ export const ACTIVITY_FORM_CONFIG: Record<
         destinationAmount,
         sourceCurrency,
         destinationCurrency,
-        assetId: transferIsSecurity ? activityAssetSymbol(activity) : null,
-        ...(transferIsSecurity ? selectedActivityAssetDefaults(activity) : {}),
+        assetId: transferIsSecurity ? (activity?.assetSymbol ?? activity?.assetId ?? null) : null,
         quantity: transferIsSecurity ? (absNum(activity?.quantity) ?? null) : null,
         unitPrice: transferIsSecurity ? (absNum(activity?.unitPrice) ?? null) : null,
         comment: activity?.comment ?? null,
@@ -485,8 +465,7 @@ export const ACTIVITY_FORM_CONFIG: Record<
     activityType: ActivityType.SPLIT,
     getDefaults: (activity, accounts) => ({
       ...getBaseDefaults(activity, accounts),
-      symbol: activityAssetSymbol(activity),
-      ...selectedActivityAssetDefaults(activity),
+      symbol: activity?.assetSymbol ?? activity?.assetId ?? "",
       splitRatio: absNum(activity?.amount),
       // Advanced options
       currency: activity?.currency,
@@ -539,8 +518,7 @@ export const ACTIVITY_FORM_CONFIG: Record<
     activityType: ActivityType.INTEREST,
     getDefaults: (activity, accounts) => ({
       ...getBaseDefaults(activity, accounts),
-      symbol: activityAssetSymbol(activity) || null,
-      ...selectedActivityAssetDefaults(activity),
+      symbol: activity?.assetSymbol ?? activity?.assetId ?? null,
       amount: absNum(activity?.amount),
       unitPrice: absNum(activity?.unitPrice),
       quantity: absNum(activity?.quantity),

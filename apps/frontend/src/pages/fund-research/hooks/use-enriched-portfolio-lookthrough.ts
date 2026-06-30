@@ -80,10 +80,6 @@ function hasCompleteClassification(holding: PortfolioFundLookthroughHolding): bo
   return !!(holding.sector || holding.industry) && holding.themeTags.length > 0;
 }
 
-function hasPartialClassification(holding: PortfolioFundLookthroughHolding): boolean {
-  return !!(holding.sector || holding.industry) || holding.themeTags.length > 0;
-}
-
 function enrichHolding(
   holding: PortfolioFundLookthroughHolding,
   profile: StockThemeProfile | undefined,

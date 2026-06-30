@@ -413,6 +413,19 @@ export const COMMANDS: CommandMap = {
     method: "DELETE",
     path: "/fund-research/stock-classifications",
   },
+  // Market Intelligence
+  get_market_intelligence_summary: {
+    method: "GET",
+    path: "/market-intelligence/summary",
+  },
+  refresh_market_intelligence: {
+    method: "POST",
+    path: "/market-intelligence/refresh",
+  },
+  ingest_market_intelligence_snapshots: {
+    method: "POST",
+    path: "/market-intelligence/browser-snapshots",
+  },
 };
 
 /**
@@ -2019,6 +2032,21 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
     case "delete_stock_classification_override": {
       const { stockKey } = payload as { stockKey: string };
       url += `/${encodeURIComponent(stockKey)}`;
+      break;
+    }
+    case "get_market_intelligence_summary": {
+      const { portfolioId } = (payload ?? {}) as { portfolioId?: string };
+      if (portfolioId) {
+        const params = new URLSearchParams();
+        params.set("portfolioId", portfolioId);
+        url += `?${params.toString()}`;
+      }
+      break;
+    }
+    case "refresh_market_intelligence":
+      break;
+    case "ingest_market_intelligence_snapshots": {
+      body = JSON.stringify(payload);
       break;
     }
   }
