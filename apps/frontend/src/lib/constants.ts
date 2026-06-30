@@ -379,20 +379,20 @@ export const activityTypeSchema = z.enum([
 
 // Display names for activity types
 export const ActivityTypeNames: Record<ActivityType, string> = {
-  [ActivityType.BUY]: "Buy",
-  [ActivityType.SELL]: "Sell",
-  [ActivityType.SPLIT]: "Split",
-  [ActivityType.DIVIDEND]: "Dividend",
-  [ActivityType.INTEREST]: "Interest",
-  [ActivityType.DEPOSIT]: "Deposit",
-  [ActivityType.WITHDRAWAL]: "Withdrawal",
-  [ActivityType.TRANSFER_IN]: "Transfer In",
-  [ActivityType.TRANSFER_OUT]: "Transfer Out",
-  [ActivityType.FEE]: "Fee",
-  [ActivityType.TAX]: "Tax",
-  [ActivityType.CREDIT]: "Credit",
-  [ActivityType.ADJUSTMENT]: "Adjustment",
-  [ActivityType.UNKNOWN]: "Unknown",
+  [ActivityType.BUY]: "activityManager.types.buy",
+  [ActivityType.SELL]: "activityManager.types.sell",
+  [ActivityType.SPLIT]: "activityManager.types.split",
+  [ActivityType.DIVIDEND]: "activityManager.types.dividend",
+  [ActivityType.INTEREST]: "activityManager.types.interest",
+  [ActivityType.DEPOSIT]: "activityManager.types.deposit",
+  [ActivityType.WITHDRAWAL]: "activityManager.types.withdrawal",
+  [ActivityType.TRANSFER_IN]: "activityManager.types.transferIn",
+  [ActivityType.TRANSFER_OUT]: "activityManager.types.transferOut",
+  [ActivityType.FEE]: "activityManager.types.fee",
+  [ActivityType.TAX]: "activityManager.types.tax",
+  [ActivityType.CREDIT]: "activityManager.types.credit",
+  [ActivityType.ADJUSTMENT]: "activityManager.types.adjustment",
+  [ActivityType.UNKNOWN]: "activityManager.types.unknown",
 };
 
 // Alias for backward compatibility
@@ -436,13 +436,13 @@ export type ActivitySubtype = (typeof ACTIVITY_SUBTYPES)[keyof typeof ACTIVITY_S
 
 // Display names for subtypes
 export const SUBTYPE_DISPLAY_NAMES: Record<string, string> = {
-  [ACTIVITY_SUBTYPES.DRIP]: "Dividend Reinvested (DRIP)",
-  [ACTIVITY_SUBTYPES.DIVIDEND_IN_KIND]: "Dividend in Kind",
-  [ACTIVITY_SUBTYPES.STAKING_REWARD]: "Staking Reward",
-  [ACTIVITY_SUBTYPES.BONUS]: "Bonus",
-  [ACTIVITY_SUBTYPES.REBATE]: "Trading Rebate",
-  [ACTIVITY_SUBTYPES.REFUND]: "Fee Refund",
-  [ACTIVITY_SUBTYPES.OPTION_EXPIRY]: "Option Expiry",
+  [ACTIVITY_SUBTYPES.DRIP]: "activities.subtypes.drip",
+  [ACTIVITY_SUBTYPES.DIVIDEND_IN_KIND]: "activities.subtypes.dividendInKind",
+  [ACTIVITY_SUBTYPES.STAKING_REWARD]: "activities.subtypes.stakingReward",
+  [ACTIVITY_SUBTYPES.BONUS]: "activities.subtypes.bonus",
+  [ACTIVITY_SUBTYPES.REBATE]: "activities.subtypes.rebate",
+  [ACTIVITY_SUBTYPES.REFUND]: "activities.subtypes.refund",
+  [ACTIVITY_SUBTYPES.OPTION_EXPIRY]: "activities.subtypes.optionExpiry",
 };
 
 // Suggested subtypes per activity type
@@ -562,13 +562,13 @@ export type InstrumentType = (typeof InstrumentType)[keyof typeof InstrumentType
 
 /** Display options for instrument type filters */
 export const INSTRUMENT_TYPE_OPTIONS = [
-  { value: InstrumentType.EQUITY, label: "Equity" },
-  { value: InstrumentType.FUND, label: "Fund" },
-  { value: InstrumentType.CRYPTO, label: "Crypto" },
-  { value: InstrumentType.FX, label: "FX" },
-  { value: InstrumentType.OPTION, label: "Option" },
-  { value: InstrumentType.METAL, label: "Metal" },
-  { value: InstrumentType.BOND, label: "Bond" },
+  { value: InstrumentType.EQUITY, labelKey: "activities.instrumentTypes.equity", label: "Equity" },
+  { value: InstrumentType.FUND, labelKey: "activities.instrumentTypes.fund", label: "Fund" },
+  { value: InstrumentType.CRYPTO, labelKey: "activities.instrumentTypes.crypto", label: "Crypto" },
+  { value: InstrumentType.FX, labelKey: "activities.instrumentTypes.fx", label: "FX" },
+  { value: InstrumentType.OPTION, labelKey: "activities.instrumentTypes.option", label: "Option" },
+  { value: InstrumentType.METAL, labelKey: "activities.instrumentTypes.metal", label: "Metal" },
+  { value: InstrumentType.BOND, labelKey: "activities.instrumentTypes.bond", label: "Bond" },
 ] as const;
 
 /**

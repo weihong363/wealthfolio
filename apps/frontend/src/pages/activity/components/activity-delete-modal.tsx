@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@wealthfolio/ui/components/ui/alert-dialog";
 import { Button } from "@wealthfolio/ui/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 export interface ActivityDeleteModalProps {
   isOpen?: boolean;
@@ -25,6 +26,8 @@ export function ActivityDeleteModal({
   onConfirm,
   onCancel,
 }: ActivityDeleteModalProps) {
+  const { t } = useTranslation();
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onCancel}>
       <AlertDialogContent className="max-sm:gap-5 max-sm:p-5">
@@ -33,16 +36,16 @@ export function ActivityDeleteModal({
             <Icons.Trash className="size-5" />
           </div>
           <AlertDialogTitle className="leading-tight max-sm:text-xl">
-            Delete activity?
+            {t("activities.delete.title")}
           </AlertDialogTitle>
           <AlertDialogDescription className="max-sm:text-[15px]">
             {linkedTransfer
-              ? "This activity is linked to a transfer pair. Both sides will be permanently deleted. This action cannot be undone."
-              : "This activity will be permanently deleted. This action cannot be undone."}
+              ? t("activities.delete.linkedDescription")
+              : t("activities.delete.description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <Button
             variant="destructive"
             onClick={() => onConfirm()}
@@ -54,7 +57,7 @@ export function ActivityDeleteModal({
             ) : (
               <Icons.Trash className="mr-2 h-4 w-4" />
             )}
-            <span>Delete</span>
+            <span>{t("common.delete")}</span>
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

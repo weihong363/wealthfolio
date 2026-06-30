@@ -18,6 +18,7 @@ import type { Account, ActivityDetails } from "@/lib/types";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge, Checkbox, type SymbolSearchResult } from "@wealthfolio/ui";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityOperations } from "../activity-operations";
 import { ActivityTypeBadge } from "../activity-type-badge";
 import { StatusHeaderIndicator, StatusIndicator } from "./status-indicator";
@@ -26,12 +27,12 @@ import { isPendingReview, type LocalTransaction } from "./types";
 // Status display names and colors
 const STATUS_DISPLAY: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  { labelKey: string; variant: "default" | "secondary" | "outline" | "destructive" }
 > = {
-  [ActivityStatus.POSTED]: { label: "Posted", variant: "default" },
-  [ActivityStatus.PENDING]: { label: "Pending", variant: "secondary" },
-  [ActivityStatus.DRAFT]: { label: "Draft", variant: "outline" },
-  [ActivityStatus.VOID]: { label: "Void", variant: "destructive" },
+  [ActivityStatus.POSTED]: { labelKey: "activities.grid.status.posted", variant: "default" },
+  [ActivityStatus.PENDING]: { labelKey: "activities.grid.status.pending", variant: "secondary" },
+  [ActivityStatus.DRAFT]: { labelKey: "activities.grid.status.draft", variant: "outline" },
+  [ActivityStatus.VOID]: { labelKey: "activities.grid.status.void", variant: "destructive" },
 };
 
 const isTransferActivity = (activityType: string | undefined): boolean => {
@@ -60,9 +61,6 @@ const getSubtypeDisplayLabel = (subtype: string, optionLabel?: string): string =
   return optionLabel ?? SUBTYPE_DISPLAY_NAMES[normalizedSubtype] ?? subtype;
 };
 
-const UNIT_PRICE_HELP_TEXT =
-  "For buys and sells, enter the trade price. For staking rewards and in-kind dividends, enter the fair market value per unit at receipt; it sets income amount and cost basis.";
-
 interface UseActivityColumnsOptions {
   accounts: Account[];
   onEditActivity: (activity: ActivityDetails) => void;
@@ -89,13 +87,16 @@ export function useActivityColumns({
   onSymbolSelect,
   onCreateCustomAsset,
 }: UseActivityColumnsOptions) {
+  const { t } = useTranslation();
   const activityTypeOptions = useMemo(
     () =>
       (Object.values(ActivityType) as ActivityType[]).map((type) => ({
         value: type,
-        label: ActivityTypeNames[type],
+        label: t(`activityManager.types.${type.toLowerCase()}`, {
+          defaultValue: ActivityTypeNames[type],
+        }),
       })),
-    [],
+    [t],
   );
 
   const accountOptions = useMemo(
@@ -123,14 +124,14 @@ export function useActivityColumns({
               table.getIsAllRowsSelected() || (table.getIsSomeRowsSelected() && "indeterminate")
             }
             onCheckedChange={(checked) => table.toggleAllRowsSelected(Boolean(checked))}
-            aria-label="Select all rows"
+            aria-label={t("activities.grid.selectAllRows")}
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(checked) => row.toggleSelected(Boolean(checked))}
-            aria-label="Select row"
+            aria-label={t("activities.grid.selectRow")}
           />
         ),
         size: 40,
@@ -163,7 +164,7 @@ export function useActivityColumns({
       {
         id: "date",
         accessorKey: "date",
-        header: "Date & Time",
+        header: t("activities.grid.dateTime"),
         size: 180,
         meta: { cell: { variant: "datetime" } },
       },
@@ -171,7 +172,7 @@ export function useActivityColumns({
       {
         id: "accountName",
         accessorKey: "accountId",
-        header: "Account",
+        header: t("activities.table.account"),
         size: 180,
         meta: { cell: { variant: "select", options: accountOptions } },
       },
@@ -180,7 +181,7 @@ export function useActivityColumns({
       // 5. Type
       {
         accessorKey: "activityType",
-        header: "Type",
+        header: t("activities.type"),
         size: 150,
         enablePinning: false,
         meta: {
@@ -206,7 +207,7 @@ export function useActivityColumns({
       {
         id: "subtype",
         accessorKey: "subtype",
-        header: "Subtype",
+        header: t("activityManager.form.subtype"),
         size: 160,
         enableSorting: false,
         enableHiding: true,
@@ -221,11 +222,11 @@ export function useActivityColumns({
               const allowedSubtypes = SUBTYPES_BY_ACTIVITY_TYPE[activityType] || [];
               return allowedSubtypes.map((subtype) => ({
                 value: subtype,
-                label: SUBTYPE_DISPLAY_NAMES[subtype] || subtype,
+                label: t(SUBTYPE_DISPLAY_NAMES[subtype], { defaultValue: subtype }),
               }));
             }) as any,
             allowEmpty: true,
-            emptyLabel: "None",
+            emptyLabel: t("activityManager.form.none"),
             valueRenderer: (value: string, option, rowData) => {
               const transaction = rowData as LocalTransaction | undefined;
               if (!shouldDisplaySubtype(transaction, transaction?.activityType, value)) {
@@ -251,7 +252,7 @@ export function useActivityColumns({
       {
         id: "isExternal",
         accessorKey: "isExternal",
-        header: "External",
+        header: t("activities.grid.external"),
         size: 80,
         enableSorting: false,
         enableHiding: true,
@@ -273,7 +274,7 @@ export function useActivityColumns({
       // 8. Symbol
       {
         accessorKey: "assetSymbol",
-        header: "Symbol",
+        header: t("activities.table.symbol"),
         size: 160,
         meta: {
           cell: {
@@ -324,7 +325,7 @@ export function useActivityColumns({
       {
         id: "instrumentType",
         accessorKey: "instrumentType",
-        header: "Instrument",
+        header: t("activities.instrument"),
         size: 120,
         enableSorting: false,
         enableHiding: true,
@@ -333,10 +334,10 @@ export function useActivityColumns({
             variant: "select",
             options: INSTRUMENT_TYPE_OPTIONS.map((opt) => ({
               value: opt.value,
-              label: opt.label,
+              label: t(opt.labelKey),
             })),
             allowEmpty: true,
-            emptyLabel: "Auto",
+            emptyLabel: t("activities.grid.auto"),
           },
         },
       },
@@ -345,7 +346,7 @@ export function useActivityColumns({
       // 10. Quantity
       {
         accessorKey: "quantity",
-        header: "Quantity",
+        header: t("activities.table.quantity"),
         size: 120,
         enableSorting: false,
         meta: { cell: { variant: "number", step: 0.000001, valueType: "string" } },
@@ -353,18 +354,18 @@ export function useActivityColumns({
       // 9. Price
       {
         accessorKey: "unitPrice",
-        header: "Price",
+        header: t("activityManager.form.price"),
         size: 120,
         enableSorting: false,
         meta: {
-          helpText: UNIT_PRICE_HELP_TEXT,
+          helpText: t("activities.grid.unitPriceHelp"),
           cell: { variant: "number", step: 0.000001, valueType: "string" },
         },
       },
       // 10. Amount (most important money column)
       {
         accessorKey: "amount",
-        header: "Amount",
+        header: t("activityManager.form.totalCredit"),
         size: 120,
         enableSorting: false,
         meta: { cell: { variant: "number", step: 0.000001, valueType: "string" } },
@@ -372,7 +373,7 @@ export function useActivityColumns({
       // 11. Currency
       {
         accessorKey: "currency",
-        header: "Currency",
+        header: t("activities.table.currency"),
         size: 110,
         enableSorting: false,
         meta: { cell: { variant: "currency" } },
@@ -380,7 +381,7 @@ export function useActivityColumns({
       // 12. Fee
       {
         accessorKey: "fee",
-        header: "Fee",
+        header: t("activities.table.fee"),
         size: 100,
         enableSorting: false,
         meta: { cell: { variant: "number", step: 0.000001, valueType: "string" } },
@@ -388,7 +389,7 @@ export function useActivityColumns({
       // 13. FX Rate (lowest priority; often hidden)
       {
         accessorKey: "fxRate",
-        header: "FX Rate",
+        header: t("activityManager.form.fxRate"),
         size: 100,
         enableSorting: false,
         meta: { cell: { variant: "number", step: 0.000001, valueType: "string" } },
@@ -398,7 +399,7 @@ export function useActivityColumns({
       // 14. Comment
       {
         accessorKey: "comment",
-        header: "Comment",
+        header: t("activityManager.form.notes"),
         size: 260,
         enableSorting: false,
         meta: { cell: { variant: "long-text" } },
@@ -407,7 +408,7 @@ export function useActivityColumns({
       {
         id: "activityStatus",
         accessorKey: "status",
-        header: "Status",
+        header: t("activities.status.title"),
         size: 100,
         enableSorting: false,
         enableHiding: true,
@@ -415,12 +416,12 @@ export function useActivityColumns({
           const status = row.original.status;
           if (!status) return <span className="text-muted-foreground">—</span>;
           const displayInfo = STATUS_DISPLAY[status] || {
-            label: status,
+            labelKey: status,
             variant: "default" as const,
           };
           return (
             <Badge variant={displayInfo.variant} className="text-xs font-normal">
-              {displayInfo.label}
+              {t(displayInfo.labelKey, { defaultValue: status })}
             </Badge>
           );
         },
@@ -458,6 +459,7 @@ export function useActivityColumns({
       onLinkTransfer,
       onUnlinkTransfer,
       onSymbolSelect,
+      t,
     ],
   );
 

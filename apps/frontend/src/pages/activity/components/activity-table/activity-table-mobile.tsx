@@ -17,6 +17,7 @@ import { useSettingsContext } from "@/lib/settings-provider";
 import { ActivityDetails } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { Button, EmptyPlaceholder, formatAmount, Icons, Separator } from "@wealthfolio/ui";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ActivityOperations } from "../activity-operations";
 import { ActivityTypeBadge } from "../activity-type-badge";
@@ -48,13 +49,14 @@ export const ActivityTableMobile = ({
   onAdd,
   onClearFilters,
 }: ActivityTableMobileProps) => {
+  const { t } = useTranslation();
   const { settings } = useSettingsContext();
   const appTimezone = settings?.timezone?.trim() || undefined;
 
   if (isLoading) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-        Loading...
+        {t("common.loading")}
       </div>
     );
   }
@@ -63,22 +65,20 @@ export const ActivityTableMobile = ({
     return (
       <EmptyPlaceholder>
         <EmptyPlaceholder.Icon name="Activity" />
-        <EmptyPlaceholder.Title>No activities</EmptyPlaceholder.Title>
+        <EmptyPlaceholder.Title>{t("activities.empty.title")}</EmptyPlaceholder.Title>
         <EmptyPlaceholder.Description>
-          {filtersActive
-            ? "No activities match your filters."
-            : "Add your first activity to get started."}
+          {filtersActive ? t("activities.empty.filtered") : t("activities.empty.first")}
         </EmptyPlaceholder.Description>
         {filtersActive ? (
           onClearFilters ? (
             <Button variant="outline" onClick={onClearFilters}>
-              Clear filters
+              {t("common.clearFilters")}
             </Button>
           ) : null
         ) : onAdd ? (
           <Button onClick={onAdd}>
             <Icons.Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Add Activity
+            {t("activities.addActivity")}
           </Button>
         ) : null}
       </EmptyPlaceholder>
@@ -103,7 +103,7 @@ export const ActivityTableMobile = ({
         const hasAsset = Boolean(activity.assetId?.trim());
         const isOptionActivity = activity.instrumentType === "OPTION";
         const parsedOption = isOptionActivity ? parseOccSymbol(symbol) : null;
-        const displaySymbol = isCash ? "Cash" : parsedOption ? parsedOption.underlying : symbol;
+        const displaySymbol = isCash ? t("activities.cash") : parsedOption ? parsedOption.underlying : symbol;
         const avatarSymbol = isCash ? "$CASH" : symbol;
         const optionSubtitle = parsedOption
           ? `${new Date(parsedOption.expiration + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })} $${parsedOption.strikePrice} ${parsedOption.optionType}`
@@ -113,7 +113,10 @@ export const ActivityTableMobile = ({
 
         // Compact View
         if (isCompactView) {
-          const activityTypeLabel = ActivityTypeNames[activity.activityType];
+          const activityTypeLabel =
+            t(`activityManager.types.${activity.activityType.toLowerCase()}`, {
+              defaultValue: ActivityTypeNames[activity.activityType],
+            });
           return (
             <Card key={activity.id} className="p-3">
               <div className="flex items-center gap-3">
@@ -145,7 +148,10 @@ export const ActivityTableMobile = ({
                               <>
                                 <span>•</span>
                                 <span>
-                                  {activity.quantity} {isOptionActivity ? "contracts" : "shares"}
+                                  {activity.quantity}{" "}
+                                  {isOptionActivity
+                                    ? t("activities.units.contracts")
+                                    : t("activities.units.shares")}
                                 </span>
                               </>
                             )}
@@ -222,7 +228,7 @@ export const ActivityTableMobile = ({
               <div className="space-y-1.5 text-sm">
                 {/* Date and Type */}
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Date</span>
+                  <span className="text-muted-foreground">{t("activities.table.date")}</span>
                   <div className="text-right">
                     <p>{formattedDate.date}</p>
                     <p className="text-muted-foreground text-xs">{formattedDate.time}</p>
@@ -230,7 +236,7 @@ export const ActivityTableMobile = ({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Type</span>
+                  <span className="text-muted-foreground">{t("activities.type")}</span>
                   <ActivityTypeBadge
                     type={activity.activityType}
                     subtype={activity.subtype}
@@ -246,7 +252,9 @@ export const ActivityTableMobile = ({
                   activity.quantity && (
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
-                        {isOptionActivity ? "Contracts" : "Shares"}
+                        {isOptionActivity
+                          ? t("activities.units.contractsLabel")
+                          : t("activities.units.sharesLabel")}
                       </span>
                       <span className="font-medium">{activity.quantity}</span>
                     </div>
@@ -256,7 +264,7 @@ export const ActivityTableMobile = ({
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
                     {activity.activityType === "SPLIT"
-                      ? "Ratio"
+                      ? t("activities.fields.ratio")
                       : (isCashActivity(activity.activityType) &&
                             !isAssetBackedIncome &&
                             !isSecuritiesTransfer(
@@ -266,10 +274,10 @@ export const ActivityTableMobile = ({
                             )) ||
                           isCashTransfer(activity.activityType, symbol, activity.assetId) ||
                           (isIncomeActivity(activity.activityType) && !isAssetBackedIncome)
-                        ? "Amount"
+                        ? t("activityManager.form.totalCredit")
                         : isOptionActivity
-                          ? "Premium"
-                          : "Price"}
+                          ? t("activities.fields.premium")
+                          : t("activityManager.form.price")}
                   </span>
                   <span className="font-medium">
                     {activity.activityType === "FEE"
@@ -293,7 +301,7 @@ export const ActivityTableMobile = ({
                 {/* Fee (if applicable) */}
                 {Number(activity.fee) > 0 && activity.activityType !== "SPLIT" && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Fee</span>
+                    <span className="text-muted-foreground">{t("activities.table.fee")}</span>
                     <span className="font-medium">
                       {formatAmount(Number(activity.fee), activity.currency)}
                     </span>
@@ -303,7 +311,9 @@ export const ActivityTableMobile = ({
                 {/* Total Value */}
                 {activity.activityType !== "SPLIT" && (
                   <div className="flex items-center justify-between border-t pt-1.5">
-                    <span className="text-muted-foreground font-medium">Total Value</span>
+                    <span className="text-muted-foreground font-medium">
+                      {t("activities.table.totalValue")}
+                    </span>
                     <span className="font-semibold">
                       {formatAmount(displayValue, activity.currency)}
                     </span>
@@ -312,7 +322,7 @@ export const ActivityTableMobile = ({
 
                 {/* Account */}
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Account</span>
+                  <span className="text-muted-foreground">{t("activities.table.account")}</span>
                   <div className="text-right">
                     <p>{activity.accountName}</p>
                     <p className="text-muted-foreground text-xs">{activity.accountCurrency}</p>

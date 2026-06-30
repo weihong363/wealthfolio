@@ -18,6 +18,7 @@ import type { CashAuditReviewTarget } from "@/pages/account/cash-audit";
 import { Button, Card, EmptyPlaceholder, formatAmount, Icons } from "@wealthfolio/ui";
 import { format } from "date-fns";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { buildActivityFilterUrl } from "../utils/activity-links";
 
@@ -157,6 +158,7 @@ function ActivityDateListItem({
   currency,
   showCashLedger,
 }: ActivityDateListItemProps) {
+  const { t } = useTranslation();
   const { activity } = row;
   const symbol = activity.assetSymbol;
   const activityType = activity.activityType;
@@ -175,7 +177,7 @@ function ActivityDateListItem({
     : null;
   const formattedDate = formatDateTime(activity.date, appTimezone);
   const displayValue = calculateActivityValue(activity);
-  const activityTypeLabel = ActivityTypeNames[activity.activityType];
+  const activityTypeLabel = t(ActivityTypeNames[activity.activityType]);
   const activityTone = getActivityTone(activity.activityType);
   const quantityLabel =
     !isCash &&
@@ -285,6 +287,7 @@ function CashAuditSummary({
   accountId?: string;
   cashAuditTarget?: CashAuditReviewTarget;
 }) {
+  const { t } = useTranslation();
   const isEndingNegative = endingCashBalance !== undefined && endingCashBalance < 0;
   const redirectTo = accountId ? `/accounts/${encodeURIComponent(accountId)}` : undefined;
 
@@ -302,7 +305,7 @@ function CashAuditSummary({
             <Icons.AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
               Cash first went negative after{" "}
-              {ActivityTypeNames[crossingRow.activity.activityType].toLowerCase()}.
+              {t(ActivityTypeNames[crossingRow.activity.activityType], { defaultValue: crossingRow.activity.activityType }).toLowerCase()}.
             </span>
           </div>
         ) : isEndingNegative ? (

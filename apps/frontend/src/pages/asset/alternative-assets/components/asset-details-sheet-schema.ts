@@ -2,54 +2,54 @@ import * as z from "zod";
 import { AlternativeAssetKind } from "@/lib/types";
 import { parseLocalDate } from "@/lib/utils";
 
-// Property types
+// Property types (labels are i18n keys resolved at render time)
 export const PROPERTY_TYPES = [
-  { value: "residence", label: "Residence" },
-  { value: "rental", label: "Rental Property" },
-  { value: "land", label: "Land" },
-  { value: "commercial", label: "Commercial" },
+  { value: "residence", labelKey: "holdings.propertyResidence" },
+  { value: "rental", labelKey: "holdings.propertyRental" },
+  { value: "land", labelKey: "holdings.propertyLand" },
+  { value: "commercial", labelKey: "holdings.propertyCommercial" },
 ] as const;
 
-// Collectible types
+// Collectible types (labels are i18n keys resolved at render time)
 export const COLLECTIBLE_TYPES = [
-  { value: "art", label: "Art" },
-  { value: "wine", label: "Wine" },
-  { value: "watch", label: "Watch" },
-  { value: "jewelry", label: "Jewelry" },
-  { value: "memorabilia", label: "Memorabilia" },
+  { value: "art", labelKey: "holdings.collectibleArt" },
+  { value: "wine", labelKey: "holdings.collectibleWine" },
+  { value: "watch", labelKey: "holdings.collectibleWatch" },
+  { value: "jewelry", labelKey: "holdings.collectibleJewelry" },
+  { value: "memorabilia", labelKey: "holdings.collectibleMemorabilia" },
 ] as const;
 
-// Metal types (re-exported for convenience)
+// Metal types (labels are i18n keys resolved at render time)
 export const METAL_TYPES = [
-  { value: "gold", label: "Gold" },
-  { value: "silver", label: "Silver" },
-  { value: "platinum", label: "Platinum" },
-  { value: "palladium", label: "Palladium" },
+  { value: "gold", labelKey: "holdings.metalGold" },
+  { value: "silver", labelKey: "holdings.metalSilver" },
+  { value: "platinum", labelKey: "holdings.metalPlatinum" },
+  { value: "palladium", labelKey: "holdings.metalPalladium" },
 ] as const;
 
-// Weight units (re-exported for convenience)
+// Weight units (labels are i18n keys resolved at render time)
 export const WEIGHT_UNITS = [
-  { value: "oz", label: "Troy Ounce (oz)" },
-  { value: "g", label: "Gram (g)" },
-  { value: "kg", label: "Kilogram (kg)" },
+  { value: "oz", labelKey: "holdings.unitTroyOunce" },
+  { value: "g", labelKey: "holdings.unitGram" },
+  { value: "kg", labelKey: "holdings.unitKilogram" },
 ] as const;
 
-// Liability types (re-exported for convenience)
+// Liability types (labels are i18n keys resolved at render time)
 export const LIABILITY_TYPES = [
-  { value: "mortgage", label: "Mortgage" },
-  { value: "auto_loan", label: "Auto Loan" },
-  { value: "student_loan", label: "Student Loan" },
-  { value: "credit_card", label: "Credit Card" },
-  { value: "personal_loan", label: "Personal Loan" },
-  { value: "heloc", label: "HELOC" },
+  { value: "mortgage", labelKey: "holdings.liabilityMortgage" },
+  { value: "auto_loan", labelKey: "holdings.liabilityAutoLoan" },
+  { value: "student_loan", labelKey: "holdings.liabilityStudentLoan" },
+  { value: "credit_card", labelKey: "holdings.liabilityCreditCard" },
+  { value: "personal_loan", labelKey: "holdings.liabilityPersonalLoan" },
+  { value: "heloc", labelKey: "holdings.liabilityHeloc" },
 ] as const;
 
-// Vehicle types (optional, for future use)
+// Vehicle types (labels are i18n keys resolved at render time)
 export const VEHICLE_TYPES = [
-  { value: "car", label: "Car" },
-  { value: "motorcycle", label: "Motorcycle" },
-  { value: "boat", label: "Boat" },
-  { value: "rv", label: "RV" },
+  { value: "car", labelKey: "holdings.vehicleCar" },
+  { value: "motorcycle", labelKey: "holdings.vehicleMotorcycle" },
+  { value: "boat", labelKey: "holdings.vehicleBoat" },
+  { value: "rv", labelKey: "holdings.vehicleRv" },
 ] as const;
 
 // Base schema for common fields across all asset types

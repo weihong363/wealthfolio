@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import type { DateRange } from "react-day-picker";
+import { useTranslation } from "react-i18next";
 
 import { createActivity, deleteActivity } from "@/adapters";
 import { generateId } from "@/lib/id";
@@ -50,14 +51,13 @@ import { TransactionsFilterBar, type FilterOption } from "./transactions-filter-
 import type { QuickCategorizeScope } from "./quick-categorize-popover";
 import {
   CASH_ACTIVITY_TYPES,
-  CASH_ACTIVITY_TYPE_LABELS,
   getEffectiveCashActivityType,
+  getTranslatedCashActivityLabel,
   isCreditCardAccountType,
   isSpendingAccountType,
 } from "../lib/constants";
 import {
   isTransferCashActivity,
-  pluralizeActivity,
   stableArr,
   toRowVM,
   type TransactionRowVM,
@@ -178,6 +178,7 @@ function toActivityDetails(row: TransactionRowVM, account?: Account): Partial<Ac
 
 export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>(
   function SpendingTransactionsTab(_, ref) {
+    const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const urlCategoryId = searchParams.get("category");
     const urlSubcategoryId = searchParams.get("subcategory");
@@ -548,9 +549,9 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
         invalidateSpendingCaches(qc);
         qc.invalidateQueries({ queryKey: [QueryKeys.ACTIVITIES] });
         qc.invalidateQueries({ queryKey: [QueryKeys.ACTIVITY_DATA] });
-        toast.success("Transaction duplicated.");
+        toast.success(t("spending.transactions.toast.duplicated"));
       },
-      onError: () => toast.error("Failed to duplicate transaction."),
+      onError: () => toast.error(t("spending.transactions.toast.duplicateFailed")),
     });
 
     const handleDuplicate = useCallback(
@@ -569,13 +570,15 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
         qc.invalidateQueries({ queryKey: [QueryKeys.ACTIVITY_DATA] });
         const ok = results.filter((r) => r.status === "fulfilled").length;
         const failed = results.length - ok;
-        if (ok > 0) toast.success(`Deleted ${ok} ${pluralizeActivity(ok)}.`);
-        if (failed > 0) toast.error(`Failed to delete ${failed} ${pluralizeActivity(failed)}.`);
+        if (ok > 0) toast.success(t("spending.transactions.toast.deleted", { count: ok }));
+        if (failed > 0) {
+          toast.error(t("spending.transactions.toast.deleteFailedCount", { count: failed }));
+        }
         setDeletingIds(null);
         setDeletePreview(undefined);
         setSelectedRowIds(new Set());
       },
-      onError: () => toast.error("Failed to delete activities."),
+      onError: () => toast.error(t("spending.transactions.toast.deleteFailed")),
     });
 
     const handleBulkCategorize = useCallback(
@@ -586,7 +589,7 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
           const result = await bulkAssignMutation.mutateAsync(
             ids.map((activityId) => ({ activityId, taxonomyId, categoryId })),
           );
-          toast.success(`Categorized ${result.length} ${pluralizeActivity(result.length)}.`);
+          toast.success(t("spending.transactions.toast.categorized", { count: result.length }));
         } catch {
           // Hook already toasts on error.
         }
@@ -603,9 +606,16 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
         );
         const ok = results.filter((r) => r.status === "fulfilled").length;
         const failed = results.length - ok;
-        const verb = eventId ? "Tagged" : "Cleared event from";
-        if (ok > 0) toast.success(`${verb} ${ok} ${pluralizeActivity(ok)}.`);
-        if (failed > 0) toast.error(`Failed on ${failed} ${pluralizeActivity(failed)}.`);
+        if (ok > 0) {
+          toast.success(
+            eventId
+              ? t("spending.transactions.toast.taggedEvent", { count: ok })
+              : t("spending.transactions.toast.clearedEvent", { count: ok }),
+          );
+        }
+        if (failed > 0) {
+          toast.error(t("spending.transactions.toast.failedCount", { count: failed }));
+        }
         setSelectedRowIds(new Set());
       },
       [selectedRowIds, setEventMutation],
@@ -694,11 +704,11 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
 
     const typeOptions = useMemo<FilterOption[]>(
       () =>
-        CASH_ACTIVITY_TYPES.map((t) => ({
-          value: t,
-          label: CASH_ACTIVITY_TYPE_LABELS[t],
+        CASH_ACTIVITY_TYPES.map((type) => ({
+          value: type,
+          label: getTranslatedCashActivityLabel(t, type),
         })),
-      [],
+      [t],
     );
     const accountOptions = useMemo<FilterOption[]>(
       () => spendingAccounts.map((a) => ({ value: a.id, label: a.name })),
@@ -762,10 +772,10 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
         {isFetchingNextPage ? (
           <>
             <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-            Loading…
+            {t("common.loading")}
           </>
         ) : (
-          `Load more (${totalCount - rows.length} remaining)`
+          t("spending.transactions.pagination.loadMore", { count: totalCount - rows.length })
         )}
       </Button>
     ) : null;
@@ -866,31 +876,31 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
         ) : isError ? (
           <EmptyPlaceholder>
             <EmptyPlaceholder.Icon name="AlertTriangle" />
-            <EmptyPlaceholder.Title>Transactions could not load</EmptyPlaceholder.Title>
+            <EmptyPlaceholder.Title>{t("spending.transactions.loadFailed")}</EmptyPlaceholder.Title>
             <EmptyPlaceholder.Description>
-              {error?.message ?? "Try refreshing the list."}
+              {error?.message ?? t("spending.transactions.tryRefresh")}
             </EmptyPlaceholder.Description>
             <Button variant="outline" onClick={() => void refetch()}>
-              Retry
+              {t("common.retry")}
             </Button>
           </EmptyPlaceholder>
         ) : rows.length === 0 ? (
           <EmptyPlaceholder>
             <EmptyPlaceholder.Icon name="Activity" />
-            <EmptyPlaceholder.Title>No transactions</EmptyPlaceholder.Title>
+            <EmptyPlaceholder.Title>{t("spending.transactions.empty.title")}</EmptyPlaceholder.Title>
             <EmptyPlaceholder.Description>
               {filtersActive
-                ? "No cash activity matches your filters."
-                : "Add your first transaction to get started."}
+                ? t("spending.transactions.empty.filtered")
+                : t("spending.transactions.empty.first")}
             </EmptyPlaceholder.Description>
             {filtersActive ? (
               <Button variant="outline" onClick={clearAllFilters}>
-                Clear filters
+                {t("common.clearFilters")}
               </Button>
             ) : (
               <Button onClick={openAddForm}>
                 <Icons.Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                Add transaction
+                {t("spending.transactions.addTransaction")}
               </Button>
             )}
           </EmptyPlaceholder>
@@ -905,11 +915,13 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
                   onCheckedChange={toggleSelectAllVisible}
                   aria-label={
                     allVisibleSelected
-                      ? "Deselect all visible transactions"
-                      : "Select all visible transactions"
+                      ? t("spending.transactions.deselectAllVisible")
+                      : t("spending.transactions.selectAllVisible")
                   }
                 />
-                <span className="text-muted-foreground text-xs">Select all</span>
+                <span className="text-muted-foreground text-xs">
+                  {t("spending.transactions.selectAll")}
+                </span>
               </div>
             )}
             {renderRows()}
@@ -928,18 +940,26 @@ export const SpendingTransactionsTab = forwardRef<SpendingTransactionsTabHandle>
                       onCheckedChange={toggleSelectAllVisible}
                       aria-label={
                         allVisibleSelected
-                          ? "Deselect all visible transactions"
-                          : "Select all visible transactions"
+                          ? t("spending.transactions.deselectAllVisible")
+                          : t("spending.transactions.selectAllVisible")
                       }
                     />
                   </TableHead>
-                  <TableHead className="hidden sm:table-cell">Date</TableHead>
-                  <TableHead className="hidden md:table-cell">Type</TableHead>
-                  <TableHead className="hidden lg:table-cell">Account</TableHead>
-                  <TableHead>Name / Notes</TableHead>
-                  <TableHead className="hidden md:table-cell">Category</TableHead>
-                  <TableHead className="hidden lg:table-cell">Event</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="hidden sm:table-cell">{t("activities.table.date")}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t("activities.type")}</TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    {t("activities.table.account")}
+                  </TableHead>
+                  <TableHead>{t("spending.transactions.nameNotes")}</TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    {t("spending.transactions.category")}
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    {t("spending.dashboard.events")}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {t("activityManager.form.totalCredit")}
+                  </TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>

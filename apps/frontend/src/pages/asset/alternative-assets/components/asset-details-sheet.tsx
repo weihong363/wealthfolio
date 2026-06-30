@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -430,6 +431,7 @@ function getTypeSpecificDescription(kind: AlternativeAssetKind): string {
 // ============================================================================
 
 function PropertyFields({ form }: { form: ReturnType<typeof useForm<AssetDetailsFormValues>> }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <FormField
@@ -460,7 +462,7 @@ function PropertyFields({ form }: { form: ReturnType<typeof useForm<AssetDetails
               <ResponsiveSelect
                 value={field.value ?? ""}
                 onValueChange={(val) => field.onChange(val || null)}
-                options={PROPERTY_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                options={PROPERTY_TYPES.map((type) => ({ value: type.value, label: t(type.labelKey) }))}
                 placeholder="Select property type"
                 sheetTitle="Property Type"
               />
@@ -474,6 +476,7 @@ function PropertyFields({ form }: { form: ReturnType<typeof useForm<AssetDetails
 }
 
 function VehicleFields({ form }: { form: ReturnType<typeof useForm<AssetDetailsFormValues>> }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <FormField
@@ -486,7 +489,7 @@ function VehicleFields({ form }: { form: ReturnType<typeof useForm<AssetDetailsF
               <ResponsiveSelect
                 value={field.value ?? ""}
                 onValueChange={(val) => field.onChange(val || null)}
-                options={VEHICLE_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                options={VEHICLE_TYPES.map((type) => ({ value: type.value, label: t(type.labelKey) }))}
                 placeholder="Select vehicle type"
                 sheetTitle="Vehicle Type"
               />
@@ -518,6 +521,7 @@ function VehicleFields({ form }: { form: ReturnType<typeof useForm<AssetDetailsF
 }
 
 function CollectibleFields({ form }: { form: ReturnType<typeof useForm<AssetDetailsFormValues>> }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <FormField
@@ -530,7 +534,7 @@ function CollectibleFields({ form }: { form: ReturnType<typeof useForm<AssetDeta
               <ResponsiveSelect
                 value={field.value ?? ""}
                 onValueChange={(val) => field.onChange(val || null)}
-                options={COLLECTIBLE_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                options={COLLECTIBLE_TYPES.map((type) => ({ value: type.value, label: t(type.labelKey) }))}
                 placeholder="Select collectible type"
                 sheetTitle="Collectible Type"
               />
@@ -566,6 +570,7 @@ function PreciousMetalFields({
 }: {
   form: ReturnType<typeof useForm<AssetDetailsFormValues>>;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <FormField
@@ -578,7 +583,7 @@ function PreciousMetalFields({
               <ResponsiveSelect
                 value={field.value ?? ""}
                 onValueChange={(val) => field.onChange(val || null)}
-                options={METAL_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                options={METAL_TYPES.map((type) => ({ value: type.value, label: t(type.labelKey) }))}
                 placeholder="Select metal"
                 sheetTitle="Metal Type"
               />
@@ -619,7 +624,7 @@ function PreciousMetalFields({
                 <ResponsiveSelect
                   value={field.value ?? ""}
                   onValueChange={(val) => field.onChange(val || null)}
-                  options={WEIGHT_UNITS.map((t) => ({ value: t.value, label: t.label }))}
+                  options={WEIGHT_UNITS.map((type) => ({ value: type.value, label: t(type.labelKey) }))}
                   placeholder="Select unit"
                   sheetTitle="Weight Unit"
                 />
@@ -660,6 +665,7 @@ function LiabilityFields({
   linkableAssetOptions: ResponsiveSelectOption[];
   linkedAssetName?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <FormField
@@ -672,7 +678,7 @@ function LiabilityFields({
               <ResponsiveSelect
                 value={field.value ?? ""}
                 onValueChange={(val) => field.onChange(val || null)}
-                options={LIABILITY_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+                options={LIABILITY_TYPES.map((type) => ({ value: type.value, label: t(type.labelKey) }))}
                 placeholder="Select liability type"
                 sheetTitle="Liability Type"
               />

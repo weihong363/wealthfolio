@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   findTransferMatchCandidates,
@@ -299,11 +300,12 @@ function ActivitySummaryRow({
   accountMap: Map<string, Account>;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const normalized = normalizeActivity(activity, accountMap);
   const date = formatDateTime(normalized.date).date;
   const amount = amountValue(normalized);
   const quantity = parseNumber(normalized.quantity);
-  const symbol = normalized.assetSymbol || normalized.assetId || "Cash";
+  const symbol = normalized.assetSymbol || normalized.assetId || t("activities.cash");
 
   return (
     <div className={cn("flex flex-col gap-1.5 rounded-md px-3 py-2.5 text-sm", className)}>
@@ -340,6 +342,7 @@ function CandidateButton({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -365,7 +368,7 @@ function CandidateButton({
               <div className="text-muted-foreground flex flex-wrap gap-1 text-[11px]">
                 {candidate.reasons.map((reason) => (
                   <Badge key={reason} variant="secondary" className="rounded-sm px-1.5 py-0">
-                    {reason}
+                    {t(`activities.transferMatch.reasons.${reason}`, { defaultValue: reason })}
                   </Badge>
                 ))}
               </div>
@@ -391,6 +394,7 @@ export function TransferMatchDialog({
   onOpenChange,
   onComplete,
 }: TransferMatchDialogProps) {
+  const { t } = useTranslation();
   const accountMap = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
     [accounts],
@@ -694,13 +698,16 @@ export function TransferMatchDialog({
     updateActivityMutation,
   ]);
 
-  const title = mode === "link" ? "Link transfer" : "Unlink transfer";
+  const title =
+    mode === "link"
+      ? t("activities.transferMatch.linkTitle")
+      : t("activities.transferMatch.unlinkTitle");
   const description =
     mode === "link"
-      ? "Choose the existing opposite transfer to pair with this activity."
+      ? t("activities.transferMatch.linkDescription")
       : canClearInvalidLink
-        ? "This stale transfer link will be cleared and the transfer will be marked external."
-        : "This transfer pair will be split back into two external transfers.";
+        ? t("activities.transferMatch.clearStaleDescription")
+        : t("activities.transferMatch.unlinkDescription");
 
   if (!sourceActivity || !source || !isTransferType(source.activityType)) {
     return null;
@@ -716,7 +723,9 @@ export function TransferMatchDialog({
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
           <div className="space-y-2">
-            <div className="text-muted-foreground text-xs font-medium uppercase">Selected row</div>
+            <div className="text-muted-foreground text-xs font-medium uppercase">
+              {t("activities.transferMatch.selectedRow")}
+            </div>
             <ActivitySummaryRow
               activity={sourceActivity}
               accountMap={accountMap}
@@ -727,11 +736,11 @@ export function TransferMatchDialog({
           {mode === "unlink" ? (
             <div className="space-y-3">
               <div className="text-muted-foreground text-xs font-medium uppercase">
-                Linked counterpart
+                {t("activities.transferMatch.linkedCounterpart")}
               </div>
               {counterpartLoading ? (
                 <div className="text-muted-foreground rounded-md border p-3 text-sm">
-                  Loading linked transfer...
+                  {t("activities.transferMatch.loadingLinked")}
                 </div>
               ) : counterpart ? (
                 <ActivitySummaryRow
@@ -741,14 +750,16 @@ export function TransferMatchDialog({
                 />
               ) : canClearInvalidLink ? (
                 <div className="rounded-md border p-3 text-sm">
-                  <div className="font-medium">No valid linked counterpart found.</div>
+                  <div className="font-medium">
+                    {t("activities.transferMatch.noCounterpart")}
+                  </div>
                   <div className="text-muted-foreground mt-1">
-                    Unlinking will clear the stale transfer link on this row and mark it external.
+                    {t("activities.transferMatch.clearStaleHint")}
                   </div>
                 </div>
               ) : (
                 <div className="text-destructive rounded-md border p-3 text-sm">
-                  {counterpartError ?? "No valid linked counterpart found."}
+                  {counterpartError ?? t("activities.transferMatch.noCounterpart")}
                 </div>
               )}
             </div>
@@ -757,11 +768,13 @@ export function TransferMatchDialog({
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-muted-foreground text-xs font-medium uppercase">
-                    Suggested matches
+                    {t("activities.transferMatch.suggestedMatches")}
                   </div>
                   {oppositeType ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground text-xs">Looking for</span>
+                      <span className="text-muted-foreground text-xs">
+                        {t("activities.transferMatch.lookingFor")}
+                      </span>
                       <ActivityTypeBadge type={oppositeType} />
                     </div>
                   ) : null}
@@ -791,7 +804,7 @@ export function TransferMatchDialog({
                   <div className="flex flex-col items-center gap-2 rounded-md border border-dashed px-4 py-6 text-center">
                     <Icons.Search className="text-muted-foreground h-5 w-5" />
                     <p className="text-muted-foreground text-sm">
-                      No matches within 7 days of this activity.
+                      {t("activities.transferMatch.noSevenDayMatches")}
                     </p>
                     <Button
                       type="button"
@@ -800,7 +813,7 @@ export function TransferMatchDialog({
                       onClick={widenSearch}
                       disabled={manualLoading}
                     >
-                      Search within 30 days
+                      {t("activities.transferMatch.searchThirtyDays")}
                     </Button>
                   </div>
                 )}
@@ -809,17 +822,19 @@ export function TransferMatchDialog({
               <div className="space-y-3 rounded-md border p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="text-sm font-medium">Search eligible transfers</div>
+                    <div className="text-sm font-medium">
+                      {t("activities.transferMatch.searchEligible")}
+                    </div>
                     <div className="text-muted-foreground text-xs">
-                      Only{" "}
-                      {oppositeType
-                        ? (ActivityTypeNames[oppositeType] ?? oppositeType)
-                        : "opposite transfer"}{" "}
-                      activities are searched.
+                      {t("activities.transferMatch.searchScope", {
+                        type: oppositeType
+                          ? (ActivityTypeNames[oppositeType] ?? oppositeType)
+                          : t("activities.transferMatch.oppositeTransfer"),
+                      })}
                     </div>
                   </div>
                   <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
-                    Reset filters
+                    {t("activities.reset")}
                   </Button>
                 </div>
 
@@ -836,7 +851,7 @@ export function TransferMatchDialog({
                       <Input
                         value={searchText}
                         onChange={(event) => setSearchText(event.target.value)}
-                        placeholder="Search notes, symbol, account"
+                        placeholder={t("activities.transferMatch.searchPlaceholder")}
                         className="pl-9"
                       />
                     </div>
@@ -846,17 +861,17 @@ export function TransferMatchDialog({
                       ) : (
                         <Icons.Search className="mr-2 h-4 w-4" />
                       )}
-                      Search
+                      {t("common.search")}
                     </Button>
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                     <Select value={accountId} onValueChange={setAccountId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Account" />
+                        <SelectValue placeholder={t("activities.table.account")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={ALL}>All accounts</SelectItem>
+                        <SelectItem value={ALL}>{t("activities.filters.allAccounts")}</SelectItem>
                         {activeAccounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.name}
@@ -867,13 +882,21 @@ export function TransferMatchDialog({
 
                     <Select value={windowDays} onValueChange={setWindowDays}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Date range" />
+                        <SelectValue placeholder={t("activities.transferMatch.dateRange")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="7">Within 7 days</SelectItem>
-                        <SelectItem value="30">Within 30 days</SelectItem>
-                        <SelectItem value="90">Within 90 days</SelectItem>
-                        <SelectItem value="180">Within 180 days</SelectItem>
+                        <SelectItem value="7">
+                          {t("activities.transferMatch.withinDays", { count: 7 })}
+                        </SelectItem>
+                        <SelectItem value="30">
+                          {t("activities.transferMatch.withinDays", { count: 30 })}
+                        </SelectItem>
+                        <SelectItem value="90">
+                          {t("activities.transferMatch.withinDays", { count: 90 })}
+                        </SelectItem>
+                        <SelectItem value="180">
+                          {t("activities.transferMatch.withinDays", { count: 180 })}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -892,7 +915,7 @@ export function TransferMatchDialog({
                             filtersOpen && "rotate-180",
                           )}
                         />
-                        More filters
+                        {t("activities.transferMatch.moreFilters")}
                         {advancedFilterCount > 0 ? (
                           <Badge
                             variant="secondary"
@@ -907,10 +930,12 @@ export function TransferMatchDialog({
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <Select value={accountType} onValueChange={setAccountType}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Account type" />
+                            <SelectValue placeholder={t("activities.transferMatch.accountType")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={ALL}>All account types</SelectItem>
+                            <SelectItem value={ALL}>
+                              {t("activities.transferMatch.allAccountTypes")}
+                            </SelectItem>
                             {accountTypeOptions.map((type) => (
                               <SelectItem key={type} value={type}>
                                 {type}
@@ -921,10 +946,12 @@ export function TransferMatchDialog({
 
                         <Select value={currency} onValueChange={setCurrency}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Currency" />
+                            <SelectValue placeholder={t("activities.table.currency")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={ALL}>All currencies</SelectItem>
+                            <SelectItem value={ALL}>
+                              {t("activities.transferMatch.allCurrencies")}
+                            </SelectItem>
                             {currencyOptions.map((option) => (
                               <SelectItem key={option} value={option}>
                                 {option}
@@ -935,25 +962,35 @@ export function TransferMatchDialog({
 
                         <Select value={assetFilter} onValueChange={setAssetFilter}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Asset" />
+                            <SelectValue placeholder={t("fundResearch.asset")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={ALL}>All assets</SelectItem>
+                            <SelectItem value={ALL}>
+                              {t("activities.transferMatch.allAssets")}
+                            </SelectItem>
                             {isSecurityTransfer(source) ? (
-                              <SelectItem value={SAME_ASSET}>Same asset</SelectItem>
+                              <SelectItem value={SAME_ASSET}>
+                                {t("activities.transferMatch.sameAsset")}
+                              </SelectItem>
                             ) : (
-                              <SelectItem value={CASH_ASSET}>Cash only</SelectItem>
+                              <SelectItem value={CASH_ASSET}>
+                                {t("activities.transferMatch.cashOnly")}
+                              </SelectItem>
                             )}
                           </SelectContent>
                         </Select>
 
                         <Select value={matchMode} onValueChange={setMatchMode}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Match mode" />
+                            <SelectValue placeholder={t("activities.transferMatch.matchMode")} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={STRICT}>Exact amount/quantity</SelectItem>
-                            <SelectItem value={ANY}>Any eligible transfer</SelectItem>
+                            <SelectItem value={STRICT}>
+                              {t("activities.transferMatch.exactMatch")}
+                            </SelectItem>
+                            <SelectItem value={ANY}>
+                              {t("activities.transferMatch.anyEligible")}
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -971,8 +1008,10 @@ export function TransferMatchDialog({
                   <div className="space-y-2">
                     <div className="text-muted-foreground text-xs">
                       {filteredManualResults.length === 1
-                        ? "1 eligible transfer"
-                        : `${filteredManualResults.length} eligible transfers`}
+                        ? t("activities.transferMatch.eligibleCount", { count: 1 })
+                        : t("activities.transferMatch.eligibleCount", {
+                            count: filteredManualResults.length,
+                          })}
                     </div>
                     <ScrollArea className="max-h-72">
                       <div className="space-y-2 pr-3">
@@ -988,7 +1027,7 @@ export function TransferMatchDialog({
                           ))
                         ) : (
                           <div className="text-muted-foreground rounded-md border border-dashed p-4 text-center text-sm">
-                            No eligible transfers match the current filters.
+                            {t("activities.transferMatch.noFilterMatches")}
                           </div>
                         )}
                       </div>
@@ -1002,7 +1041,7 @@ export function TransferMatchDialog({
 
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           {mode === "link" ? (
             <Button
@@ -1014,7 +1053,7 @@ export function TransferMatchDialog({
               ) : (
                 <Icons.Link className="mr-2 h-4 w-4" />
               )}
-              Link transfers
+              {t("activities.transferMatch.linkTransfers")}
             </Button>
           ) : (
             <Button
@@ -1028,7 +1067,9 @@ export function TransferMatchDialog({
               ) : (
                 <Icons.Unlink className="mr-2 h-4 w-4" />
               )}
-              {counterpart ? "Unlink transfers" : "Unlink transfer"}
+              {counterpart
+                ? t("activities.transferMatch.unlinkTransfers")
+                : t("activities.transferMatch.unlinkTransfer")}
             </Button>
           )}
         </SheetFooter>

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Badge,
@@ -18,7 +19,7 @@ import { cn, formatDate } from "@/lib/utils";
 
 import { QuickCategorizePopover } from "./quick-categorize-popover";
 import { QuickEventPopover } from "./quick-event-popover";
-import { getCashActivityLabel, getEffectiveCashActivityType } from "../lib/constants";
+import { getEffectiveCashActivityType, getTranslatedCashActivityLabel } from "../lib/constants";
 import {
   getTransactionDisplay,
   getTransferLinkStatus,
@@ -59,13 +60,16 @@ function TransactionRowImpl({
   onLinkTransfer,
   onUnlinkTransfer,
 }: TransactionRowProps) {
+  const { t } = useTranslation();
   const a = row.activity;
   const { isOutflow, isIncome, isSaving, isNeutral, sign, safeAmount } = getTransactionDisplay(
     a,
     account?.accountType,
   );
   const accountName = account?.name ?? a.accountId;
-  const rowAriaLabel = isSelected ? "Deselect transaction" : "Select transaction";
+  const rowAriaLabel = isSelected
+    ? t("spending.transactions.deselectTransaction")
+    : t("spending.transactions.selectTransaction");
   const activityType = getEffectiveCashActivityType(a);
   const isTransfer = isTransferCashActivity(a);
   const transferLinkStatus = getTransferLinkStatus(a);
@@ -87,7 +91,7 @@ function TransactionRowImpl({
       </TableCell>
       <TableCell className="hidden md:table-cell">
         <Badge variant="outline" className="text-xs">
-          {getCashActivityLabel(activityType, account?.accountType)}
+          {getTranslatedCashActivityLabel(t, activityType, account?.accountType)}
         </Badge>
       </TableCell>
       <TableCell className="hidden text-sm lg:table-cell">
@@ -101,7 +105,7 @@ function TransactionRowImpl({
           </span>
           {row.needsReview && (
             <Badge variant="outline" className="border-amber-500/50 text-[10px] text-amber-600">
-              Review
+              {t("spending.transactions.review")}
             </Badge>
           )}
         </div>
@@ -111,7 +115,7 @@ function TransactionRowImpl({
       </TableCell>
       <TableCell className="hidden md:table-cell">
         {isNeutral ? (
-          <span className="text-muted-foreground text-xs">Neutral</span>
+          <span className="text-muted-foreground text-xs">{t("spending.transactions.neutral")}</span>
         ) : (
           <QuickCategorizePopover
             scope={isIncome ? "income" : isSaving ? "saving" : "expense"}
@@ -122,7 +126,9 @@ function TransactionRowImpl({
               <button
                 type="button"
                 aria-label={
-                  row.category ? `Change category (${row.category.name})` : "Assign category"
+                  row.category
+                    ? t("spending.transactions.changeCategory", { category: row.category.name })
+                    : t("spending.transactions.assignCategory")
                 }
                 className="hover:bg-muted/60 -mx-1 inline-flex max-w-[180px] items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left transition-colors"
               >
@@ -140,7 +146,7 @@ function TransactionRowImpl({
                 ) : (
                   <span className="text-muted-foreground inline-flex items-center gap-1 text-xs italic">
                     <Icons.Plus className="h-3 w-3" aria-hidden="true" />
-                    Categorize
+                    {t("spending.transactions.categorize")}
                   </span>
                 )}
               </button>
@@ -158,7 +164,11 @@ function TransactionRowImpl({
           trigger={
             <button
               type="button"
-              aria-label={event ? `Change event (${event.name})` : "Tag event"}
+              aria-label={
+                event
+                  ? t("spending.transactions.changeEvent", { event: event.name })
+                  : t("spending.transactions.tagEvent")
+              }
               className="hover:bg-muted/60 -mx-1 inline-flex max-w-[180px] items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left transition-colors"
             >
               {event ? (
@@ -173,7 +183,7 @@ function TransactionRowImpl({
               ) : (
                 <span className="text-muted-foreground inline-flex items-center gap-1 text-xs italic">
                   <Icons.Plus className="h-3 w-3" aria-hidden="true" />
-                  Tag event
+                  {t("spending.transactions.tagEvent")}
                 </span>
               )}
             </button>
@@ -198,37 +208,42 @@ function TransactionRowImpl({
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Row actions">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              aria-label={t("spending.transactions.rowActions")}
+            >
               <Icons.MoreVertical className="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(row)}>
               <Icons.Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
-              Edit
+              {t("common.edit")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onDuplicate(row)}>
               <Icons.Copy className="mr-2 h-4 w-4" aria-hidden="true" />
-              Duplicate
+              {t("activities.operations.duplicate")}
             </DropdownMenuItem>
             {isTransfer && (onLinkTransfer || onUnlinkTransfer) ? (
               transferLinkStatus === "linked" ? (
                 onUnlinkTransfer ? (
                   <DropdownMenuItem onClick={() => onUnlinkTransfer(row)}>
                     <Icons.Unlink className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Unlink transfer
+                    {t("activities.operations.unlinkTransfer")}
                   </DropdownMenuItem>
                 ) : null
               ) : onLinkTransfer ? (
                 <DropdownMenuItem onClick={() => onLinkTransfer(row)}>
                   <Icons.Link className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Link transfer...
+                  {t("activities.operations.linkTransfer")}
                 </DropdownMenuItem>
               ) : null
             ) : null}
             <DropdownMenuItem className="text-destructive" onClick={() => onDelete(row)}>
               <Icons.Trash className="mr-2 h-4 w-4" aria-hidden="true" />
-              Delete
+              {t("common.delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

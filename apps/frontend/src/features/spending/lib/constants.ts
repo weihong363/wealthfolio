@@ -1,4 +1,5 @@
 import { AccountPurpose, accountSupportsPurpose, isLiabilityAccountType } from "@/lib/constants";
+import type { TFunction } from "i18next";
 
 /** Cash/card activity types tracked by the spending module. */
 export const CASH_ACTIVITY_TYPES = [
@@ -71,6 +72,17 @@ export function getCashActivityLabel(activityType: string, accountType?: string)
   }
 
   return CASH_ACTIVITY_TYPE_LABELS[activityType as CashActivityType] ?? activityType;
+}
+
+export function getTranslatedCashActivityLabel(
+  t: TFunction,
+  activityType: string,
+  accountType?: string,
+): string {
+  const labelKey = isCreditCardAccountType(accountType)
+    ? `spending.transactions.creditCardTypes.${activityType}`
+    : `spending.transactions.types.${activityType}`;
+  return t(labelKey, { defaultValue: getCashActivityLabel(activityType, accountType) });
 }
 
 export function getEffectiveCashActivityType(activity: {

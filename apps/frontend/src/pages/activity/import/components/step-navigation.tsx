@@ -1,6 +1,7 @@
 import { Button } from "@wealthfolio/ui/components/ui/button";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -36,11 +37,15 @@ export function StepNavigation({
   onBack,
   canGoBack,
   canGoNext,
-  nextLabel = "Continue",
-  backLabel = "Back",
+  nextLabel,
+  backLabel,
   isNextLoading = false,
   showNext = true,
 }: StepNavigationProps) {
+  const { t } = useTranslation();
+  const resolvedNextLabel = nextLabel ?? t("activityImport.next.continue");
+  const resolvedBackLabel = backLabel ?? t("common.back");
+
   return (
     <div className="flex flex-col-reverse justify-between gap-3 border-t pt-4 sm:flex-row">
       {/* Back button */}
@@ -57,7 +62,7 @@ export function StepNavigation({
           className="w-full sm:w-auto"
         >
           <Icons.ArrowLeft className="mr-2 h-4 w-4" />
-          {backLabel}
+          {resolvedBackLabel}
         </Button>
       </motion.div>
 
@@ -77,11 +82,11 @@ export function StepNavigation({
             {isNextLoading ? (
               <>
                 <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                {t("activityImport.next.processing")}
               </>
             ) : (
               <>
-                {nextLabel}
+                {resolvedNextLabel}
                 <Icons.ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}

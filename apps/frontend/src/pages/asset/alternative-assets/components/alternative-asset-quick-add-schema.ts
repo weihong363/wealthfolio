@@ -1,40 +1,40 @@
 import { AlternativeAssetKind } from "@/lib/types";
 import * as z from "zod";
 
-// Metal types for precious metals
+// Metal types (labels are i18n keys resolved at render time)
 export const METAL_TYPES = [
-  { value: "gold", label: "Gold" },
-  { value: "silver", label: "Silver" },
-  { value: "platinum", label: "Platinum" },
-  { value: "palladium", label: "Palladium" },
+  { value: "gold", labelKey: "holdings.metalGold" },
+  { value: "silver", labelKey: "holdings.metalSilver" },
+  { value: "platinum", labelKey: "holdings.metalPlatinum" },
+  { value: "palladium", labelKey: "holdings.metalPalladium" },
 ] as const;
 
-// Weight units for precious metals
+// Weight units (labels are i18n keys resolved at render time)
 export const WEIGHT_UNITS = [
-  { value: "oz", label: "Troy Ounce (oz)" },
-  { value: "g", label: "Gram (g)" },
-  { value: "kg", label: "Kilogram (kg)" },
+  { value: "oz", labelKey: "holdings.unitTroyOunce" },
+  { value: "g", labelKey: "holdings.unitGram" },
+  { value: "kg", labelKey: "holdings.unitKilogram" },
 ] as const;
 
-// Liability types
+// Liability types (labels are i18n keys resolved at render time)
 export const LIABILITY_TYPES = [
-  { value: "mortgage", label: "Mortgage" },
-  { value: "auto_loan", label: "Auto Loan" },
-  { value: "student_loan", label: "Student Loan" },
-  { value: "credit_card", label: "Credit Card" },
-  { value: "personal_loan", label: "Personal Loan" },
-  { value: "heloc", label: "HELOC" },
-  { value: "other", label: "Other" },
+  { value: "mortgage", labelKey: "holdings.liabilityMortgage" },
+  { value: "auto_loan", labelKey: "holdings.liabilityAutoLoan" },
+  { value: "student_loan", labelKey: "holdings.liabilityStudentLoan" },
+  { value: "credit_card", labelKey: "holdings.liabilityCreditCard" },
+  { value: "personal_loan", labelKey: "holdings.liabilityPersonalLoan" },
+  { value: "heloc", labelKey: "holdings.liabilityHeloc" },
+  { value: "other", labelKey: "holdings.other" },
 ] as const;
 
-// Asset type options for the type selector
+// Asset type options (labels are i18n keys resolved at render time)
 export const ASSET_KIND_OPTIONS = [
-  { value: AlternativeAssetKind.PROPERTY, label: "Property" },
-  { value: AlternativeAssetKind.VEHICLE, label: "Vehicle" },
-  { value: AlternativeAssetKind.COLLECTIBLE, label: "Collectible" },
-  { value: AlternativeAssetKind.PRECIOUS_METAL, label: "Precious Metal" },
-  { value: AlternativeAssetKind.LIABILITY, label: "Liability" },
-  { value: AlternativeAssetKind.OTHER, label: "Other" },
+  { value: AlternativeAssetKind.PROPERTY, labelKey: "holdings.assetTypeProperty" },
+  { value: AlternativeAssetKind.VEHICLE, labelKey: "holdings.assetTypeVehicle" },
+  { value: AlternativeAssetKind.COLLECTIBLE, labelKey: "holdings.assetTypeCollectible" },
+  { value: AlternativeAssetKind.PRECIOUS_METAL, labelKey: "holdings.assetTypePrecious" },
+  { value: AlternativeAssetKind.LIABILITY, labelKey: "holdings.assetTypeLiability" },
+  { value: AlternativeAssetKind.OTHER, labelKey: "holdings.assetTypeOther" },
 ] as const;
 
 // Zod schema for the quick add form

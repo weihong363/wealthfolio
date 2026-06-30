@@ -1055,7 +1055,12 @@ fn extract_rows(text: &str) -> Vec<String> {
 fn extract_cells(row: &str) -> Vec<String> {
     row.split("<td")
         .skip(1)
-        .filter_map(|part| part.split_once("</td>").map(|(cell, _)| strip_tags(cell)))
+        .filter_map(|part| {
+            // Strip the <td> tag's attributes: everything up to and including
+            // the first '>' so that class='toc'> values are properly cleaned.
+            let after_tag = part.split_once('>').map(|(_, rest)| rest).unwrap_or(part);
+            after_tag.split_once("</td>").map(|(cell, _)| strip_tags(cell))
+        })
         .map(|cell| html_unescape(cell).trim().to_string())
         .filter(|cell| !cell.is_empty())
         .collect()

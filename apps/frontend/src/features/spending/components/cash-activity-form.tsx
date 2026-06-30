@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -48,7 +50,7 @@ import {
 } from "../adapters/cash-activities";
 import {
   getActivityTypesForAccount,
-  getCashActivityLabel,
+  getTranslatedCashActivityLabel,
   isCreditCardAccountType,
   isCashActivityIncome,
   isSpendingAccountType,
@@ -63,27 +65,31 @@ const SPENDING_TAXONOMY = "spending_categories";
 const INCOME_TAXONOMY = "income_sources";
 const SAVINGS_TAXONOMY = "savings_categories";
 
-const formSchema = z.object({
-  id: z.string().optional(),
-  accountId: z.string().min(1, { message: "Please select an account." }),
-  activityType: z.enum([
-    "DEPOSIT",
-    "WITHDRAWAL",
-    "TRANSFER_IN",
-    "TRANSFER_OUT",
-    "FEE",
-    "TAX",
-    "INTEREST",
-    "CREDIT",
-  ]),
-  activityDate: z.date({ required_error: "Pick a date" }),
-  amount: z.coerce.number().min(0.01, { message: "Amount must be greater than zero." }),
-  notes: z.string().optional(),
-  /** "<taxonomyId>:<categoryId>" or "" */
-  category: z.string().optional(),
-});
+function createFormSchema(t: TFunction) {
+  return z.object({
+    id: z.string().optional(),
+    accountId: z.string().min(1, { message: t("spending.transactions.form.selectAccountError") }),
+    activityType: z.enum([
+      "DEPOSIT",
+      "WITHDRAWAL",
+      "TRANSFER_IN",
+      "TRANSFER_OUT",
+      "FEE",
+      "TAX",
+      "INTEREST",
+      "CREDIT",
+    ]),
+    activityDate: z.date({ required_error: t("spending.transactions.form.pickDate") }),
+    amount: z.coerce
+      .number()
+      .min(0.01, { message: t("spending.transactions.form.amountPositive") }),
+    notes: z.string().optional(),
+    /** "<taxonomyId>:<categoryId>" or "" */
+    category: z.string().optional(),
+  });
+}
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>;
 
 function getMobileTypeIcon(type: FormValues["activityType"]) {
   switch (type) {
@@ -105,23 +111,23 @@ function getMobileTypeIcon(type: FormValues["activityType"]) {
   }
 }
 
-function getMobileTypeDescription(type: FormValues["activityType"]) {
+function getMobileTypeDescription(t: TFunction, type: FormValues["activityType"]) {
   switch (type) {
     case "DEPOSIT":
-      return "Money received in this account";
+      return t("spending.transactions.form.typeDescriptions.deposit");
     case "WITHDRAWAL":
-      return "Money spent or paid from this account";
+      return t("spending.transactions.form.typeDescriptions.withdrawal");
     case "INTEREST":
-      return "Interest earned on this account";
+      return t("spending.transactions.form.typeDescriptions.interest");
     case "CREDIT":
-      return "Refund or credit adjustment";
+      return t("spending.transactions.form.typeDescriptions.credit");
     case "FEE":
-      return "Account or transaction fee";
+      return t("spending.transactions.form.typeDescriptions.fee");
     case "TAX":
-      return "Tax payment from this account";
+      return t("spending.transactions.form.typeDescriptions.tax");
     case "TRANSFER_IN":
     case "TRANSFER_OUT":
-      return "Move money between accounts";
+      return t("spending.transactions.form.typeDescriptions.transfer");
   }
 }
 
@@ -144,6 +150,7 @@ export function CashActivityForm({
   activity,
   onTransferClick,
 }: CashActivityFormProps) {
+  const { t } = useTranslation();
   const isEditing = !!activity?.id;
   const isMobile = useIsMobileViewport();
   const [currentStep, setCurrentStep] = useState<1 | 2>(isEditing ? 2 : 1);
@@ -193,6 +200,7 @@ export function CashActivityForm({
   // Event id stored separately (not part of the form schema since it's persisted
   // via setActivityEvent rather than the activity create/update payload).
   const [eventId, setEventId] = useState<string | null>(activity?.eventId ?? null);
+  const formSchema = useMemo(() => createFormSchema(t), [t]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -231,7 +239,9 @@ export function CashActivityForm({
   const watchAccountId = form.watch("accountId");
   const selectedAccount = spendingAccounts.find((a) => a.id === watchAccountId);
   const isCreditCardAccount = isCreditCardAccountType(selectedAccount?.accountType);
-  const transferActionLabel = isCreditCardAccount ? "Record payment" : "Transfer between accounts";
+  const transferActionLabel = isCreditCardAccount
+    ? t("spending.transactions.form.recordPayment")
+    : t("spending.transactions.form.transferBetweenAccounts");
   const activityTypeOptions = useMemo(() => {
     const options = getActivityTypesForAccount(selectedAccount?.accountType);
     const currentType = activity?.activityType as FormValues["activityType"] | undefined;
@@ -244,11 +254,11 @@ export function CashActivityForm({
     () =>
       activityTypeOptions.map((type) => ({
         type,
-        label: getCashActivityLabel(type, selectedAccount?.accountType),
-        description: getMobileTypeDescription(type),
+        label: getTranslatedCashActivityLabel(t, type, selectedAccount?.accountType),
+        description: getMobileTypeDescription(t, type),
         Icon: getMobileTypeIcon(type),
       })),
-    [activityTypeOptions, selectedAccount?.accountType],
+    [activityTypeOptions, selectedAccount?.accountType, t],
   );
   const isIncomeType = isCashActivityIncome(
     watchType,
@@ -261,10 +271,10 @@ export function CashActivityForm({
     cashFlowBucket === "saving" ? "saving" : isIncomeType ? "income" : "expense";
   const categoryLabel =
     cashFlowBucket === "saving"
-      ? "Savings Category"
+      ? t("spending.transactions.form.savingsCategory")
       : isIncomeType
-        ? "Income Source"
-        : "Spending Category";
+        ? t("spending.transactions.form.incomeSource")
+        : t("spending.transactions.form.spendingCategory");
 
   useEffect(() => {
     if (!selectedAccount) return;
@@ -332,11 +342,15 @@ export function CashActivityForm({
       invalidateSpendingCaches(qc);
       qc.invalidateQueries({ queryKey: [QueryKeys.ACTIVITIES] });
       qc.invalidateQueries({ queryKey: [QueryKeys.ACTIVITY_DATA] });
-      toast.success(isEditing ? "Activity updated." : "Activity created.");
+      toast.success(
+        isEditing
+          ? t("spending.transactions.toast.activityUpdated")
+          : t("spending.transactions.toast.activityCreated"),
+      );
       onOpenChange(false);
     },
     onError: (e: unknown) => {
-      toast.error(`Failed to save activity: ${(e as Error).message ?? e}`);
+      toast.error(t("spending.transactions.toast.saveFailed", { message: (e as Error).message ?? e }));
     },
   });
 
@@ -369,7 +383,11 @@ export function CashActivityForm({
       >
         <SheetHeader className={cn(isMobile && "border-b px-6 py-4 text-center")}>
           <div className={cn(isMobile && "flex flex-col items-center space-y-2")}>
-            <SheetTitle>{isEditing ? "Edit Transaction" : "Add Transaction"}</SheetTitle>
+            <SheetTitle>
+              {isEditing
+                ? t("spending.transactions.form.editTransaction")
+                : t("spending.transactions.form.addTransaction")}
+            </SheetTitle>
             {isMobileCreate && (
               <div className="flex gap-1.5">
                 {[1, 2].map((step) => (
@@ -390,8 +408,8 @@ export function CashActivityForm({
             {!isMobileCreate && (
               <SheetDescription>
                 {isEditing
-                  ? "Update an existing transaction."
-                  : "Add a new transaction on a tracked spending account."}
+                  ? t("spending.transactions.form.updateDescription")
+                  : t("spending.transactions.form.addDescription")}
               </SheetDescription>
             )}
           </div>
@@ -414,11 +432,13 @@ export function CashActivityForm({
                       name="accountId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Account</FormLabel>
+                          <FormLabel>{t("activities.table.account")}</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select an account" />
+                                <SelectValue
+                                  placeholder={t("spending.transactions.form.selectAccount")}
+                                />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -441,7 +461,7 @@ export function CashActivityForm({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="text-lg font-semibold">
-                              Select Transaction Type
+                              {t("spending.transactions.form.selectTransactionType")}
                             </FormLabel>
                             <FormControl>
                               <RadioGroup onValueChange={field.onChange} value={field.value}>
@@ -490,7 +510,7 @@ export function CashActivityForm({
                           name="activityType"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Type</FormLabel>
+                              <FormLabel>{t("activities.type")}</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
@@ -498,9 +518,13 @@ export function CashActivityForm({
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {activityTypeOptions.map((t) => (
-                                    <SelectItem key={t} value={t}>
-                                      {getCashActivityLabel(t, selectedAccount?.accountType)}
+                                  {activityTypeOptions.map((type) => (
+                                    <SelectItem key={type} value={type}>
+                                      {getTranslatedCashActivityLabel(
+                                        t,
+                                        type,
+                                        selectedAccount?.accountType,
+                                      )}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -513,7 +537,11 @@ export function CashActivityForm({
                         {/* Transfer button — creation only, redirects to the full transfer form */}
                         {!isEditing && onTransferClick && (
                           <FormItem>
-                            <FormLabel>{isCreditCardAccount ? "Payment" : "Transfer"}</FormLabel>
+                            <FormLabel>
+                              {isCreditCardAccount
+                                ? t("spending.transactions.form.payment")
+                                : t("activityManager.types.transfer")}
+                            </FormLabel>
                             <Button
                               type="button"
                               variant="outline"
@@ -549,8 +577,8 @@ export function CashActivityForm({
                           <div className="text-foreground font-medium">{transferActionLabel}</div>
                           <div className="text-muted-foreground mt-1 text-sm">
                             {isCreditCardAccount
-                              ? "Pay this card from another account"
-                              : "Move money between accounts"}
+                              ? t("spending.transactions.form.payCardDescription")
+                              : t("spending.transactions.form.typeDescriptions.transfer")}
                           </div>
                         </div>
                       </button>
@@ -565,7 +593,7 @@ export function CashActivityForm({
                       name="activityDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Date</FormLabel>
+                          <FormLabel>{t("activities.table.date")}</FormLabel>
                           <DatePickerInput
                             value={field.value}
                             onChange={(d?: Date) => field.onChange(d)}
@@ -582,7 +610,7 @@ export function CashActivityForm({
                       name="amount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Amount</FormLabel>
+                          <FormLabel>{t("activityManager.form.totalCredit")}</FormLabel>
                           <FormControl>
                             <MoneyInput
                               value={field.value}
@@ -608,10 +636,12 @@ export function CashActivityForm({
                           : null;
                         return (
                           <FormItem>
-                            <FormLabel>{isNeutralBucket ? "Category" : categoryLabel}</FormLabel>
+                            <FormLabel>
+                              {isNeutralBucket ? t("spending.transactions.category") : categoryLabel}
+                            </FormLabel>
                             {isNeutralBucket ? (
                               <div className="border-input bg-muted/40 text-muted-foreground h-input-height flex items-center rounded-md border px-3 py-2 text-sm">
-                                Neutral transfer
+                                {t("spending.transactions.neutralTransfer")}
                               </div>
                             ) : (
                               <QuickCategorizePopover
@@ -627,7 +657,7 @@ export function CashActivityForm({
                                       aria-label={
                                         currentCat
                                           ? `Change category (${currentCat.name})`
-                                          : "Pick a category"
+                                          : t("spending.transactions.form.pickCategory")
                                       }
                                     >
                                       {currentCat ? (
@@ -646,7 +676,7 @@ export function CashActivityForm({
                                         </span>
                                       ) : (
                                         <span className="text-muted-foreground">
-                                          Pick a category (optional)
+                                          {t("spending.transactions.form.pickCategoryOptional")}
                                         </span>
                                       )}
                                       <Icons.ChevronDown
@@ -665,7 +695,7 @@ export function CashActivityForm({
                     />
 
                     <FormItem>
-                      <FormLabel>Event</FormLabel>
+                      <FormLabel>{t("spending.dashboard.events")}</FormLabel>
                       <QuickEventPopover
                         selectedEventId={eventId}
                         onSelect={setEventId}
@@ -677,8 +707,10 @@ export function CashActivityForm({
                             className="border-input bg-input-bg dark:bg-input/30 hover:bg-accent/30 ring-offset-background focus:ring-ring h-input-height flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
                             aria-label={
                               eventId && eventsById.get(eventId)
-                                ? `Change event (${eventsById.get(eventId)?.name})`
-                                : "Tag an event"
+                                ? t("spending.transactions.changeEvent", {
+                                    event: eventsById.get(eventId)?.name,
+                                  })
+                                : t("spending.transactions.tagEvent")
                             }
                           >
                             {(() => {
@@ -686,7 +718,7 @@ export function CashActivityForm({
                               if (!ev) {
                                 return (
                                   <span className="text-muted-foreground">
-                                    Tag an event (optional)
+                                    {t("spending.transactions.form.tagEventOptional")}
                                   </span>
                                 );
                               }
@@ -718,7 +750,7 @@ export function CashActivityForm({
                       name="notes"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Notes / Payee</FormLabel>
+                          <FormLabel>{t("spending.transactions.nameNotes")}</FormLabel>
                           <FormControl>
                             <Textarea
                               placeholder="e.g., AMAZON*MARKETPLACE, STARBUCKS COFFEE"
@@ -747,7 +779,7 @@ export function CashActivityForm({
                       disabled={saveMutation.isPending}
                     >
                       <Icons.ArrowLeft className="mr-2 h-4 w-4" />
-                      Back
+                      {t("common.back")}
                     </Button>
                   )}
 
@@ -758,7 +790,7 @@ export function CashActivityForm({
                       className="flex-1 font-medium"
                       disabled={!watchAccountId}
                     >
-                      Next
+                      {t("activityImport.next.continue")}
                       <Icons.ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   ) : (
@@ -772,7 +804,9 @@ export function CashActivityForm({
                       ) : (
                         <Icons.Check className="mr-2 h-4 w-4" />
                       )}
-                      {isEditing ? "Update" : "Create"} Transaction
+                      {isEditing
+                        ? t("spending.transactions.form.updateTransaction")
+                        : t("spending.transactions.form.createTransaction")}
                     </Button>
                   )}
                 </div>
@@ -785,18 +819,18 @@ export function CashActivityForm({
                   onClick={() => onOpenChange(false)}
                   disabled={saveMutation.isPending}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={saveMutation.isPending}>
                   {saveMutation.isPending ? (
                     <>
                       <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      {t("common.loading")}
                     </>
                   ) : isEditing ? (
-                    "Update"
+                    t("common.save")
                   ) : (
-                    "Create"
+                    t("spending.transactions.form.create")
                   )}
                 </Button>
               </SheetFooter>

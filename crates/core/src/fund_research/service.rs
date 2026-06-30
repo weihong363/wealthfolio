@@ -270,6 +270,14 @@ fn clean_html(input: &str) -> String {
     let s = regex::Regex::new(r"<[^>]*>")
         .unwrap()
         .replace_all(input, "");
+    // Remove leftover class / style attribute prefixes
+    // (produced when tag stripping leaves attributes like class='toc'> or style='xxx'>)
+    let s = regex::Regex::new(r#"^class\s*=\s*['"][^'"]*['"]>?"#)
+        .unwrap()
+        .replace(&s, "");
+    let s = regex::Regex::new(r#"^style\s*=\s*['"][^'"]*['"]>?"#)
+        .unwrap()
+        .replace(&s, "");
     // Trim whitespace
     s.trim().to_string()
 }

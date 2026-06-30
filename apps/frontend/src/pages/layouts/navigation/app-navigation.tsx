@@ -39,7 +39,7 @@ export function useNavigation() {
           label: t("nav.viewInsights"),
         },
         {
-          icon: <Icons.Search2 className="size-6" />,
+          icon: <Icons.HandCoins className="size-6" />,
           title: t("nav.fundResearch"),
           href: "/fund-research",
           keywords: ["fund", "research", "holdings", "lookthrough"],

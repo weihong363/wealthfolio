@@ -13,6 +13,7 @@ import {
 } from "@wealthfolio/ui";
 import { AmountDisplay } from "@wealthfolio/ui/components/financial/amount-display";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 interface ActivityDetailSheetProps {
   activity: ActivityDetails | null;
@@ -23,12 +24,12 @@ interface ActivityDetailSheetProps {
 // Status display configuration
 const STATUS_CONFIG: Record<
   string,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  { labelKey: string; variant: "default" | "secondary" | "outline" | "destructive" }
 > = {
-  [ActivityStatus.POSTED]: { label: "Posted", variant: "default" },
-  [ActivityStatus.PENDING]: { label: "Pending", variant: "secondary" },
-  [ActivityStatus.DRAFT]: { label: "Draft", variant: "outline" },
-  [ActivityStatus.VOID]: { label: "Void", variant: "destructive" },
+  [ActivityStatus.POSTED]: { labelKey: "activities.grid.status.posted", variant: "default" },
+  [ActivityStatus.PENDING]: { labelKey: "activities.grid.status.pending", variant: "secondary" },
+  [ActivityStatus.DRAFT]: { labelKey: "activities.grid.status.draft", variant: "outline" },
+  [ActivityStatus.VOID]: { labelKey: "activities.grid.status.void", variant: "destructive" },
 };
 
 interface DetailRowProps {
@@ -68,10 +69,14 @@ function DetailSection({ title, icon, children }: DetailSectionProps) {
 }
 
 export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDetailSheetProps) {
+  const { t } = useTranslation();
   if (!activity) return null;
 
   const statusConfig = activity.status
-    ? STATUS_CONFIG[activity.status] || { label: activity.status, variant: "default" as const }
+    ? STATUS_CONFIG[activity.status] || {
+        labelKey: activity.status,
+        variant: "default" as const,
+      }
     : null;
 
   const subtypeDisplay = activity.subtype
@@ -108,11 +113,11 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
               <Icons.Receipt className="text-primary h-5 w-5" />
             </div>
             <div className="flex flex-col items-start">
-              <span>Activity Details</span>
+              <span>{t("activities.details.title")}</span>
               <span className="text-muted-foreground text-xs font-normal">
                 {parsedOption
                   ? parsedOption.underlying
-                  : activity.assetSymbol || "Cash Transaction"}
+                  : activity.assetSymbol || t("activities.details.cashTransaction")}
               </span>
             </div>
           </SheetTitle>
@@ -124,7 +129,9 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">
-                  {ActivityTypeNames[activity.activityType] || activity.activityType}
+                  {t(`activityManager.types.${activity.activityType.toLowerCase()}`, {
+                    defaultValue: ActivityTypeNames[activity.activityType] || activity.activityType,
+                  })}
                 </div>
                 {parsedOption ? (
                   <>
@@ -146,11 +153,15 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
                 )}
               </div>
               <div className="flex flex-col items-end gap-2">
-                {statusConfig && <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>}
+                {statusConfig && (
+                  <Badge variant={statusConfig.variant}>
+                    {t(statusConfig.labelKey, { defaultValue: activity.status })}
+                  </Badge>
+                )}
                 {activity.needsReview && (
                   <Badge variant="outline" className="border-amber-500 text-amber-600">
                     <Icons.AlertCircle className="mr-1 h-3 w-3" />
-                    Needs Review
+                    {t("spending.transactions.status.needsReview")}
                   </Badge>
                 )}
               </div>
@@ -158,11 +169,13 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
             <Separator className="my-3" />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-muted-foreground text-xs">Date</div>
+                <div className="text-muted-foreground text-xs">{t("activities.table.date")}</div>
                 <div className="font-medium">{formatShortDate(activity.date)}</div>
               </div>
               <div className="text-right">
-                <div className="text-muted-foreground text-xs">Amount</div>
+                <div className="text-muted-foreground text-xs">
+                  {t("activityManager.form.totalCredit")}
+                </div>
                 <div className="text-lg font-bold">
                   <AmountDisplay value={Number(activity.amount)} currency={activity.currency} />
                 </div>
@@ -171,44 +184,49 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
           </div>
 
           {/* Transaction Details */}
-          <DetailSection title="Transaction" icon={<Icons.ArrowLeftRight className="h-4 w-4" />}>
+          <DetailSection
+            title={t("activities.details.transaction")}
+            icon={<Icons.ArrowLeftRight className="h-4 w-4" />}
+          >
             <DetailRow
-              label="Type"
+              label={t("activities.type")}
               value={
                 <Badge variant="outline">
-                  {ActivityTypeNames[activity.activityType] || activity.activityType}
+                  {t(`activityManager.types.${activity.activityType.toLowerCase()}`, {
+                    defaultValue: ActivityTypeNames[activity.activityType] || activity.activityType,
+                  })}
                 </Badge>
               }
             />
-            {subtypeDisplay && <DetailRow label="Subtype" value={subtypeDisplay} />}
-            <DetailRow label="Date & Time" value={formatDate(activity.date)} />
-            <DetailRow label="Account" value={activity.accountName} />
+            {subtypeDisplay && <DetailRow label={t("activityManager.form.subtype")} value={subtypeDisplay} />}
+            <DetailRow label={t("activities.grid.dateTime")} value={formatDate(activity.date)} />
+            <DetailRow label={t("activities.table.account")} value={activity.accountName} />
           </DetailSection>
 
           {/* Option Contract Details */}
           {parsedOption && (
-            <DetailSection title="Option Contract" icon={<Icons.BarChart className="h-4 w-4" />}>
-              <DetailRow label="Underlying" value={parsedOption.underlying} />
+            <DetailSection title={t("activities.details.optionContract")} icon={<Icons.BarChart className="h-4 w-4" />}>
+              <DetailRow label={t("activities.details.underlying")} value={parsedOption.underlying} />
               <DetailRow
-                label="Type"
+                label={t("activities.type")}
                 value={<Badge variant="outline">{parsedOption.optionType}</Badge>}
               />
               <DetailRow
-                label="Strike Price"
+                label={t("activities.details.strikePrice")}
                 value={
                   <AmountDisplay value={parsedOption.strikePrice} currency={activity.currency} />
                 }
               />
-              <DetailRow label="Expiration" value={optionExpirationDisplay} />
-              <DetailRow label="OCC Symbol" value={activity.assetSymbol} />
+              <DetailRow label={t("activities.details.expiration")} value={optionExpirationDisplay} />
+              <DetailRow label={t("activities.details.occSymbol")} value={activity.assetSymbol} />
             </DetailSection>
           )}
 
           {/* Financial Details */}
-          <DetailSection title="Financial Details" icon={<Icons.DollarSign className="h-4 w-4" />}>
+          <DetailSection title={t("activities.details.financialDetails")} icon={<Icons.DollarSign className="h-4 w-4" />}>
             {Number(activity.quantity) !== 0 && (
               <DetailRow
-                label={isOption ? "Contracts" : "Quantity"}
+                label={isOption ? t("activities.units.contractsLabel") : t("activities.table.quantity")}
                 value={Number(activity.quantity).toLocaleString(undefined, {
                   maximumFractionDigits: 8,
                 })}
@@ -216,54 +234,54 @@ export function ActivityDetailSheet({ activity, open, onOpenChange }: ActivityDe
             )}
             {Number(activity.unitPrice) !== 0 && (
               <DetailRow
-                label={isOption ? "Premium/Share" : "Unit Price"}
+                label={isOption ? t("activityManager.form.premiumShare") : t("activities.details.unitPrice")}
                 value={
                   <AmountDisplay value={Number(activity.unitPrice)} currency={activity.currency} />
                 }
               />
             )}
             <DetailRow
-              label={isOption ? "Total Premium" : "Amount"}
+              label={isOption ? t("activities.details.totalPremium") : t("activityManager.form.totalCredit")}
               value={<AmountDisplay value={Number(activity.amount)} currency={activity.currency} />}
             />
             {Number(activity.fee) !== 0 && (
               <DetailRow
-                label="Fee"
+                label={t("activities.table.fee")}
                 value={<AmountDisplay value={Number(activity.fee)} currency={activity.currency} />}
               />
             )}
             {activity.fxRate && (
               <DetailRow
-                label="FX Rate"
+                label={t("activityManager.form.fxRate")}
                 value={Number(activity.fxRate).toLocaleString(undefined, {
                   maximumFractionDigits: 8,
                 })}
               />
             )}
-            <DetailRow label="Currency" value={activity.currency} />
+            <DetailRow label={t("activities.table.currency")} value={activity.currency} />
             {activity.accountCurrency !== activity.currency && (
-              <DetailRow label="Account Currency" value={activity.accountCurrency} />
+              <DetailRow label={t("activityManager.form.accountCurrency")} value={activity.accountCurrency} />
             )}
           </DetailSection>
 
           {/* Comment */}
           {activity.comment && (
-            <DetailSection title="Notes" icon={<Icons.FileText className="h-4 w-4" />}>
+            <DetailSection title={t("activityManager.form.notes")} icon={<Icons.FileText className="h-4 w-4" />}>
               <p className="whitespace-pre-wrap text-sm">{activity.comment}</p>
             </DetailSection>
           )}
 
           {/* Metadata */}
-          <DetailSection title="Record Info" icon={<Icons.Info className="h-4 w-4" />}>
-            <DetailRow label="Created" value={formatDate(activity.createdAt)} />
-            <DetailRow label="Updated" value={formatDate(activity.updatedAt)} />
+          <DetailSection title={t("activities.details.recordInfo")} icon={<Icons.Info className="h-4 w-4" />}>
+            <DetailRow label={t("activities.details.created")} value={formatDate(activity.createdAt)} />
+            <DetailRow label={t("activities.details.updated")} value={formatDate(activity.updatedAt)} />
           </DetailSection>
         </div>
 
         {/* Mobile close button */}
         <div className="bg-background border-t p-4 md:hidden">
           <Button className="w-full" onClick={() => onOpenChange(false)}>
-            Close
+            {t("common.close")}
           </Button>
         </div>
       </SheetContent>

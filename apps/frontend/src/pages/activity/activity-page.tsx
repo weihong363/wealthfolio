@@ -536,7 +536,7 @@ const ActivityPage = () => {
           },
           {
             icon: Icons.UploadSimple,
-            label: "Import from CSV",
+            label: t("activities.importFromCSV"),
             onClick: () => navigate("/import"),
           },
           {
@@ -552,7 +552,7 @@ const ActivityPage = () => {
         ],
       },
     ],
-    [handleEdit, navigate],
+    [handleEdit, navigate, t],
   );
 
   const investmentActions = (
@@ -575,12 +575,12 @@ const ActivityPage = () => {
 
       {/* Mobile add button */}
       <div className="flex items-center gap-2 sm:hidden">
-        <Button size="icon" title="Import" variant="outline" asChild>
+        <Button size="icon" title={t("common.import")} variant="outline" asChild>
           <Link to={"/import"}>
             <Icons.Import className="size-4" />
           </Link>
         </Button>
-        <Button size="icon" title="Add" onClick={() => handleEdit(undefined)}>
+        <Button size="icon" title={t("common.add")} onClick={() => handleEdit(undefined)}>
           <Icons.Plus className="size-4" />
         </Button>
       </div>
@@ -604,7 +604,7 @@ const ActivityPage = () => {
         ],
       },
     ],
-    [navigate],
+    [navigate, t],
   );
 
   const spendingActions = (
@@ -642,12 +642,16 @@ const ActivityPage = () => {
 
       {/* Mobile add button */}
       <div className="flex items-center gap-2 sm:hidden">
-        <Button size="icon" title="Import" variant="outline" asChild>
+        <Button size="icon" title={t("common.import")} variant="outline" asChild>
           <Link to={"/import"}>
             <Icons.Import className="size-4" />
           </Link>
         </Button>
-        <Button size="icon" title="Add" onClick={() => spendingTabRef.current?.openAddForm()}>
+        <Button
+          size="icon"
+          title={t("common.add")}
+          onClick={() => spendingTabRef.current?.openAddForm()}
+        >
           <Icons.Plus className="size-4" />
         </Button>
       </div>

@@ -3,6 +3,7 @@ import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@wealthfolio/ui/components/ui/alert";
 import { Button } from "@wealthfolio/ui/components/ui/button";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
+import { Trans, useTranslation } from "react-i18next";
 
 interface ValidationAlertProps {
   success: boolean;
@@ -21,6 +22,8 @@ const ValidationAlert: React.FC<ValidationAlertProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useTranslation();
+
   if (warnings > 0) {
     return (
       <Alert className="mb-4 flex flex-col" variant="warning">
@@ -28,20 +31,19 @@ const ValidationAlert: React.FC<ValidationAlertProps> = ({
           <div className="flex items-center">
             <Icons.AlertCircle className="mr-2 h-4 w-4" />
             <AlertTitle>
-              There are issues with {warnings} activity entries.
+              {t("activityImport.validation.issues", { count: warnings })}
               <p className="pt-1 text-sm font-normal">
-                Please review them in the table below and either correct or remove these entries to
-                proceed with the import.
+                {t("activityImport.validation.reviewIssues")}
               </p>
               <p className="pt-1 text-sm font-normal">
-                Hover over the error icon on each line for more details about the specific issue.
+                {t("activityImport.validation.hoverError")}
               </p>
             </AlertTitle>
           </div>
         </div>
         <div className="mt-2 flex justify-start">
           <Button className="mr-2" onClick={onCancel}>
-            Retry
+            {t("common.retry")}
           </Button>
         </div>
       </Alert>
@@ -54,27 +56,34 @@ const ValidationAlert: React.FC<ValidationAlertProps> = ({
           <div className="flex items-center">
             <Icons.CheckCircle className="mr-2 h-4 w-4" />
             <div>
-              <AlertTitle>All activities are valid</AlertTitle>
+              <AlertTitle>{t("activityImport.validation.allValid")}</AlertTitle>
               <AlertDescription>
-                Click <b>Confirm Import</b> to proceed with the import.
+                <Trans
+                  i18nKey="activityImport.validation.confirmHint"
+                  components={{ b: <b /> }}
+                />
               </AlertDescription>
             </div>
           </div>
         </div>
         <div className="mt-2 flex justify-start">
           <Button variant="secondary" className="mr-2" disabled={isConfirming} onClick={onCancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={onConfirm} disabled={isConfirming}>
             {isConfirming ? (
               <>
                 <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" />
-                <span className="hidden sm:ml-2 sm:inline">Importing...</span>
+                <span className="hidden sm:ml-2 sm:inline">
+                  {t("activityImport.confirm.importing")}
+                </span>
               </>
             ) : (
               <>
                 <Icons.Import className="mr-2 h-4 w-4" />
-                <span className="hidden sm:ml-2 sm:inline">Confirm Import</span>
+                <span className="hidden sm:ml-2 sm:inline">
+                  {t("activityImport.confirm.confirmImport")}
+                </span>
               </>
             )}
           </Button>
@@ -93,7 +102,7 @@ const ValidationAlert: React.FC<ValidationAlertProps> = ({
         </div>
         <div className="mt-2 flex justify-start">
           <Button className="mr-2" onClick={onCancel}>
-            Retry
+            {t("common.retry")}
           </Button>
         </div>
       </Alert>

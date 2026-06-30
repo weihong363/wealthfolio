@@ -1,4 +1,5 @@
 import { Button, Icons } from "@wealthfolio/ui";
+import { useTranslation } from "react-i18next";
 
 interface ActivityPaginationProps {
   hasMore: boolean;
@@ -15,13 +16,15 @@ export function ActivityPagination({
   totalFetched,
   totalCount,
 }: ActivityPaginationProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="my-3 flex shrink-0 flex-col gap-3 sm:gap-4">
       <div className="relative flex flex-col items-center justify-center gap-2 sm:flex-row">
         <div className="text-muted-foreground order-2 flex items-center gap-2 text-xs sm:absolute sm:left-0 sm:order-1">
           {isFetching && !hasMore ? <Icons.Spinner className="h-4 w-4 animate-spin" /> : null}
           <span>
-            {totalFetched} / {totalCount} activities
+            {t("activities.pagination.count", { fetched: totalFetched, total: totalCount })}
           </span>
         </div>
         {hasMore && (
@@ -36,7 +39,7 @@ export function ActivityPagination({
             ) : (
               <Icons.ChevronDown className="h-4 w-4" />
             )}
-            {isFetching ? "Loading…" : "Load more..."}
+            {isFetching ? t("common.loading") : t("activities.pagination.loadMore")}
           </Button>
         )}
       </div>

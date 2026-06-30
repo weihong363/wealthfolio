@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { Button } from "@wealthfolio/ui/components/ui/button";
 import { Icons, type Icon } from "@wealthfolio/ui/components/ui/icons";
@@ -152,6 +153,7 @@ const ACTIVITY_TYPE_CONFIG: Record<string, { label: string; icon: Icon; color: s
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ConfirmStep() {
+  const { t } = useTranslation();
   const { state, dispatch } = useImportContext();
   const [importError, setImportError] = useState<string | null>(null);
   const [isPreparingAssets, setIsPreparingAssets] = useState(false);
@@ -333,10 +335,10 @@ export function ConfirmStep() {
   if (importError) {
     return (
       <div className="space-y-4">
-        <ImportAlert variant="destructive" title="Import Error" description={importError}>
+        <ImportAlert variant="destructive" title={t("activityImport.confirm.importError")} description={importError}>
           <div className="mt-4">
             <Button variant="destructive" onClick={() => setImportError(null)} size="sm">
-              Try Again
+              {t("common.retry")}
             </Button>
           </div>
         </ImportAlert>
@@ -350,25 +352,27 @@ export function ConfirmStep() {
       {summary.toImport === 0 ? (
         <ImportAlert
           variant="warning"
-          title="No Activities to Import"
-          description="All activities have been skipped or have validation errors. Go back to review and fix any issues."
+          title={t("activityImport.confirm.noActivities")}
+          description={t("activityImport.confirm.noActivitiesDescription")}
         />
       ) : summary.warnings > 0 ? (
         <ImportAlert
           variant="warning"
-          title={`${summary.toImport} activities ready to import`}
-          description={`${summary.warnings} activities have warnings but will still be imported.`}
+          title={t("activityImport.confirm.readyCount", { count: summary.toImport })}
+          description={t("activityImport.confirm.warningCount", { count: summary.warnings })}
         />
       ) : summary.forcedDuplicates > 0 ? (
         <ImportAlert
           variant="warning"
-          title={`${summary.toImport} activities ready to import`}
-          description={`Includes ${summary.forcedDuplicates} duplicate${summary.forcedDuplicates === 1 ? "" : "s"} marked "import anyway".`}
+          title={t("activityImport.confirm.readyCount", { count: summary.toImport })}
+          description={t("activityImport.confirm.duplicateCount", {
+            count: summary.forcedDuplicates,
+          })}
         />
       ) : (
         <div>
           <p className="text-muted-foreground">
-            Review the summary below, then click Import to proceed.
+            {t("activityImport.confirm.reviewSummary")}
           </p>
         </div>
       )}
@@ -383,7 +387,9 @@ export function ConfirmStep() {
               <Icons.FileText className="text-muted-foreground h-5 w-5" />
             </div>
             <div>
-              <div className="text-muted-foreground text-sm">Total Rows</div>
+              <div className="text-muted-foreground text-sm">
+                {t("activityImport.confirm.totalRows")}
+              </div>
               <div className="text-2xl font-semibold">{summary.total}</div>
             </div>
           </div>
@@ -394,7 +400,7 @@ export function ConfirmStep() {
               <Icons.Import className="text-primary-foreground h-5 w-5" />
             </div>
             <div>
-              <div className="text-primary text-sm">To Import</div>
+              <div className="text-primary text-sm">{t("activityImport.confirm.toImport")}</div>
               <div className="text-primary text-2xl font-semibold">{summary.toImport}</div>
             </div>
           </div>
@@ -405,7 +411,9 @@ export function ConfirmStep() {
               <Icons.Minus className="text-muted-foreground h-5 w-5" />
             </div>
             <div>
-              <div className="text-muted-foreground text-sm">Skipped</div>
+              <div className="text-muted-foreground text-sm">
+                {t("activityImport.confirm.skipped")}
+              </div>
               <div className="text-muted-foreground text-2xl font-semibold">{skippedTotal}</div>
             </div>
           </div>
@@ -415,7 +423,7 @@ export function ConfirmStep() {
         {Object.keys(summary.byType).length > 0 && (
           <div className="space-y-3">
             <h4 className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-              By Activity Type
+              {t("activityImport.confirm.byActivityType")}
             </h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(summary.byType)
@@ -444,7 +452,7 @@ export function ConfirmStep() {
         {Object.keys(summary.bySkipReason).length > 0 && (
           <div className="space-y-3">
             <h4 className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
-              Skipped Breakdown
+              {t("activityImport.confirm.skippedBreakdown")}
             </h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(summary.bySkipReason)
@@ -468,9 +476,9 @@ export function ConfirmStep() {
 
       {/* Progress indicator dialog */}
       <ProgressIndicator
-        title="Import Progress"
-        description="Please wait while the application processes your data."
-        message="Importing activities..."
+        title={t("activityImport.confirm.importProgress")}
+        description={t("activityImport.confirm.importProgressDescription")}
+        message={t("activityImport.confirm.importingActivities")}
         isLoading={isProcessing}
         open={isProcessing}
       />
@@ -479,7 +487,7 @@ export function ConfirmStep() {
       <div className="flex justify-between gap-3 border-t pt-6">
         <Button variant="outline" onClick={handleBack} disabled={isProcessing}>
           <Icons.ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          {t("common.back")}
         </Button>
 
         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
@@ -491,12 +499,14 @@ export function ConfirmStep() {
             {isProcessing ? (
               <>
                 <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" />
-                {isPreparingAssets ? "Preparing assets..." : "Importing..."}
+                {isPreparingAssets
+                  ? t("activityImport.confirm.preparingAssets")
+                  : t("activityImport.confirm.importing")}
               </>
             ) : (
               <>
                 <Icons.Import className="mr-2 h-4 w-4" />
-                Import {summary.toImport} {summary.toImport === 1 ? "Activity" : "Activities"}
+                {t("activityImport.confirm.importCount", { count: summary.toImport })}
               </>
             )}
           </Button>

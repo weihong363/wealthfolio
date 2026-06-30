@@ -12,6 +12,7 @@ import {
   FacetedSearchInput,
   Icons,
 } from "@wealthfolio/ui";
+import { useTranslation } from "react-i18next";
 import type { ActivityStatusFilter } from "../hooks/use-activity-search";
 
 export type ActivityViewMode = "table" | "datagrid";
@@ -78,6 +79,7 @@ export function ActivityViewControls({
   totalRowCount,
   isFetching,
 }: ActivityViewControlsProps) {
+  const { t } = useTranslation();
   const [localSearch, setLocalSearch] = useState(searchQuery);
 
   // Create a stable debounced search function
@@ -124,25 +126,25 @@ export function ActivityViewControls({
 
   const activityOptions = useMemo(
     () =>
-      (Object.entries(ActivityTypeNames) as [ActivityType, string][]).map(([value, label]) => ({
+      (Object.entries(ActivityTypeNames) as [ActivityType, string][]).map(([value, labelKey]) => ({
         value,
-        label,
+        label: t(labelKey),
       })),
-    [],
+    [t],
   );
 
   const instrumentTypeOptions = useMemo(
-    () => INSTRUMENT_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label })),
-    [],
+    () => INSTRUMENT_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.labelKey) })),
+    [t],
   );
 
   const statusOptions = useMemo(
     () => [
-      { value: "all", label: "All Activities" },
-      { value: "pending", label: "Pending Review" },
-      { value: "validated", label: "Validated" },
+      { value: "all", label: t("activities.status.all") },
+      { value: "pending", label: t("activities.status.pending") },
+      { value: "validated", label: t("activities.status.validated") },
     ],
-    [],
+    [t],
   );
 
   const hasActiveFilters =
@@ -167,7 +169,7 @@ export function ActivityViewControls({
         />
 
         <FacetedFilter
-          title="Status"
+          title={t("activities.status.title")}
           options={statusOptions}
           selectedValues={new Set(statusFilter === "all" ? [] : [statusFilter])}
           onFilterChange={(values: Set<string>) => {
@@ -181,7 +183,7 @@ export function ActivityViewControls({
         <DateRangeFilter value={dateRange} onChange={onDateRangeChange} />
 
         <FacetedFilter
-          title="Account"
+          title={t("activityManager.form.account")}
           contentClassName="w-72"
           options={accountOptions}
           selectedValues={selectedAccountIds}
@@ -191,7 +193,7 @@ export function ActivityViewControls({
         />
 
         <FacetedFilter
-          title="Type"
+          title={t("activities.type")}
           options={activityOptions}
           selectedValues={new Set(selectedActivityTypes)}
           onFilterChange={(values: Set<string>) =>
@@ -200,7 +202,7 @@ export function ActivityViewControls({
         />
 
         <FacetedFilter
-          title="Instrument"
+          title={t("activities.instrument")}
           options={instrumentTypeOptions}
           selectedValues={new Set(selectedInstrumentTypes)}
           onFilterChange={(values: Set<string>) => onInstrumentTypesChange(Array.from(values))}
@@ -217,7 +219,7 @@ export function ActivityViewControls({
               onResetFilters();
             }}
           >
-            Reset
+            {t("activities.reset")}
             <Icons.Close className="ml-2 h-4 w-4" />
           </Button>
         ) : null}
@@ -230,10 +232,10 @@ export function ActivityViewControls({
             {isFetching ? (
               <span className="inline-flex items-center gap-1">
                 <Icons.Spinner className="h-4 w-4 animate-spin" />
-                Loading…
+                {t("common.loading")}
               </span>
             ) : (
-              `${totalFetched} / ${totalRowCount} activities`
+              t("activities.pagination.count", { fetched: totalFetched, total: totalRowCount })
             )}
           </span>
         )}
@@ -253,20 +255,20 @@ export function ActivityViewControls({
               label: (
                 <>
                   <Icons.Rows3 className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">View mode</span>
+                  <span className="sr-only">{t("activities.viewMode")}</span>
                 </>
               ),
-              title: "View mode",
+              title: t("activities.viewMode"),
             },
             {
               value: "datagrid",
               label: (
                 <>
                   <Icons.Grid3x3 className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">Edit mode</span>
+                  <span className="sr-only">{t("activities.editMode")}</span>
                 </>
               ),
-              title: "Edit mode",
+              title: t("activities.editMode"),
               "data-testid": "edit-mode-toggle",
             },
           ]}

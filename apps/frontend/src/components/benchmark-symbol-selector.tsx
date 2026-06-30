@@ -19,94 +19,59 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-// Predefined benchmarks with canonical asset IDs
+// Predefined benchmarks — group names & descriptions are i18n keys resolved at render time
 // exchangeMic is undefined for indices (will use "INDEX" as pseudo-MIC)
 // exchangeMic is set for ETFs that trade on real exchanges
 const BENCHMARKS = [
   {
-    group: "US Market Indices",
+    groupKey: "benchmark.groups.usMarket",
     items: [
-      { symbol: "^GSPC", name: "S&P 500", description: "Large-cap US stocks" },
-      { symbol: "^NDX", name: "Nasdaq 100", description: "Large-cap tech-focused US stocks" },
-      { symbol: "^RUT", name: "Russell 2000", description: "Small-cap US stocks" },
-      { symbol: "^DJI", name: "Dow Jones", description: "Blue-chip US stocks" },
+      { symbol: "^GSPC", name: "S&P 500", descKey: "benchmark.descriptions.sp500" },
+      { symbol: "^NDX", name: "Nasdaq 100", descKey: "benchmark.descriptions.nasdaq100" },
+      { symbol: "^RUT", name: "Russell 2000", descKey: "benchmark.descriptions.russell2000" },
+      { symbol: "^DJI", name: "Dow Jones", descKey: "benchmark.descriptions.dowJones" },
     ],
   },
   {
-    group: "European Indices",
+    groupKey: "benchmark.groups.european",
     items: [
-      { symbol: "^FTSE", name: "FTSE 100", description: "Large-cap UK stocks" },
-      { symbol: "^STOXX50E", name: "EURO STOXX 50", description: "European blue-chip stocks" },
-      { symbol: "^GDAXI", name: "DAX", description: "German blue-chip stocks" },
-      { symbol: "^FCHI", name: "CAC 40", description: "French large-cap stocks" },
-      { symbol: "^IBEX", name: "IBEX 35", description: "Spanish large-cap stocks" },
-      { symbol: "^AEX", name: "AEX", description: "Dutch blue-chip stocks" },
-      { symbol: "^OMX", name: "OMX Stockholm 30", description: "Swedish large-cap stocks" },
+      { symbol: "^FTSE", name: "FTSE 100", descKey: "benchmark.descriptions.ftse100" },
+      { symbol: "^STOXX50E", name: "EURO STOXX 50", descKey: "benchmark.descriptions.euroStoxx50" },
+      { symbol: "^GDAXI", name: "DAX", descKey: "benchmark.descriptions.dax" },
+      { symbol: "^FCHI", name: "CAC 40", descKey: "benchmark.descriptions.cac40" },
+      { symbol: "^IBEX", name: "IBEX 35", descKey: "benchmark.descriptions.ibex35" },
+      { symbol: "^AEX", name: "AEX", descKey: "benchmark.descriptions.aex" },
+      { symbol: "^OMX", name: "OMX Stockholm 30", descKey: "benchmark.descriptions.omxStockholm30" },
     ],
   },
   {
-    group: "Asian Indices",
+    groupKey: "benchmark.groups.asian",
     items: [
-      { symbol: "^N225", name: "Nikkei 225", description: "Japanese large-cap stocks" },
-      { symbol: "^HSI", name: "Hang Seng", description: "Hong Kong large-cap stocks" },
-      { symbol: "000001.SS", name: "Shanghai Composite", description: "Chinese A-shares" },
-      { symbol: "^KS11", name: "KOSPI", description: "South Korean stocks" },
-      { symbol: "^TWII", name: "Taiwan Weighted", description: "Taiwanese stocks" },
-      { symbol: "^AXJO", name: "ASX 200", description: "Australian large-cap stocks" },
-      { symbol: "^BSESN", name: "BSE Sensex", description: "Indian large-cap stocks" },
-      { symbol: "^NSEI", name: "NIFTY 50", description: "Indian blue-chip stocks" },
+      { symbol: "^N225", name: "Nikkei 225", descKey: "benchmark.descriptions.nikkei225" },
+      { symbol: "^HSI", name: "Hang Seng", descKey: "benchmark.descriptions.hangSeng" },
+      { symbol: "000001.SS", name: "Shanghai Composite", descKey: "benchmark.descriptions.shanghaiComposite" },
+      { symbol: "^KS11", name: "KOSPI", descKey: "benchmark.descriptions.kospi" },
+      { symbol: "^TWII", name: "Taiwan Weighted", descKey: "benchmark.descriptions.taiwanWeighted" },
+      { symbol: "^AXJO", name: "ASX 200", descKey: "benchmark.descriptions.asx200" },
+      { symbol: "^BSESN", name: "BSE Sensex", descKey: "benchmark.descriptions.bseSensex" },
+      { symbol: "^NSEI", name: "NIFTY 50", descKey: "benchmark.descriptions.nifty50" },
     ],
   },
   {
-    group: "Global & Emerging Markets",
+    groupKey: "benchmark.groups.globalEmerging",
     items: [
-      {
-        symbol: "EEM",
-        name: "MSCI Emerging Markets",
-        description: "Emerging market stocks",
-        exchangeMic: "ARCX",
-      },
-      {
-        symbol: "ACWI",
-        name: "MSCI All Country World",
-        description: "Global equity markets",
-        exchangeMic: "XNAS",
-      },
-      {
-        symbol: "IEFA",
-        name: "Core MSCI EAFE",
-        description: "Europe, Australasia, Far East",
-        exchangeMic: "ARCX",
-      },
+      { symbol: "EEM", name: "MSCI Emerging Markets", descKey: "benchmark.descriptions.msciEmerging", exchangeMic: "ARCX" },
+      { symbol: "ACWI", name: "MSCI All Country World", descKey: "benchmark.descriptions.msciAcwi", exchangeMic: "XNAS" },
+      { symbol: "IEFA", name: "Core MSCI EAFE", descKey: "benchmark.descriptions.msciEafe", exchangeMic: "ARCX" },
     ],
   },
   {
-    group: "ETFs",
+    groupKey: "benchmark.groups.etfs",
     items: [
-      {
-        symbol: "VOO",
-        name: "Vanguard S&P 500",
-        description: "S&P 500 index fund",
-        exchangeMic: "ARCX",
-      },
-      {
-        symbol: "VTI",
-        name: "Vanguard Total Stock",
-        description: "Total US market",
-        exchangeMic: "ARCX",
-      },
-      {
-        symbol: "VEA",
-        name: "Vanguard FTSE Developed",
-        description: "Developed markets ex-US",
-        exchangeMic: "ARCX",
-      },
-      {
-        symbol: "VWO",
-        name: "Vanguard FTSE Emerging",
-        description: "Emerging markets",
-        exchangeMic: "ARCX",
-      },
+      { symbol: "VOO", name: "Vanguard S&P 500", descKey: "benchmark.descriptions.voo", exchangeMic: "ARCX" },
+      { symbol: "VTI", name: "Vanguard Total Stock", descKey: "benchmark.descriptions.vti", exchangeMic: "ARCX" },
+      { symbol: "VEA", name: "Vanguard FTSE Developed", descKey: "benchmark.descriptions.vea", exchangeMic: "ARCX" },
+      { symbol: "VWO", name: "Vanguard FTSE Emerging", descKey: "benchmark.descriptions.vwo", exchangeMic: "ARCX" },
     ],
   },
 ];
@@ -175,7 +140,7 @@ export function BenchmarkSymbolSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label={iconOnly ? "Add benchmark" : undefined}
+          aria-label={iconOnly ? t("benchmark.addBenchmark") : undefined}
           className={cn(
             "bg-secondary/30 hover:bg-muted/80 flex items-center gap-1.5 rounded-md border-dashed text-sm font-medium",
             iconOnly ? "h-9 w-9 p-0" : "h-8 px-3 py-1",
@@ -184,7 +149,7 @@ export function BenchmarkSymbolSelector({
           size={iconOnly ? "icon" : "sm"}
         >
           <Icons.TrendingUp className="h-4 w-4" />
-          {!iconOnly && "Add Benchmark"}
+          {!iconOnly && t("benchmark.addBenchmark")}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[350px] p-0">
@@ -196,14 +161,14 @@ export function BenchmarkSymbolSelector({
           />
           <CommandList className="max-h-[300px] overflow-y-auto">
             <CommandEmpty>
-              {isLoading ? "Searching..." : "No benchmarks or symbols found."}
+              {isLoading ? t("benchmark.searching") : t("benchmark.noBenchmarksFound")}
             </CommandEmpty>
 
             {/* Predefined benchmark groups */}
             {BENCHMARKS.map((group) => (
               <CommandGroup
-                key={group.group}
-                heading={group.group}
+                key={group.groupKey}
+                heading={t(group.groupKey)}
                 className="[&_[cmdk-group-heading]]:bg-popover [&_[cmdk-group-heading]]:border-border/10 [&_[cmdk-group-heading]]:sticky [&_[cmdk-group-heading]]:top-0 [&_[cmdk-group-heading]]:z-10 [&_[cmdk-group-heading]]:border-b"
               >
                 {group.items
@@ -212,7 +177,7 @@ export function BenchmarkSymbolSelector({
                       searchQuery.length === 0 ||
                       benchmark.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       benchmark.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      benchmark.description.toLowerCase().includes(searchQuery.toLowerCase()),
+                      benchmark.descKey.toLowerCase().includes(searchQuery.toLowerCase()),
                   )
                   .map((benchmark) => (
                     <CommandItem
@@ -228,7 +193,7 @@ export function BenchmarkSymbolSelector({
                           </span>
                         </div>
                         <span className="text-muted-foreground text-xs">
-                          {benchmark.description}
+                          {t(benchmark.descKey)}
                         </span>
                       </div>
                       <Icons.Check
@@ -263,7 +228,7 @@ export function BenchmarkSymbolSelector({
                 className="[&_[cmdk-group-heading]]:bg-popover [&_[cmdk-group-heading]]:border-border/10 [&_[cmdk-group-heading]]:sticky [&_[cmdk-group-heading]]:top-0 [&_[cmdk-group-heading]]:z-10 [&_[cmdk-group-heading]]:border-b"
               >
                 <div className="text-muted-foreground p-4 text-sm">
-                  Error searching for symbols. Please try again.
+                  {t("benchmark.searchError")}
                 </div>
               </CommandGroup>
             )}

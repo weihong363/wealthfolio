@@ -77,7 +77,11 @@ function profileCodes(
 }
 
 function hasCompleteClassification(holding: PortfolioFundLookthroughHolding): boolean {
-  return (!!holding.sector || !!holding.industry) && holding.themeTags.length > 0;
+  return !!(holding.sector || holding.industry) && holding.themeTags.length > 0;
+}
+
+function hasPartialClassification(holding: PortfolioFundLookthroughHolding): boolean {
+  return !!(holding.sector || holding.industry) || holding.themeTags.length > 0;
 }
 
 function enrichHolding(
@@ -86,6 +90,12 @@ function enrichHolding(
 ): PortfolioFundLookthroughHolding {
   if (!profile) return holding;
 
+  // For stocks where the profile has industry but no concepts
+  // (e.g., US stocks via EastMoney extended quote with only f127 populated),
+  // we still fall back to holding-level data for themes but use the
+  // profile industry for sector/industry labels.
+  const hasProfileConcepts = profile.concepts.length > 0;
+
   return {
     ...holding,
     sector: holding.sector ?? profile.industry?.boardName,
@@ -93,7 +103,9 @@ function enrichHolding(
     themeTags:
       holding.themeTags.length > 0
         ? holding.themeTags
-        : profile.concepts.map((concept) => concept.name).filter(Boolean),
+        : hasProfileConcepts
+          ? profile.concepts.map((concept) => concept.name).filter(Boolean)
+          : holding.themeTags,
   };
 }
 
