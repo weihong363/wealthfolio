@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAccounts } from "@/hooks/use-accounts";
@@ -106,6 +107,7 @@ function previousMonthMatchingRange(range: ReportsRange, timezone?: string | nul
 const VALID_STAGES: InsightsStage[] = ["where", "changed", "when"];
 
 export default function SpendingInsightsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isMobile = useIsMobile();
@@ -311,7 +313,7 @@ export default function SpendingInsightsPage() {
         id: UNCATEGORIZED_CATEGORY_ID,
         taxonomyId: SPENDING_TAXONOMY,
         parentId: null,
-        name: "Uncategorized",
+        name: t("spending.uncategorized"),
         key: UNCATEGORIZED_CATEGORY_ID,
         color: "#9CA3AF",
         icon: null,
@@ -321,7 +323,7 @@ export default function SpendingInsightsPage() {
         updatedAt: now,
       },
     ];
-  }, [insight, taxonomy.data?.categories]);
+  }, [insight, taxonomy.data?.categories, t]);
 
   // 12-week activity window for the weekday × hour heatmap.
   const heatmapRequest = useMemo(() => {
@@ -438,7 +440,7 @@ export default function SpendingInsightsPage() {
   return (
     <Page>
       <PageHeader
-        heading={isMobile ? undefined : "Spending Insight"}
+        heading={isMobile ? undefined : t("spending.insights.heading")}
         onBack={() => {
           if (window.history.length > 1) navigate(-1);
           else navigate("/dashboard?tab=spending");
@@ -462,7 +464,8 @@ export default function SpendingInsightsPage() {
           (stage === "when" && heatmapInsightErrored)) && (
           <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-300">
             <span>
-              <span className="font-semibold">Couldn't load insights.</span> Showing zeros below.
+              <span className="font-semibold">{t("spending.insights.loadFailed")}</span>{" "}
+              {t("spending.insights.showingZeros")}
             </span>
             <button
               type="button"
@@ -473,7 +476,7 @@ export default function SpendingInsightsPage() {
               }}
               className="text-foreground hover:underline"
             >
-              Retry
+              {t("common.retry")}
             </button>
           </div>
         )}
@@ -550,7 +553,11 @@ export default function SpendingInsightsPage() {
           if (!open) setHeatmapCell(null);
         }}
         activities={heatmapCellActivities}
-        dayLabel={heatmapCell ? HEATMAP_DAY_NAMES[heatmapCell.weekday] : null}
+        dayLabel={
+          heatmapCell
+            ? t(`spending.insights.weekdaysShort.${HEATMAP_DAY_NAMES[heatmapCell.weekday]}`)
+            : null
+        }
         hour={heatmapCell?.startHour ?? null}
         endHour={heatmapCell?.endHour ?? null}
         timezone={appTimezone}
@@ -608,6 +615,7 @@ function ForeignCurrencyBanner({
   nativeTotals: Record<string, number>;
   asOf: string; // RFC3339
 }) {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const fmtNative = (ccy: string) => {
     if (isBalanceHidden) return "••••";
@@ -632,15 +640,25 @@ function ForeignCurrencyBanner({
   const detail =
     foreign.length === 1 ? (
       <>
-        source: <span className="font-medium">{fmtNative(foreign[0])}</span>
+        {t("spending.insights.multiCurrency.source")}{" "}
+        <span className="font-medium">{fmtNative(foreign[0])}</span>
       </>
     ) : (
-      <>sources: {foreign.map((c) => fmtNative(c)).join(" + ")}</>
+      <>
+        {t("spending.insights.multiCurrency.sources")} {foreign.map((c) => fmtNative(c)).join(" + ")}
+      </>
     );
   return (
     <div className="text-muted-foreground border-border/60 bg-muted/30 rounded-md border px-3 py-2 text-[11px]">
-      <span className="text-foreground/90 font-medium">Multi-currency:</span> totals shown in{" "}
-      {currency}, FX-converted from {foreign.join(", ")} using rates from {asOfDate}. {detail}.
+      <span className="text-foreground/90 font-medium">
+        {t("spending.insights.multiCurrency.title")}
+      </span>{" "}
+      {t("spending.insights.multiCurrency.body", {
+        currency,
+        foreign: foreign.join(", "),
+        asOfDate,
+      })}{" "}
+      {detail}.
     </div>
   );
 }

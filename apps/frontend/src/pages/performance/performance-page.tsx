@@ -53,6 +53,7 @@ import {
   SheetTitle,
 } from "@wealthfolio/ui";
 import { isSameDay, subDays, subMonths } from "date-fns";
+import type { TFunction } from "i18next";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountSelector } from "../../components/account-selector";
@@ -74,15 +75,15 @@ function chartMetricForResult(result: PerformanceResult): PerformanceMetric {
   return result.mode === "valueReturn" ? "valueReturn" : "twr";
 }
 
-function trackingModeBadge(result: PerformanceResult): {
+function trackingModeBadge(result: PerformanceResult, t: TFunction): {
   label: string;
   variant: "outline" | "warning";
 } | null {
   if (result.isMixedTrackingMode) {
-    return { label: "Mixed mode", variant: "warning" };
+    return { label: t("insights.mixedMode"), variant: "warning" };
   }
   if (result.isHoldingsMode || result.mode === "valueReturn") {
-    return { label: "Holdings mode", variant: "outline" };
+    return { label: t("insights.holdingsMode"), variant: "outline" };
   }
   return null;
 }
@@ -97,47 +98,48 @@ interface ChartExclusion {
 function chartExclusion(
   result: PerformanceResult | undefined,
   metric: PerformanceMetric,
+  t: TFunction,
 ): ChartExclusion {
   if (!result) {
     return {
       kind: "missingData",
-      message: "Performance data is not available for this selection.",
+      message: t("insights.performanceDataUnavailable"),
     };
   }
   if (!result.series.length) {
     return {
       kind: "missingData",
-      message: "No chart series is available for this period.",
+      message: t("insights.noChartSeries"),
     };
   }
 
   if (metric === "twr" && result.mode === "valueReturn") {
     return {
       kind: "differentReturnMethod",
-      message: "Holdings-mode accounts use Value Return and are not plotted with TWR.",
+      message: t("insights.holdingsModeTwrUnavailable"),
     };
   }
   if (metric === "valueReturn" && result.mode === "timeWeighted") {
     return {
       kind: "differentReturnMethod",
-      message: "Transaction-mode accounts use TWR and are not plotted with Value Return.",
+      message: t("insights.transactionModeValueUnavailable"),
     };
   }
 
   return {
     kind: "dateOverlap",
-    message: "No overlapping chart dates with the selected item.",
+    message: t("insights.noOverlappingDates"),
   };
 }
 
-function comparisonNoticeMessage(kinds: ChartExclusionKind[]): string {
+function comparisonNoticeMessage(kinds: ChartExclusionKind[], t: TFunction): string {
   if (kinds.includes("differentReturnMethod")) {
-    return "Different return methods cannot share the same chart. Select a muted chip to switch the chart mode.";
+    return t("insights.differentReturnMethodsNotice");
   }
-  return "These selected items do not have enough overlapping chart dates with the active chart.";
+  return t("insights.noOverlappingDatesNotice");
 }
 
-function metricPresentation(metric: PerformanceMetric): {
+function metricPresentation(metric: PerformanceMetric, t: TFunction): {
   label: string;
   mobileLabel: string;
   infoText: string;
@@ -145,7 +147,7 @@ function metricPresentation(metric: PerformanceMetric): {
   switch (metric) {
     case "twr":
       return {
-        label: "Time-Weighted Return",
+        label: t("insights.timeWeightedReturn"),
         mobileLabel: "TWR",
         infoText: TIME_WEIGHTED_RETURN_INFO,
       };
@@ -157,20 +159,20 @@ function metricPresentation(metric: PerformanceMetric): {
       };
     case "valueReturn":
       return {
-        label: "Value Return",
-        mobileLabel: "Value",
+        label: t("insights.valueReturn"),
+        mobileLabel: t("insights.valueReturnShort"),
         infoText: VALUE_RETURN_INFO,
       };
     case "volatility":
       return {
-        label: "Volatility",
-        mobileLabel: "Vol",
+        label: t("insights.volatility"),
+        mobileLabel: t("insights.volatilityShort"),
         infoText: volatilityInfo,
       };
     case "drawdown":
       return {
-        label: "Max Drawdown",
-        mobileLabel: "Drawdown",
+        label: t("insights.maxDrawdown"),
+        mobileLabel: t("insights.drawdownShort"),
         infoText: maxDrawdownInfo,
       };
   }
@@ -415,46 +417,46 @@ function AttributionDetailMetric({
   const currency = result.scope.currency;
   const driverRows: AttributionRow[] = [
     {
-      label: "Unrealized P&L",
+      label: t("insights.unrealizedPnL"),
       value: Number(result.attribution.unrealizedPnlChange),
-      description: "Profit and loss from open positions",
+      description: t("insights.unrealizedPnLDesc"),
     },
     {
-      label: "Realized P&L",
+      label: t("insights.realizedPnL"),
       value: Number(result.attribution.realizedPnl),
-      description: "Profit and loss from closed positions",
+      description: t("insights.realizedPnLDesc"),
     },
     {
-      label: "Income",
+      label: t("insights.income"),
       value: Number(result.attribution.income),
-      description: "Dividends and interest received",
+      description: t("insights.incomeDesc"),
     },
     {
-      label: "FX effect",
+      label: t("insights.fxEffect"),
       value: Number(result.attribution.fxEffect),
-      description: "Gain or loss from currency conversion",
+      description: t("insights.fxEffectDesc"),
     },
     {
-      label: "Fees",
+      label: t("insights.fees"),
       value: -Number(result.attribution.fees),
-      description: "Trading commissions and account fees",
+      description: t("insights.feesDesc"),
     },
     {
-      label: "Taxes",
+      label: t("insights.taxes"),
       value: -Number(result.attribution.taxes),
-      description: "Tax withholdings on income",
+      description: t("insights.taxesDesc"),
     },
   ];
   const flowRows: AttributionRow[] = [
     {
-      label: "Contributions",
+      label: t("insights.contributions"),
       value: Number(result.attribution.contributions),
-      description: "Cash you added to the account",
+      description: t("insights.contributionsDesc"),
     },
     {
-      label: "Distributions",
+      label: t("insights.distributions"),
       value: -Number(result.attribution.distributions),
-      description: "Cash withdrawn from the account",
+      description: t("insights.distributionsDesc"),
     },
   ];
 
@@ -663,6 +665,10 @@ const SelectedItemBadge = ({
   color?: string;
 }) => {
   const { t } = useTranslation();
+  const itemName =
+    item.id === PORTFOLIO_SCOPE_ID && item.accountScope?.type === "all"
+      ? t("insights.allPortfolio")
+      : item.name;
   return (
     <Badge
       className={cn(
@@ -701,7 +707,7 @@ const SelectedItemBadge = ({
           style={isPlotted && color ? { backgroundColor: color } : undefined}
         />
         <span className="group-hover:text-foreground max-w-40 truncate text-xs font-medium transition-colors sm:text-sm">
-          {item.name}
+          {itemName}
         </span>
         {!isPlotted && (
           <span className="bg-background/70 text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
@@ -723,7 +729,7 @@ const SelectedItemBadge = ({
           "focus-visible:ring-destructive/50 focus-visible:ring-2",
         )}
         onClick={onDelete}
-        aria-label={`Remove ${item.name}`}
+        aria-label={t("insights.removeItem", { name: itemName })}
       >
         <Icons.Close className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
       </Button>
@@ -732,6 +738,7 @@ const SelectedItemBadge = ({
 };
 
 export default function PerformancePage() {
+  const { t } = useTranslation();
   const isMobile = useIsMobileViewport();
   const [storedSelectedItems, setSelectedItems] = usePersistentState<TrackedItem[]>(
     "performance:selectedItems",
@@ -854,13 +861,17 @@ export default function PerformancePage() {
     if (!targetId) return null;
     const found = performanceData.find((item) => item?.id === targetId);
     if (!found) return null;
-    const name = selectedItems.find((item) => item.id === found.id)?.name ?? "Unknown";
+    const selectedItem = selectedItems.find((item) => item.id === found.id);
+    const name =
+      selectedItem?.id === PORTFOLIO_SCOPE_ID && selectedItem.accountScope?.type === "all"
+        ? t("insights.allPortfolio")
+        : (selectedItem?.name ?? t("common.unknown"));
     return {
       result: found,
       name,
       chartMetric: chartMetricForResult(found),
     };
-  }, [selectedItemId, performanceData, selectedItems]);
+  }, [selectedItemId, performanceData, selectedItems, t]);
 
   const selectedChartMetric = selectedPerformanceData?.chartMetric ?? "twr";
   const activeChartAnchorId = selectedPerformanceData?.result.id ?? selectedItemId;
@@ -897,7 +908,7 @@ export default function PerformancePage() {
         const isPlotted = isLoadingPerformance || hasErrors || isAnchor || chartedIds.has(item.id);
         const exclusion = isPlotted
           ? undefined
-          : chartExclusion(resultById.get(item.id), selectedChartMetric);
+          : chartExclusion(resultById.get(item.id), selectedChartMetric, t);
         const plotState: SelectedItemPlotState = {
           isPlotted,
           reason: exclusion?.message,
@@ -914,6 +925,7 @@ export default function PerformancePage() {
     performanceData,
     selectedChartMetric,
     selectedItems,
+    t,
   ]);
 
   const notPlottedItems = useMemo(
@@ -927,9 +939,9 @@ export default function PerformancePage() {
       .filter((kind): kind is ChartExclusionKind => Boolean(kind));
     return {
       count: notPlottedItems.length,
-      message: comparisonNoticeMessage(kinds),
+      message: comparisonNoticeMessage(kinds, t),
     };
-  }, [itemPlotStateById, notPlottedItems]);
+  }, [itemPlotStateById, notPlottedItems, t]);
 
   // Calculate selected item data
   const selectedItemData = useMemo(() => {
@@ -940,11 +952,11 @@ export default function PerformancePage() {
       found.mode === "symbolPriceBased" &&
       (selectedMetric === "twr" || selectedMetric === "valueReturn")
         ? {
-            label: "Price Return",
-            mobileLabel: "Price",
+            label: t("insights.priceReturn"),
+            mobileLabel: t("insights.priceReturnShort"),
             infoText: PRICE_RETURN_INFO,
           }
-        : metricPresentation(selectedMetric);
+        : metricPresentation(selectedMetric, t);
     const selectedMetricValue = displayMetricValue(found, selectedMetric);
     const visibleWarnings = found.dataQuality.warnings ?? [];
     return {
@@ -960,13 +972,13 @@ export default function PerformancePage() {
       maxDrawdown: metricValue(found, "drawdown"),
       periodPnl: found.mode === "symbolPriceBased" ? null : performancePeriodPnl(found),
       ...selectedMetricPresentation,
-      trackingModeBadge: trackingModeBadge(found),
+      trackingModeBadge: trackingModeBadge(found, t),
       returnWarnings: visibleWarnings,
       volatilityWarnings: [],
       warnings: visibleWarnings,
       notApplicableReasons: found.dataQuality.notApplicableReasons ?? [],
     };
-  }, [selectedPerformanceData]);
+  }, [selectedPerformanceData, t]);
 
   const preserveCurrentChartAnchor = (fallbackId: string) => {
     setSelectedItemId(
@@ -1102,7 +1114,7 @@ export default function PerformancePage() {
                         plotReason={plotState.reason}
                         contextLabel={
                           selectedChartMetric === "valueReturn" && item.type === "symbol"
-                            ? "Reference"
+                            ? t("insights.reference")
                             : undefined
                         }
                         onSelect={() => handleBadgeSelect(item)}
@@ -1123,7 +1135,7 @@ export default function PerformancePage() {
                 variant="outline"
                 size="icon"
                 className="bg-secondary/30 hover:bg-muted/80 size-9 flex-shrink-0 rounded-md border-[1.5px] border-none"
-                aria-label="Add item"
+                aria-label={t("insights.addItem")}
               >
                 <Icons.Plus className="h-4 w-4" />
               </Button>
@@ -1131,14 +1143,14 @@ export default function PerformancePage() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onSelect={() => setAccountSheetOpen(true)} className="py-4 md:py-2">
                 <Icons.Briefcase className="mr-2 h-4 w-4" />
-                Add Account
+                {t("insights.addAccount")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={() => setBenchmarkSheetOpen(true)}
                 className="py-4 md:py-2"
               >
                 <Icons.TrendingUp className="mr-2 h-4 w-4" />
-                Add Benchmark
+                {t("insights.addBenchmark")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1168,7 +1180,7 @@ export default function PerformancePage() {
                           plotReason={plotState.reason}
                           contextLabel={
                             selectedChartMetric === "valueReturn" && item.type === "symbol"
-                              ? "Reference"
+                              ? t("insights.reference")
                               : undefined
                           }
                           onSelect={() => handleBadgeSelect(item)}
@@ -1191,7 +1203,7 @@ export default function PerformancePage() {
             <AccountSelector
               setSelectedAccount={handleAccountSelect}
               variant="button"
-              buttonText="Add account"
+              buttonText={t("insights.addAccount")}
               includePortfolio={true}
               accountPurpose={AccountPurpose.PERFORMANCE}
               onPortfolioSelect={handlePortfolioSelect}
@@ -1232,7 +1244,7 @@ export default function PerformancePage() {
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0">
                   <CardTitle className={cn("text-lg sm:text-xl", isMobile && "text-sm")}>
-                    Performance
+                    {t("insights.performance")}
                   </CardTitle>
                   <CardDescription className={cn("text-xs sm:text-sm", isMobile && "text-[10px]")}>
                     {displayDateRange}
@@ -1261,7 +1273,7 @@ export default function PerformancePage() {
                           <CarouselItem className="basis-[42%] pl-2">
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
-                                label={selectedItemData?.mobileLabel ?? "Return"}
+                                label={selectedItemData?.mobileLabel ?? t("insights.return")}
                                 infoText={selectedItemData?.infoText ?? SIMPLE_RETURN_INFO}
                                 warningText={selectedItemData?.returnWarnings}
                                 value={selectedItemData?.selectedMetricValue ?? null}
@@ -1274,7 +1286,7 @@ export default function PerformancePage() {
                           <CarouselItem className="basis-[42%] pl-2">
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
-                                label="Annualized"
+                                label={t("insights.annualized")}
                                 infoText={annualizedReturnInfo}
                                 value={selectedItemData?.annualizedReturn ?? null}
                                 align="left"
@@ -1285,7 +1297,7 @@ export default function PerformancePage() {
                           <CarouselItem className="basis-[42%] pl-2">
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
-                                label="Volatility"
+                                label={t("insights.volatility")}
                                 infoText={volatilityInfo}
                                 warningText={selectedItemData?.volatilityWarnings}
                                 value={selectedItemData?.volatility ?? null}
@@ -1298,7 +1310,7 @@ export default function PerformancePage() {
                           <CarouselItem className="basis-[42%] pl-2">
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
-                                label="Max Drawdown"
+                                label={t("insights.maxDrawdown")}
                                 infoText={maxDrawdownInfo}
                                 value={selectedItemData?.maxDrawdown ?? null}
                                 align="left"
@@ -1331,7 +1343,7 @@ export default function PerformancePage() {
                         )}
                       >
                         <HeaderMetric
-                          label={selectedItemData?.label ?? "Return"}
+                          label={selectedItemData?.label ?? t("insights.return")}
                           infoText={selectedItemData?.infoText ?? SIMPLE_RETURN_INFO}
                           warningText={selectedItemData?.returnWarnings}
                           value={selectedItemData?.selectedMetricValue ?? null}
@@ -1339,13 +1351,13 @@ export default function PerformancePage() {
                           valueClassName="text-base"
                         />
                         <HeaderMetric
-                          label="Annualized Return"
+                          label={t("insights.annualizedReturn")}
                           infoText={annualizedReturnInfo}
                           value={selectedItemData?.annualizedReturn ?? null}
                           valueClassName="text-base"
                         />
                         <HeaderMetric
-                          label="Volatility"
+                          label={t("insights.volatility")}
                           infoText={volatilityInfo}
                           warningText={selectedItemData?.volatilityWarnings}
                           value={selectedItemData?.volatility ?? null}
@@ -1353,7 +1365,7 @@ export default function PerformancePage() {
                           valueClassName="text-base"
                         />
                         <HeaderMetric
-                          label="Max Drawdown"
+                          label={t("insights.maxDrawdown")}
                           infoText={maxDrawdownInfo}
                           value={selectedItemData?.maxDrawdown ?? null}
                           valueClassName="text-base"

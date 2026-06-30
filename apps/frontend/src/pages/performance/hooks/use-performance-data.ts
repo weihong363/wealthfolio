@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { QueryKeys } from "@/lib/query-keys";
 import { TrackedItem } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 
 /**
  * Hook to calculate cumulative returns for a list of comparison items.
@@ -30,6 +31,7 @@ export function useCalculatePerformanceHistory({
   dateRange: DateRange | undefined;
   trackingMode?: "HOLDINGS" | "TRANSACTIONS";
 }) {
+  const { t } = useTranslation();
   // Filter out invalid items (defensive: handles stale localStorage data)
   const validItems = selectedItems.filter(
     (item) =>
@@ -105,10 +107,10 @@ export function useCalculatePerformanceHistory({
 
   const displayDateRange =
     dateRange === undefined
-      ? "All Time"
+      ? t("income_page.periods.allTime")
       : displayStartDate && displayEndDate
         ? `${displayStartDate} - ${displayEndDate}`
-        : "Compare account performance over time";
+        : t("insights.comparePerformanceOverTime");
 
   return {
     data: chartData,

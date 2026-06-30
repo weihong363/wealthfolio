@@ -1,4 +1,5 @@
 import { DashboardCard } from "@/components/dashboard-card";
+import { useTranslation } from "react-i18next";
 import { CompactAmount } from "./compact-amount";
 import { CARD_LABEL, toneClass, toneFill, type Velocity } from "./utils";
 
@@ -58,6 +59,7 @@ export function VelocityCard({
   currency,
   periodLabel,
 }: VelocityCardProps) {
+  const { t } = useTranslation();
   const { perMonth, netChange, months, marketGains, contributions, equityBuilt } = velocity;
   const total = Math.abs(marketGains) + Math.abs(contributions) + Math.abs(equityBuilt);
   const multiple =
@@ -69,39 +71,42 @@ export function VelocityCard({
   const monthsRounded = Math.max(1, Math.round(months));
 
   return (
-    <DashboardCard title="Monthly pace" meta={periodLabel}>
+    <DashboardCard title={t("netWorth.monthlyPace")} meta={periodLabel}>
       <div className="flex items-baseline gap-0.5">
         <span className={`text-lg font-bold tabular-nums ${toneClass(perMonth)}`}>
           {perMonthSign}
           <CompactAmount value={Math.abs(perMonth)} currency={currency} />
         </span>
-        <span className="text-muted-foreground text-sm">/mo</span>
+        <span className="text-muted-foreground text-sm">{t("netWorth.perMonthShort")}</span>
       </div>
       <p className="text-muted-foreground/80 mt-1 text-xs tabular-nums">
         {netSign}
-        <CompactAmount value={Math.abs(netChange)} currency={currency} /> over {monthsRounded}{" "}
-        {monthsRounded === 1 ? "month" : "months"}
-        {multiple != null && ` · ${multiple.toFixed(1)}× trailing-12mo pace`}
+        <CompactAmount value={Math.abs(netChange)} currency={currency} />{" "}
+        {t("netWorth.overMonths", { count: monthsRounded })}
+        {multiple != null &&
+          ` · ${t("netWorth.trailing12MoPace", { multiple: multiple.toFixed(1) })}`}
       </p>
 
-      <p className={`${CARD_LABEL} mb-3 mt-5`}>Drivers of {periodLabel} change</p>
+      <p className={`${CARD_LABEL} mb-3 mt-5`}>
+        {t("netWorth.driversOfChange", { period: periodLabel })}
+      </p>
       <div className="space-y-3.5">
         <DriverRow
-          label="Market returns"
+          label={t("netWorth.marketReturns")}
           value={marketGains}
           months={months}
           total={total}
           currency={currency}
         />
         <DriverRow
-          label="Contributions"
+          label={t("netWorth.contributions")}
           value={contributions}
           months={months}
           total={total}
           currency={currency}
         />
         <DriverRow
-          label="Equity built"
+          label={t("netWorth.equityBuilt")}
           value={equityBuilt}
           months={months}
           total={total}

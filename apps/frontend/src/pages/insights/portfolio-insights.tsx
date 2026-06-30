@@ -89,7 +89,7 @@ export default function PortfolioInsightsPage() {
         ),
       },
     ],
-    [accountFilter, holdingsActions],
+    [accountFilter, holdingsActions, t],
   );
 
   return <SwipablePage views={views} defaultView="overview" withPadding={true} />;

@@ -1,11 +1,8 @@
 import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
 import { cn } from "@/lib/utils";
 import { AmountDisplay, Card, formatPercent, Skeleton } from "@wealthfolio/ui";
+import { useTranslation } from "react-i18next";
 import { paletteColor, type ValueStripData } from "./allocation-derivations";
-
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
-}
 
 interface ValueStripProps {
   data: ValueStripData;
@@ -78,6 +75,7 @@ function CashCurrencyPill({
 }
 
 export function ValueStrip({ data, currency, isLoading, compact }: ValueStripProps) {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
 
   const cashRatio = data.total > 0 ? data.cash / data.total : 0;
@@ -123,37 +121,42 @@ export function ValueStrip({ data, currency, isLoading, compact }: ValueStripPro
     <>
       <Card className="overflow-hidden sm:hidden">
         <div className="from-muted/60 space-y-1.5 bg-gradient-to-b to-transparent to-[65%] px-4 py-3.5">
-          <MobileEyebrow>Portfolio value</MobileEyebrow>
+          <MobileEyebrow>{t("insights.valueStrip.portfolioValue")}</MobileEyebrow>
           <div className="text-foreground text-[24px] font-bold leading-7 tracking-tight">
             <AmountDisplay value={data.total} currency={currency} isHidden={isBalanceHidden} />
           </div>
           <div className="text-muted-foreground leading-3.5 text-[10px] tabular-nums">
-            {plural(data.holdingsCount, "holding")} · {plural(data.accountsCount, "account")}
+            {t("insights.valueStrip.holdingsCount", { count: data.holdingsCount })} ·{" "}
+            {t("insights.valueStrip.accountsCount", { count: data.accountsCount })}
           </div>
         </div>
 
         <div className="grid grid-cols-2 divide-x border-t">
           <div className="space-y-1.5 px-4 py-3.5">
-            <MobileEyebrow>Cash balance</MobileEyebrow>
+            <MobileEyebrow>{t("insights.valueStrip.cashBalance")}</MobileEyebrow>
             <div className="text-foreground text-[15px] font-bold leading-5 tracking-tight">
               <AmountDisplay value={data.cash} currency={currency} isHidden={isBalanceHidden} />
             </div>
             {data.cashCurrencySplit.length === 0 ? (
-              <div className="text-muted-foreground leading-3.5 text-[10px]">No cash balance</div>
+              <div className="text-muted-foreground leading-3.5 text-[10px]">
+                {t("insights.valueStrip.noCashBalance")}
+              </div>
             ) : (
               <div className="text-muted-foreground leading-3.5 text-[10px] tabular-nums">
-                {formatPercent(cashRatio)} of portfolio
+                {t("insights.valueStrip.ofPortfolio", { percent: formatPercent(cashRatio) })}
               </div>
             )}
           </div>
 
           <div className="space-y-1.5 px-4 py-3.5">
-            <MobileEyebrow>Invested</MobileEyebrow>
+            <MobileEyebrow>{t("insights.valueStrip.invested")}</MobileEyebrow>
             <div className="text-foreground text-[15px] font-bold leading-5 tracking-tight">
               <AmountDisplay value={data.invested} currency={currency} isHidden={isBalanceHidden} />
             </div>
             <div className="text-muted-foreground leading-3.5 text-[10px] tabular-nums">
-              {formatPercent(data.investedPercent / 100)} of portfolio
+              {t("insights.valueStrip.ofPortfolio", {
+                percent: formatPercent(data.investedPercent / 100),
+              })}
             </div>
           </div>
         </div>
@@ -162,13 +165,14 @@ export function ValueStrip({ data, currency, isLoading, compact }: ValueStripPro
       <Card className="hidden grid-cols-1 divide-y overflow-hidden sm:grid sm:grid-cols-[2.25fr_1.35fr_1fr] sm:divide-x sm:divide-y-0">
         {/* Portfolio value — hero cell with a slight top-to-center gradient wash */}
         <div className={cn(gap, pad, "from-muted/60 bg-gradient-to-b to-transparent to-[60%]")}>
-          <Eyebrow>Portfolio value</Eyebrow>
+          <Eyebrow>{t("insights.valueStrip.portfolioValue")}</Eyebrow>
           <div className={cn("text-foreground font-bold tabular-nums tracking-tight", totalSize)}>
             <AmountDisplay value={data.total} currency={currency} isHidden={isBalanceHidden} />
           </div>
           <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1", subSize)}>
             <span className="text-muted-foreground tabular-nums">
-              {plural(data.holdingsCount, "holding")} · {plural(data.accountsCount, "account")}
+              {t("insights.valueStrip.holdingsCount", { count: data.holdingsCount })} ·{" "}
+              {t("insights.valueStrip.accountsCount", { count: data.accountsCount })}
             </span>
             {data.currencySplit.length > 1 &&
               data.currencySplit
@@ -186,7 +190,7 @@ export function ValueStrip({ data, currency, isLoading, compact }: ValueStripPro
 
         {/* Cash balance */}
         <div className={cn(gap, pad)}>
-          <Eyebrow>Cash balance</Eyebrow>
+          <Eyebrow>{t("insights.valueStrip.cashBalance")}</Eyebrow>
           <div className={cn("text-foreground font-bold tabular-nums tracking-tight", secSize)}>
             <AmountDisplay value={data.cash} currency={currency} isHidden={isBalanceHidden} />
           </div>
@@ -203,20 +207,26 @@ export function ValueStrip({ data, currency, isLoading, compact }: ValueStripPro
               ))}
             </div>
           ) : data.cashCurrencySplit.length === 0 ? (
-            <div className={cn("text-muted-foreground", subSize)}>No cash balance</div>
+            <div className={cn("text-muted-foreground", subSize)}>
+              {t("insights.valueStrip.noCashBalance")}
+            </div>
           ) : (
-            <div className={cn("text-muted-foreground", subSize)}>Available cash</div>
+            <div className={cn("text-muted-foreground", subSize)}>
+              {t("insights.valueStrip.availableCash")}
+            </div>
           )}
         </div>
 
         {/* Invested */}
         <div className={cn(gap, pad)}>
-          <Eyebrow>Invested</Eyebrow>
+          <Eyebrow>{t("insights.valueStrip.invested")}</Eyebrow>
           <div className={cn("text-foreground font-bold tabular-nums tracking-tight", secSize)}>
             <AmountDisplay value={data.invested} currency={currency} isHidden={isBalanceHidden} />
           </div>
           <div className={cn("text-muted-foreground tabular-nums", subSize)}>
-            {formatPercent(data.investedPercent / 100)} of portfolio
+            {t("insights.valueStrip.ofPortfolio", {
+              percent: formatPercent(data.investedPercent / 100),
+            })}
           </div>
         </div>
       </Card>

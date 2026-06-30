@@ -10,6 +10,7 @@ import {
 import { AmountDisplay, Skeleton } from "@wealthfolio/ui";
 import { Icons } from "@wealthfolio/ui/components/ui/icons";
 import { useState, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -45,6 +46,7 @@ export function AllocationDetailSheet({
   baseCurrency,
   initialCategoryId,
 }: AllocationDetailSheetProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
@@ -428,14 +430,14 @@ export function AllocationDetailSheet({
           )}
 
           {!hasData && (
-            <p className="text-muted-foreground py-8 text-center">No allocation data available.</p>
+            <p className="text-muted-foreground py-8 text-center">{t("holdings.noAllocationData")}</p>
           )}
         </div>
 
         <SheetFooter className="border-t pt-4">
           <SheetClose asChild>
             <Button variant="outline" className="w-full">
-              Close
+              {t("holdings.close")}
             </Button>
           </SheetClose>
         </SheetFooter>

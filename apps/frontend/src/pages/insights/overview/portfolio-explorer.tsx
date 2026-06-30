@@ -9,6 +9,7 @@ import type {
 import { cn } from "@/lib/utils";
 import { Card, Icons, PrivacyAmount, Skeleton } from "@wealthfolio/ui";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   accountTreeWeights,
   buildBreakdownTree,
@@ -117,6 +118,7 @@ export function PortfolioExplorer({
   isLoading,
   onOpenAllocation,
 }: PortfolioExplorerProps) {
+  const { t } = useTranslation();
   const [activeKey, setActiveKey] = useState("allocation");
   const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -132,32 +134,64 @@ export function PortfolioExplorer({
 
   const lenses = useMemo<Lens[]>(() => {
     const list: Lens[] = [
-      taxonomyLens("allocation", "Allocation", "categories", allocations?.assetClasses),
+      taxonomyLens(
+        "allocation",
+        t("insights.explorer.allocation"),
+        t("insights.explorer.units.categories"),
+        allocations?.assetClasses,
+      ),
       {
         key: "accounts",
-        label: "Accounts",
-        unit: "accounts",
+        label: t("insights.explorer.accounts"),
+        unit: t("insights.explorer.units.accounts"),
         nodes: accountTreeWeights(accountValues, scopedAccounts),
       },
-      taxonomyLens("sectors", "Sectors", "sectors", allocations?.sectors),
-      taxonomyLens("regions", "Regions", "regions", allocations?.regions),
-      taxonomyLens("risk", "Risk", "levels", allocations?.riskCategory),
-      taxonomyLens("security", "Security types", "types", allocations?.securityTypes),
+      taxonomyLens(
+        "sectors",
+        t("insights.explorer.sectors"),
+        t("insights.explorer.units.sectors"),
+        allocations?.sectors,
+      ),
+      taxonomyLens(
+        "regions",
+        t("insights.explorer.regions"),
+        t("insights.explorer.units.regions"),
+        allocations?.regions,
+      ),
+      taxonomyLens(
+        "risk",
+        t("insights.explorer.risk"),
+        t("insights.explorer.units.levels"),
+        allocations?.riskCategory,
+      ),
+      taxonomyLens(
+        "security",
+        t("insights.explorer.securityTypes"),
+        t("insights.explorer.units.types"),
+        allocations?.securityTypes,
+      ),
       {
         key: "currency",
-        label: "Currency",
-        unit: "currencies",
+        label: t("insights.explorer.currency"),
+        unit: t("insights.explorer.units.currencies"),
         nodes: toBreakdownNodes(currencyLensItems(holdings)),
       },
     ];
     // Each custom-group taxonomy becomes its own lens.
     for (const taxonomy of allocations?.customGroups ?? []) {
       if (taxonomy.categories.some((c) => c.value > 0)) {
-        list.push(taxonomyLens(taxonomy.taxonomyId, taxonomy.taxonomyName, "groups", taxonomy));
+        list.push(
+          taxonomyLens(
+            taxonomy.taxonomyId,
+            taxonomy.taxonomyName,
+            t("insights.explorer.units.groups"),
+            taxonomy,
+          ),
+        );
       }
     }
     return list;
-  }, [allocations, holdings, scopedAccounts, accountValues]);
+  }, [allocations, holdings, scopedAccounts, accountValues, t]);
 
   const active = lenses.find((l) => l.key === activeKey) ?? lenses[0];
 
@@ -189,11 +223,11 @@ export function PortfolioExplorer({
   const total = sumValue(active.nodes);
   const collapsible = active.nodes.length > 6;
   const barWeights = collapsible
-    ? collapseWeights(active.nodes, 5, `Other ${active.unit}`)
+    ? collapseWeights(active.nodes, 5, t("insights.explorer.otherUnit", { unit: active.unit }))
     : active.nodes;
   const listWeights =
     collapsible && !showAll
-      ? collapseWeights(active.nodes, 5, `Other ${active.unit}`)
+      ? collapseWeights(active.nodes, 5, t("insights.explorer.otherUnit", { unit: active.unit }))
       : active.nodes;
 
   function renderNode(node: BreakdownNode): React.ReactNode[] {
@@ -274,7 +308,7 @@ export function PortfolioExplorer({
     <div>
       <div className="mb-2">
         <span className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
-          Breakdown
+          {t("insights.explorer.breakdown")}
         </span>
       </div>
 
@@ -310,7 +344,7 @@ export function PortfolioExplorer({
           <SegmentedBar nodes={barWeights} />
           <div className="mb-1 mt-4 flex items-baseline justify-between">
             <span className="text-muted-foreground text-[10.5px] font-semibold uppercase tracking-wider">
-              {collapsible && !showAll ? `Top ${active.unit}` : active.label}
+              {collapsible && !showAll ? t("insights.explorer.topUnit", { unit: active.unit }) : active.label}
             </span>
             {collapsible && (
               <button
@@ -318,7 +352,7 @@ export function PortfolioExplorer({
                 onClick={() => setShowAll((v) => !v)}
                 className="text-muted-foreground hover:text-foreground text-[12px] font-semibold"
               >
-                {showAll ? "Show less" : "Show all"}
+                {showAll ? t("common.showLess") : t("common.showAll")}
               </button>
             )}
           </div>

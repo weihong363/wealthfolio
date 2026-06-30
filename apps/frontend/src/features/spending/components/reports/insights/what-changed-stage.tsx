@@ -1,4 +1,6 @@
 import { memo, useMemo, useState, type FC, type ReactNode } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 
 import { PrivacyAmount, Skeleton, formatCompactAmount } from "@wealthfolio/ui";
@@ -64,6 +66,7 @@ export function WhatChangedStage({
   isLoading,
   onCategoryClick,
 }: WhatChangedStageProps) {
+  const { t } = useTranslation();
   const labels = useMemo(
     () => buildPeriodLabels(range, priorRange, timezone),
     [range, priorRange, timezone],
@@ -93,8 +96,9 @@ export function WhatChangedStage({
         taxonomyCategories,
         currentTotal,
         priorTotal,
+        t("spending.uncategorized"),
       ),
-    [currentReport, priorReport, taxonomyCategories, currentTotal, priorTotal],
+    [currentReport, priorReport, taxonomyCategories, currentTotal, priorTotal, t],
   );
 
   const headline = useMemo<HeadlineModel>(
@@ -314,6 +318,7 @@ function computeMovers(
   taxonomyCategories: TaxonomyCategory[],
   currentTotal: number,
   priorTotal: number,
+  uncategorizedLabel: string,
 ): MoverDescriptor[] {
   const meta = new Map(taxonomyCategories.map((c) => [c.id, c]));
   const roll = (rows: CategoryBreakdownRow[]) => {
@@ -338,7 +343,7 @@ function computeMovers(
     const isUncategorized = d.id === UNCATEGORIZED_CATEGORY_ID;
     return {
       ...d,
-      name: isUncategorized ? "Uncategorized" : (m?.name ?? d.id),
+      name: isUncategorized ? uncategorizedLabel : (m?.name ?? d.id),
       color: m?.color ?? null,
       icon: m?.icon ?? null,
     };
@@ -374,6 +379,7 @@ const CategoryTrendsSection: FC<CategoryTrendsSectionProps> = ({
   isLoading,
   onCategoryClick,
 }) => {
+  const { t } = useTranslation();
   const showPills = periodState.kind === "valid_comparison";
   const [expanded, setExpanded] = useState(false);
 
@@ -411,12 +417,14 @@ const CategoryTrendsSection: FC<CategoryTrendsSectionProps> = ({
   return (
     <div>
       <header className="mb-4">
-        <h3 className="text-foreground text-base font-semibold tracking-tight">Category trends</h3>
+        <h3 className="text-foreground text-base font-semibold tracking-tight">
+          {t("spending.insights.changed.categoryTrends")}
+        </h3>
       </header>
 
       {sparkRows.length === 0 ? (
         <div className="text-muted-foreground py-6 text-center text-sm">
-          No category history yet for this window.
+          {t("spending.insights.changed.noCategoryHistory")}
         </div>
       ) : (
         <>
@@ -438,7 +446,7 @@ const CategoryTrendsSection: FC<CategoryTrendsSectionProps> = ({
                 onClick={() => setExpanded(true)}
                 className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
               >
-                Show {remaining} more →
+                {t("spending.insights.changed.showMore", { count: remaining })}
               </button>
             </div>
           )}
@@ -537,17 +545,20 @@ interface PillModel {
   tone: "up" | "down" | "neutral";
 }
 
-function describePill(d: ChangeDescriptor): PillModel | null {
+function describePill(d: ChangeDescriptor, t: TFunction): PillModel | null {
   switch (d.kind) {
     case "no_activity":
       return null;
     case "new":
-      return { label: "New", tone: "neutral" };
+      return { label: t("spending.insights.changed.new"), tone: "neutral" };
     case "ended":
       // Small-prior categories that ended read better as "No spend" than
       // dramatic "Ended" — the change isn't meaningful.
       return {
-        label: d.prior < MIN_PRIOR_FOR_PCT ? "No spend" : "Ended",
+        label:
+          d.prior < MIN_PRIOR_FOR_PCT
+            ? t("spending.insights.changed.noSpend")
+            : t("spending.insights.changed.ended"),
         tone: "neutral",
       };
     case "valid": {
@@ -586,11 +597,12 @@ const SparklineRow = memo(function SparklineRow({
   showPill: boolean;
   onCategoryClick?: (categoryId: string) => void;
 }) {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const color = row.color ?? "var(--muted-foreground)";
   const tintBg = row.color ? `${row.color}14` : "var(--muted)";
   const gradId = `wc-spark-${row.id.replace(/[^a-z0-9]/gi, "_")}`;
-  const pill = showPill && row.descriptor ? describePill(row.descriptor) : null;
+  const pill = showPill && row.descriptor ? describePill(row.descriptor, t) : null;
   const clickable = !!onCategoryClick;
   return (
     <div
@@ -682,6 +694,7 @@ function ComparisonTable({
   currency,
   onCategoryClick,
 }: ComparisonTableProps) {
+  const { t } = useTranslation();
   const hidePct = periodState.kind === "no_prior_period";
 
   return (
@@ -689,11 +702,13 @@ function ComparisonTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-border/40 text-muted-foreground/70 border-b text-[10px] font-semibold uppercase tracking-[0.12em]">
-            <th className="px-3 py-3 text-left md:px-4">Category</th>
+            <th className="px-3 py-3 text-left md:px-4">{t("spending.dashboard.category")}</th>
             <th className="px-2 py-3 text-right md:px-3">{labels.current}</th>
             <th className="px-2 py-3 text-right md:px-3">{labels.prior}</th>
             <th className="px-2 py-3 text-right md:px-3">Δ $</th>
-            <th className="hidden px-3 py-3 text-right md:table-cell">Impact</th>
+            <th className="hidden px-3 py-3 text-right md:table-cell">
+              {t("spending.insights.changed.impact")}
+            </th>
             {!hidePct && <th className="hidden px-4 py-3 text-right md:table-cell">Δ %</th>}
           </tr>
         </thead>

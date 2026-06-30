@@ -6,6 +6,7 @@
  * `useBaselinePace`, `useMonthCalendar`). This file is orchestration only.
  */
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button, Icons } from "@wealthfolio/ui";
 import { useIsMobileViewport } from "@/hooks/use-platform";
@@ -143,16 +144,18 @@ export function WhenWhereStage({
 }
 
 function EventsErrorCard({ onRetry }: { onRetry?: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className={CARD_CLASS}>
-      <p className="text-foreground text-base font-semibold leading-snug">Couldn't load events</p>
+      <p className="text-foreground text-base font-semibold leading-snug">
+        {t("spending.insights.events.loadFailed")}
+      </p>
       <p className="text-muted-foreground/80 mt-2 text-sm">
-        Something went wrong fetching this period's events. Try again — if it keeps failing, check
-        the server logs.
+        {t("spending.insights.events.loadFailedDesc")}
       </p>
       {onRetry ? (
         <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
-          Retry
+          {t("common.retry")}
         </Button>
       ) : null}
     </div>
@@ -160,14 +163,15 @@ function EventsErrorCard({ onRetry }: { onRetry?: () => void }) {
 }
 
 function EmptyEventsCard({ rangeStart, rangeEnd }: { rangeStart: Date; rangeEnd: Date }) {
+  const { t } = useTranslation();
   const { openEventDialog } = useEventDialog();
   return (
     <div className={CARD_CLASS}>
       <p className="text-foreground text-base font-semibold leading-snug">
-        No trips or events tagged
+        {t("spending.insights.events.empty")}
       </p>
       <p className="text-muted-foreground/80 mt-2 text-sm">
-        Tag a trip, place, or one-off to see how it compares with your normal week.
+        {t("spending.insights.events.emptyDesc")}
       </p>
       <Button
         variant="outline"
@@ -179,7 +183,7 @@ function EmptyEventsCard({ rangeStart, rangeEnd }: { rangeStart: Date; rangeEnd:
           })
         }
       >
-        Create event
+        {t("spending.dashboard.createEvent")}
         <Icons.ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden />
       </Button>
     </div>

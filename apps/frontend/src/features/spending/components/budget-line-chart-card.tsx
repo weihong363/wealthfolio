@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { DashboardCard } from "@/components/dashboard-card";
@@ -29,7 +30,7 @@ const STATUS_ACCENTS: Record<
     pillBg: string;
     accent: string;
     Icon: typeof Icons.AlertCircle;
-    label: string;
+    labelKey: string;
   }
 > = {
   over: {
@@ -37,21 +38,21 @@ const STATUS_ACCENTS: Record<
     pillBg: "var(--destructive)",
     accent: "var(--destructive)",
     Icon: Icons.AlertTriangle,
-    label: "Over budget",
+    labelKey: "overBudget",
   },
   warn: {
     lineColor: "#C28B47",
     pillBg: "#C28B47",
     accent: "#C28B47",
     Icon: Icons.AlertCircle,
-    label: "Trending high",
+    labelKey: "trendingHigh",
   },
   ok: {
     lineColor: "hsl(73 84% 27%)",
     pillBg: "hsl(73 84% 27%)",
     accent: "var(--success)",
     Icon: Icons.CheckCircle ?? Icons.AlertCircle,
-    label: "On track",
+    labelKey: "onTrack",
   },
 };
 
@@ -90,6 +91,7 @@ export function BudgetLineChartCard({
   monthByDay: DayBucket[];
   historicalByDay: DayBucket[];
 }) {
+  const { t, i18n } = useTranslation();
   // All hooks must run unconditionally — the `target <= 0` early return below
   // sits between hooks otherwise, which trips "Rendered more hooks than during
   // the previous render" when a target is added or cleared.
@@ -105,13 +107,13 @@ export function BudgetLineChartCard({
       daysInMonth,
       daysRemaining: isCurrentMonth ? Math.max(0, daysInMonth - dayOfMonth) : 0,
       monthLabel: monthDate
-        .toLocaleString("en-US", { month: "long", year: "numeric" })
+        .toLocaleString(i18n.language, { month: "long", year: "numeric" })
         .toUpperCase(),
       shortLabel: monthDate
-        .toLocaleString("en-US", { month: "short", year: "numeric" })
+        .toLocaleString(i18n.language, { month: "short", year: "numeric" })
         .toUpperCase(),
     };
-  }, [monthKey, isCurrentMonth, today]);
+  }, [monthKey, isCurrentMonth, today, i18n.language]);
   const { dayOfMonth, daysInMonth, daysRemaining, monthLabel } = monthMeta;
 
   const cumulative = useMemo(() => {
@@ -221,19 +223,19 @@ export function BudgetLineChartCard({
   if (target <= 0) {
     return (
       <DashboardCard
-        title="Monthly budget"
+        title={t("spending.monthlyBudget")}
         subtitle={monthMeta.shortLabel}
         action={headerAction}
         className="text-center"
       >
         <p className="text-muted-foreground text-sm">
-          No monthly target set for this budget month.
+          {t("spending.dashboard.noMonthlyTarget")}
         </p>
         <Link
           to={`/spending/budget?month=${monthKey}`}
           className="text-foreground mt-2 inline-flex text-xs underline-offset-4 hover:underline"
         >
-          Set a budget →
+          {t("spending.dashboard.setBudget")}
         </Link>
       </DashboardCard>
     );
@@ -256,7 +258,9 @@ export function BudgetLineChartCard({
   const status: Status = isOver ? "over" : isCurrentMonth && !aheadOfPace ? "warn" : "ok";
   const a = STATUS_ACCENTS[status];
   const { Icon } = a;
-  const statusLabel = !isCurrentMonth && !isOver ? "Under budget" : a.label;
+  const statusLabel = !isCurrentMonth && !isOver
+    ? t("spending.dashboard.underBudget")
+    : t(`spending.dashboard.${a.labelKey}`);
 
   const xForDay = (day: number) => padL + ((day - 1) / Math.max(1, daysInMonth - 1)) * innerW;
   const yForVal = (v: number) => padT + (1 - v / yMax) * innerH;
@@ -272,13 +276,23 @@ export function BudgetLineChartCard({
   const gapAbs = Math.abs(gapVsPace);
   const gapLabel = isCurrentMonth
     ? isOver
-      ? `${formatCompactAmount(overBy, currency)} over budget`
+      ? t("spending.dashboard.amountOverBudget", {
+          amount: formatCompactAmount(overBy, currency),
+        })
       : aheadOfPace
-        ? `${formatCompactAmount(gapAbs, currency)} under budget`
-        : `${formatCompactAmount(gapAbs, currency)} over pace`
+        ? t("spending.dashboard.amountUnderBudget", {
+            amount: formatCompactAmount(gapAbs, currency),
+          })
+        : t("spending.dashboard.amountOverPace", {
+            amount: formatCompactAmount(gapAbs, currency),
+          })
     : isOver
-      ? `${formatCompactAmount(overBy, currency)} over budget`
-      : `${formatCompactAmount(remaining, currency)} left`;
+      ? t("spending.dashboard.amountOverBudget", {
+          amount: formatCompactAmount(overBy, currency),
+        })
+      : t("spending.dashboard.amountLeft", {
+          amount: formatCompactAmount(remaining, currency),
+        });
 
   const pillLeftPctRaw = (endX / chartW) * 100;
   const pillLeftPct = Math.min(78, Math.max(8, pillLeftPctRaw - 4));
@@ -288,12 +302,14 @@ export function BudgetLineChartCard({
   const pillTopPx = Math.max(0, endY - 28);
 
   return (
-    <DashboardCard title="Monthly budget" subtitle={monthLabel} action={headerAction}>
+    <DashboardCard title={t("spending.monthlyBudget")} subtitle={monthLabel} action={headerAction}>
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 shrink-0" style={{ color: a.accent }} />
         <span className="text-foreground text-sm font-semibold">{statusLabel}</span>
         <span className="text-muted-foreground/70 ml-auto text-xs tabular-nums">
-          {isCurrentMonth ? `Day ${dayOfMonth} / ${daysInMonth}` : "Closed"}
+          {isCurrentMonth
+            ? t("spending.dashboard.dayOfMonth", { day: dayOfMonth, days: daysInMonth })
+            : t("spending.dashboard.closed")}
         </span>
       </div>
 
@@ -302,22 +318,29 @@ export function BudgetLineChartCard({
           <>
             <div className="text-foreground text-2xl font-bold tabular-nums tracking-tight">
               <PrivacyAmount value={forecast} currency={currency} />{" "}
-              <span className="text-muted-foreground/70 text-base font-medium">forecast</span>
+              <span className="text-muted-foreground/70 text-base font-medium">
+                {t("spending.dashboard.forecast")}
+              </span>
             </div>
             <div className="text-destructive mt-0.5 inline-flex items-center gap-1 text-xs font-semibold tabular-nums">
               <Icons.ArrowUp className="h-3 w-3" />
-              <PrivacyAmount value={forecastDelta} currency={currency} /> over budget
+              <PrivacyAmount value={forecastDelta} currency={currency} />{" "}
+              {t("spending.dashboard.overBudget")}
             </div>
             <div className="text-muted-foreground/80 mt-0.5 text-xs tabular-nums">
-              <PrivacyAmount value={remaining} currency={currency} /> left today · of{" "}
-              <PrivacyAmount value={target} currency={currency} /> budgeted this month
+              <PrivacyAmount value={remaining} currency={currency} />{" "}
+              {t("spending.dashboard.leftToday")} · {t("spending.dashboard.of")}{" "}
+              <PrivacyAmount value={target} currency={currency} />{" "}
+              {t("spending.dashboard.budgetedThisMonth")}
             </div>
           </>
         ) : !isCurrentMonth ? (
           <>
             <div className="text-foreground text-2xl font-bold tabular-nums tracking-tight">
               <PrivacyAmount value={spent} currency={currency} />{" "}
-              <span className="text-muted-foreground/70 text-base font-medium">spent</span>
+              <span className="text-muted-foreground/70 text-base font-medium">
+                {t("spending.dashboard.spentLower")}
+              </span>
             </div>
             <div
               className={cn(
@@ -326,10 +349,11 @@ export function BudgetLineChartCard({
               )}
             >
               <PrivacyAmount value={isOver ? overBy : remaining} currency={currency} />{" "}
-              {isOver ? "over budget" : "left"}
+              {isOver ? t("spending.dashboard.overBudget") : t("spending.remaining")}
             </div>
             <div className="text-muted-foreground/80 mt-0.5 text-xs tabular-nums">
-              of <PrivacyAmount value={target} currency={currency} /> budgeted
+              {t("spending.dashboard.of")} <PrivacyAmount value={target} currency={currency} />{" "}
+              {t("spending.dashboard.budgeted")}
             </div>
           </>
         ) : (
@@ -337,11 +361,12 @@ export function BudgetLineChartCard({
             <div className="text-foreground text-2xl font-bold tabular-nums tracking-tight">
               <PrivacyAmount value={isOver ? overBy : remaining} currency={currency} />{" "}
               <span className="text-muted-foreground/70 text-base font-medium">
-                {isOver ? "over" : "left"}
+                {isOver ? t("spending.dashboard.over") : t("spending.remaining")}
               </span>
             </div>
             <div className="text-muted-foreground/80 text-xs tabular-nums">
-              of <PrivacyAmount value={target} currency={currency} /> budgeted this month
+              {t("spending.dashboard.of")} <PrivacyAmount value={target} currency={currency} />{" "}
+              {t("spending.dashboard.budgetedThisMonth")}
             </div>
           </>
         )}
@@ -420,14 +445,14 @@ export function BudgetLineChartCard({
         )}
       </div>
       <div className="text-muted-foreground/70 mt-1 flex justify-between text-[10px] tabular-nums">
-        <span>Day 1</span>
-        <span>Day {daysInMonth}</span>
+        <span>{t("spending.dashboard.day", { day: 1 })}</span>
+        <span>{t("spending.dashboard.day", { day: daysInMonth })}</span>
       </div>
 
       <div className="border-border mt-4 grid grid-cols-2 gap-3 border-t pt-3 text-xs">
         <div>
           <div className="text-muted-foreground/70 text-[11px] uppercase tracking-wide">
-            {isCurrentMonth ? "Spent so far" : "Spent"}
+            {isCurrentMonth ? t("spending.dashboard.spentSoFar") : t("spending.dashboard.spent")}
           </div>
           <div className="text-foreground text-sm font-semibold tabular-nums">
             <PrivacyAmount value={spent} currency={currency} />
@@ -435,7 +460,7 @@ export function BudgetLineChartCard({
         </div>
         <div className="text-right">
           <div className="text-muted-foreground/70 text-[11px] uppercase tracking-wide">
-            {isCurrentMonth ? "Forecast" : "Result"}
+            {isCurrentMonth ? t("spending.dashboard.forecast") : t("spending.dashboard.result")}
           </div>
           {isCurrentMonth ? (
             <div
@@ -464,12 +489,12 @@ export function BudgetLineChartCard({
             {isCurrentMonth
               ? forecastReliable
                 ? haveHistory
-                  ? "vs last 3 months"
-                  : "at current pace"
-                : "more data needed"
+                  ? t("spending.dashboard.vsLast3Months")
+                  : t("spending.dashboard.atCurrentPace")
+                : t("spending.dashboard.moreDataNeeded")
               : isOver
-                ? "over budget"
-                : "left"}
+                ? t("spending.dashboard.overBudget")
+                : t("spending.remaining")}
           </div>
         </div>
       </div>
@@ -477,18 +502,18 @@ export function BudgetLineChartCard({
       <div className="border-border mt-5 border-t pt-4">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-muted-foreground/80 text-[11px] font-semibold uppercase tracking-wide">
-            By category
+            {t("spending.dashboard.byCategory")}
           </span>
           <BudgetManageLink monthKey={monthKey} />
         </div>
         {rings.length === 0 ? (
           <div className="text-muted-foreground py-2 text-center text-xs">
-            No category budgets set yet.{" "}
+            {t("spending.dashboard.noCategoryBudgets")}{" "}
             <Link
               to="/settings/spending/setup"
               className="hover:text-foreground underline-offset-4 hover:underline"
             >
-              Set one
+              {t("spending.dashboard.setOne")}
             </Link>
           </div>
         ) : (
@@ -614,6 +639,7 @@ function BudgetCardHeaderActions({
   onNextMonth: () => void;
   canGoNextMonth: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5">
       <div className="bg-muted/60 inline-flex items-center rounded-full p-0.5">
@@ -621,7 +647,7 @@ function BudgetCardHeaderActions({
           type="button"
           onClick={onPreviousMonth}
           className="hover:bg-background flex h-6 w-6 items-center justify-center rounded-full transition-colors"
-          aria-label="Previous budget month"
+          aria-label={t("spending.previousMonth")}
         >
           <Icons.ChevronLeft className="h-3.5 w-3.5" />
         </button>
@@ -633,7 +659,7 @@ function BudgetCardHeaderActions({
           onClick={onNextMonth}
           disabled={!canGoNextMonth}
           className="hover:bg-background disabled:text-muted-foreground/40 flex h-6 w-6 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed"
-          aria-label="Next budget month"
+          aria-label={t("spending.nextMonth")}
         >
           <Icons.ChevronRight className="h-3.5 w-3.5" />
         </button>
@@ -643,14 +669,17 @@ function BudgetCardHeaderActions({
   );
 }
 
-const BudgetManageLink = ({ monthKey }: { monthKey: string }) => (
-  <Link
-    to={`/spending/budget?month=${monthKey}`}
-    className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
-  >
-    Manage →
-  </Link>
-);
+const BudgetManageLink = ({ monthKey }: { monthKey: string }) => {
+  const { t } = useTranslation();
+  return (
+    <Link
+      to={`/spending/budget?month=${monthKey}`}
+      className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+    >
+      {t("spending.dashboard.manage")} →
+    </Link>
+  );
+};
 
 function BudgetRing({
   ring,
@@ -669,6 +698,7 @@ function BudgetRing({
   currency: string;
   activityRange: { from: string; to: string };
 }) {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const isOver = ring.spent > ring.target;
   const remaining = ring.target - ring.spent;
@@ -728,7 +758,7 @@ function BudgetRing({
           isOver ? "text-destructive" : "text-muted-foreground/70",
         )}
       >
-        {isOver ? "over" : "left"}
+        {isOver ? t("spending.dashboard.over") : t("spending.remaining")}
       </div>
     </Link>
   );

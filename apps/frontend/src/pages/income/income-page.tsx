@@ -24,45 +24,46 @@ import { Cell, Pie, PieChart } from "recharts";
 import { IncomeHistoryChart } from "./income-history-chart";
 import { IncomeMobileFilterSheet } from "./income-mobile-filter-sheet";
 
-const periods = [
-  { value: "YTD" as const, label: "Year to Date" },
-  { value: "LAST_YEAR" as const, label: "Last Year" },
-  { value: "ALL" as const, label: "All Time" },
-];
-
-const mobilePeriods = [
-  { value: "YTD" as const, label: "YTD" },
-  { value: "LAST_YEAR" as const, label: "Last Yr" },
-  { value: "ALL" as const, label: "All" },
-];
-
 type IncomePeriod = "ALL" | "YTD" | "LAST_YEAR";
 
 const IncomePeriodSelector: React.FC<{
   selectedPeriod: IncomePeriod;
   onPeriodSelect: (period: IncomePeriod) => void;
-}> = ({ selectedPeriod, onPeriodSelect }) => (
-  <>
-    <div className="hidden sm:block">
-      <AnimatedToggleGroup
-        variant="secondary"
-        size="sm"
-        items={periods}
-        value={selectedPeriod}
-        onValueChange={onPeriodSelect}
-      />
-    </div>
-    <div className="block sm:hidden">
-      <AnimatedToggleGroup
-        variant="secondary"
-        size="xs"
-        items={mobilePeriods}
-        value={selectedPeriod}
-        onValueChange={onPeriodSelect}
-      />
-    </div>
-  </>
-);
+}> = ({ selectedPeriod, onPeriodSelect }) => {
+  const { t } = useTranslation();
+  const periods = [
+    { value: "YTD" as const, label: t("income_page.periods.ytd") },
+    { value: "LAST_YEAR" as const, label: t("income_page.periods.lastYear") },
+    { value: "ALL" as const, label: t("income_page.periods.allTime") },
+  ];
+  const mobilePeriods = [
+    { value: "YTD" as const, label: t("income_page.periods.ytdShort") },
+    { value: "LAST_YEAR" as const, label: t("income_page.periods.lastYearShort") },
+    { value: "ALL" as const, label: t("income_page.periods.allShort") },
+  ];
+  return (
+    <>
+      <div className="hidden sm:block">
+        <AnimatedToggleGroup
+          variant="secondary"
+          size="sm"
+          items={periods}
+          value={selectedPeriod}
+          onValueChange={onPeriodSelect}
+        />
+      </div>
+      <div className="block sm:hidden">
+        <AnimatedToggleGroup
+          variant="secondary"
+          size="xs"
+          items={mobilePeriods}
+          value={selectedPeriod}
+          onValueChange={onPeriodSelect}
+        />
+      </div>
+    </>
+  );
+};
 
 export default function IncomePage() {
   const { t } = useTranslation();
@@ -86,7 +87,11 @@ export default function IncomePage() {
   }
 
   if (error || !incomeData) {
-    return <div>Failed to load income summary: {error?.message || "Unknown error"}</div>;
+    return (
+      <div>
+        {t("income_page.failedToLoadSummary")}: {error?.message || t("common.unknownError")}
+      </div>
+    );
   }
 
   const periodSummary = incomeData.find((summary) => summary.period === selectedPeriod);
@@ -319,7 +324,7 @@ export default function IncomePage() {
               <div className="space-y-2">
                 {[
                   {
-                    name: "Dividends",
+                    name: t("income_page.dividends"),
                     amount: (
                       <AmountDisplay
                         value={dividendIncome}
@@ -330,7 +335,7 @@ export default function IncomePage() {
                     percentage: dividendPercentage,
                   },
                   {
-                    name: "Interest",
+                    name: t("income_page.interest"),
                     amount: (
                       <AmountDisplay
                         value={interestIncome}
@@ -413,8 +418,10 @@ export default function IncomePage() {
                         ...(otherTotal > 0
                           ? [
                               {
-                                symbol: "Other",
-                                companyName: `${otherStocks.length} other sources`,
+                                symbol: t("spending.other"),
+                                companyName: t("income_page.otherSources", {
+                                  count: otherStocks.length,
+                                }),
                                 income: otherTotal,
                                 isOther: true,
                               },
@@ -455,7 +462,9 @@ export default function IncomePage() {
                                   <PrivacyAmount value={item.income} currency={currency} />
                                 </div>
                                 <div className="text-muted-foreground text-xs">
-                                  {percentage.toFixed(1)}% of total
+                                  {t("income_page.ofTotal", {
+                                    percent: percentage.toFixed(1),
+                                  })}
                                 </div>
                                 {/* Tooltip arrow */}
                                 <div className="border-t-border absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 transform border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent"></div>

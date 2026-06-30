@@ -141,7 +141,7 @@ export const HoldingsTableMobile = ({
         <div className="flex items-center gap-2">
           {showSearch && (
             <Input
-              placeholder="Search..."
+              placeholder={t("holdings.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-secondary/30 h-10 flex-1 rounded-full border-none"

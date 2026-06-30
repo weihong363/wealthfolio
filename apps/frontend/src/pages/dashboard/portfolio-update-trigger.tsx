@@ -12,6 +12,7 @@ import {
   useRecalculatePortfolioMutation,
 } from "@/hooks/use-calculate-portfolio";
 import { formatDateTime } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 // Rename interface
 interface PortfolioUpdateTriggerProps {
@@ -27,6 +28,7 @@ export function PortfolioUpdateTrigger({
   children,
   notices = [],
 }: PortfolioUpdateTriggerProps) {
+  const { t } = useTranslation();
   // Instantiate the mutation hooks inside the component
   const updatePortfolioMutation = useUpdatePortfolioMutation();
   const recalculatePortfolioMutation = useRecalculatePortfolioMutation();
@@ -63,7 +65,7 @@ export function PortfolioUpdateTrigger({
           <div className="space-y-2">
             <h4 className="flex text-sm font-light">
               <Icons.Calendar className="mr-2 h-4 w-4" />
-              As of:{" "}
+              {t("dashboard.asOf")}{" "}
               <Badge className="ml-1 font-medium" variant="secondary">
                 {/* Use lastCalculatedAt prop */}
                 {formattedLastCalculatedAt
@@ -84,7 +86,9 @@ export function PortfolioUpdateTrigger({
             ) : (
               <Icons.Refresh className="mr-2 h-4 w-4" />
             )}
-            {updatePortfolioMutation.isPending ? "Updating quotes..." : "Update quotes"}
+            {updatePortfolioMutation.isPending
+              ? t("dashboard.updatingQuotes")
+              : t("dashboard.updateQuotes")}
           </Button>
           <Button
             onClick={handleRecalculate}
@@ -99,8 +103,8 @@ export function PortfolioUpdateTrigger({
               <Icons.Clock className="mr-2 h-4 w-4" />
             )}
             {recalculatePortfolioMutation.isPending
-              ? "Rebuilding history..."
-              : "Rebuild full history"}
+              ? t("dashboard.rebuildingHistory")
+              : t("dashboard.rebuildFullHistory")}
           </Button>
         </div>
       </HoverCardContent>

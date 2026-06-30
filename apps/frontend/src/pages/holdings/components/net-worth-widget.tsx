@@ -17,6 +17,7 @@ import { useNetWorth } from "@/hooks/use-alternative-assets";
 import { useSettingsContext } from "@/lib/settings-provider";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface NetWorthWidgetProps {
   /** Optional date for as-of calculation (ISO format: YYYY-MM-DD). Defaults to today. */
@@ -91,21 +92,24 @@ const NetWorthWidgetSkeleton = ({ compact = false }: { compact?: boolean }) => (
 /**
  * Error state for the NetWorthWidget
  */
-const NetWorthWidgetError = ({ error, compact = false }: { error: Error; compact?: boolean }) => (
+const NetWorthWidgetError = ({ error, compact = false }: { error: Error; compact?: boolean }) => {
+  const { t } = useTranslation();
+  return (
   <Card className={cn("p-4", compact && "p-3")}>
     <div className="flex items-start gap-3">
       <div className="bg-destructive/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
         <Icons.AlertTriangle className="text-destructive h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-destructive text-sm font-medium">Failed to load net worth</p>
+        <p className="text-destructive text-sm font-medium">{t("holdings.failedToLoadNetWorth")}</p>
         <p className="text-muted-foreground mt-1 break-words text-xs">
-          {error?.message || "An unexpected error occurred"}
+          {error?.message || t("holdings.unexpectedError")}
         </p>
       </div>
     </div>
   </Card>
-);
+  );
+};
 
 /**
  * A breakdown row item showing label and value
@@ -153,6 +157,7 @@ export const NetWorthWidget = ({
   compact = false,
   className,
 }: NetWorthWidgetProps) => {
+  const { t } = useTranslation();
   const { settings } = useSettingsContext();
   const { data: netWorthData, isLoading, isError, error } = useNetWorth({ date });
 
@@ -225,7 +230,7 @@ export const NetWorthWidget = ({
               compact ? "text-[10px]" : "text-xs",
             )}
           >
-            Net Worth
+            {t("holdings.netWorth")}
           </span>
 
           {hasStaleValuations && (
@@ -275,7 +280,7 @@ export const NetWorthWidget = ({
                 compact ? "text-[9px]" : "text-[10px]",
               )}
             >
-              Assets
+              {t("holdings.assets")}
             </span>
             <span className={cn("text-success font-medium", compact ? "text-sm" : "text-base")}>
               <PrivacyAmount value={parsedValues.totalAssets} currency={currency} />
@@ -289,7 +294,7 @@ export const NetWorthWidget = ({
                 compact ? "text-[9px]" : "text-[10px]",
               )}
             >
-              Debts
+              {t("holdings.debts")}
             </span>
             <span className={cn("text-destructive font-medium", compact ? "text-sm" : "text-base")}>
               <PrivacyAmount value={parsedValues.totalLiabilities} currency={currency} />

@@ -15,6 +15,7 @@
  * dashboard or insights period selection wins when moving between surfaces.
  */
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -36,25 +37,6 @@ import {
 import { compactMonthLabel } from "../lib/month-period";
 import { REPORTS_PERIODS, type ReportsPeriod } from "../lib/reports-period";
 
-export const SPENDING_PERIOD_LABELS: Record<ReportsPeriod, ReactNode> = {
-  MTD: (
-    <>
-      <span className="hidden sm:inline">This month</span>
-      <span className="sm:hidden">MTD</span>
-    </>
-  ),
-  LAST_MONTH: (
-    <>
-      <span className="hidden sm:inline">Last month</span>
-      <span className="sm:hidden">Prev</span>
-    </>
-  ),
-  "3M": "3M",
-  "6M": "6M",
-  YTD: "YTD",
-  "1Y": "1Y",
-};
-
 interface SpendingPeriodToggleProps {
   value: ReportsPeriod | null;
   onValueChange: (next: ReportsPeriod) => void;
@@ -72,11 +54,30 @@ export function SpendingPeriodToggle({
   size = "xs",
   className,
 }: SpendingPeriodToggleProps) {
+  const { t } = useTranslation();
+  const labels: Record<ReportsPeriod, ReactNode> = {
+    MTD: (
+      <>
+        <span className="hidden sm:inline">{t("spending.dashboard.periods.MTD")}</span>
+        <span className="sm:hidden">{t("spending.dashboard.periodShorts.MTD")}</span>
+      </>
+    ),
+    LAST_MONTH: (
+      <>
+        <span className="hidden sm:inline">{t("spending.dashboard.periods.LAST_MONTH")}</span>
+        <span className="sm:hidden">{t("spending.dashboard.prevShort")}</span>
+      </>
+    ),
+    "3M": t("spending.dashboard.periodShorts.3M"),
+    "6M": t("spending.dashboard.periodShorts.6M"),
+    YTD: t("spending.dashboard.periodShorts.YTD"),
+    "1Y": t("spending.dashboard.periodShorts.1Y"),
+  };
   return (
     <AnimatedToggleGroup
       variant={variant}
       size={size}
-      items={REPORTS_PERIODS.map((p) => ({ value: p, label: SPENDING_PERIOD_LABELS[p] }))}
+      items={REPORTS_PERIODS.map((p) => ({ value: p, label: labels[p] }))}
       value={value}
       onValueChange={onValueChange}
       className={className}
@@ -157,6 +158,7 @@ function MonthPickerButton({
   onSelect: (monthKey: string) => void;
   onClear?: () => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
   const label = value ? compactMonthLabel(value) : null;
@@ -169,7 +171,11 @@ function MonthPickerButton({
           ? "bg-background/80 border-border/60 gap-1 border px-2.5 text-xs font-medium"
           : "bg-muted text-foreground/90 hover:text-foreground w-8",
       )}
-      aria-label={label ? `Viewing ${label}, click to change` : "Pick a specific month"}
+      aria-label={
+        label
+          ? t("spending.dashboard.viewingMonth", { month: label })
+          : t("spending.dashboard.pickSpecificMonth")
+      }
     >
       {label ? <span>{label}</span> : <Icons.Calendar className="h-3.5 w-3.5" />}
     </button>
@@ -197,7 +203,7 @@ function MonthPickerButton({
           <SheetTrigger asChild>{trigger}</SheetTrigger>
           <SheetContent side="bottom" className="rounded-t-4xl mx-1 p-0">
             <SheetHeader className="border-border border-b px-6 py-4">
-              <SheetTitle>Select month</SheetTitle>
+              <SheetTitle>{t("spending.dashboard.selectMonth")}</SheetTitle>
             </SheetHeader>
             <div className="px-5 py-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]">
               {picker}
@@ -217,7 +223,7 @@ function MonthPickerButton({
           type="button"
           onClick={onClear}
           className="text-muted-foreground hover:text-foreground flex h-5 w-5 items-center justify-center rounded-full text-base leading-none transition-colors"
-          aria-label="Clear month selection"
+          aria-label={t("spending.dashboard.clearMonthSelection")}
         >
           ×
         </button>

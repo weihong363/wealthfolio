@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FC } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Bar,
@@ -90,36 +91,10 @@ const SPENDING_DASHBOARD_PERIODS: SpendingDashboardPeriod[] = [
 
 const DEFAULT_INTERVAL: SpendingDashboardPeriod = "MTD";
 const INTERVAL_STORAGE_KEY = "spending-interval";
-const INTERVAL_DESCRIPTIONS: Record<SpendingDashboardPeriod, string> = {
-  MTD: "this month",
-  LAST_MONTH: "last month",
-  "3M": "past 3 months",
-  "6M": "past 6 months",
-  YTD: "year to date",
-  "1Y": "past year",
-};
-
-// The three insights stages, surfaced as a "Dig deeper" strip under Recent
-// activity. Mirrors the StageNav on /spending/insights.
 const INSIGHT_STAGES = [
-  {
-    stage: "where",
-    label: "Where I am",
-    sub: "Pace, budget & category breakdown",
-    Icon: Icons.PieChart,
-  },
-  {
-    stage: "changed",
-    label: "What changed",
-    sub: "Period-over-period trends",
-    Icon: Icons.TrendingUp,
-  },
-  {
-    stage: "when",
-    label: "When & where",
-    sub: "When you spend & spending events",
-    Icon: Icons.Calendar,
-  },
+  { stage: "where", labelKey: "whereIAm", subKey: "whereIAmSub", Icon: Icons.PieChart },
+  { stage: "changed", labelKey: "whatChanged", subKey: "whatChangedSub", Icon: Icons.TrendingUp },
+  { stage: "when", labelKey: "whenWhere", subKey: "whenWhereSub", Icon: Icons.Calendar },
 ] as const;
 
 function rangeToReportRequest(range: DateRange | undefined, timezone?: string | null) {
@@ -175,7 +150,7 @@ function spendingIntervalData(code: SpendingDashboardPeriod, timezone?: string |
 
   return {
     code,
-    description: INTERVAL_DESCRIPTIONS[code],
+    description: code,
     range: {
       from: localDateFromParts(start),
       to: localDateFromParts(end),
@@ -292,6 +267,7 @@ function barKeyToRange(
 }
 
 export default function SpendingTabContent() {
+  const { t, i18n } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const { settings } = useSettingsContext();
   const baseCurrency = settings?.baseCurrency ?? "USD";
@@ -337,6 +313,9 @@ export default function SpendingTabContent() {
     description: selectedIntervalDescription,
     insightPeriod,
   } = useMemo(() => selectionData(selection, appTimezone), [selection, appTimezone]);
+  const selectedIntervalLabel = isSpendingDashboardPeriod(selectedIntervalDescription)
+    ? t(`spending.dashboard.periods.${selectedIntervalDescription}`)
+    : selectedIntervalDescription;
   const theme: Palette = FOREST_THEME;
 
   const [whereItWentView, setWhereItWentView] = usePersistentState<"list" | "map">(
@@ -476,7 +455,7 @@ export default function SpendingTabContent() {
     const end = { ...endMonth, day: daysInCalendarMonth(endMonth.year, endMonth.month) };
     const days = Math.max(1, calendarDaysBetweenInclusive(start, end));
     return total / days;
-  }, [historyReport?.current.outflow, budgetMonthKey, todayParts]);
+  }, [historyReport, budgetMonthKey, todayParts]);
 
   // Always render in the user's base currency. The backend FX-converts every
   // activity in `report` to base at period end, so labeling by the first
@@ -598,24 +577,14 @@ export default function SpendingTabContent() {
 
   const { barData, avgValue, avgLabel } = useMemo(() => {
     const buckets = report?.byDay ?? [];
-    if (buckets.length === 0) return { barData: [], avgValue: 0, avgLabel: "avg" };
+    if (buckets.length === 0)
+      return { barData: [], avgValue: 0, avgLabel: t("spending.dashboard.avg") };
     const sorted = buckets.slice().sort((a, b) => a.date.localeCompare(b.date));
     const todayParts = getZonedDateParts(new Date(), appTimezone);
     const todayKey = formatZonedDateKey(new Date(), appTimezone);
-    const monthLabels = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+    const monthLabels = Array.from({ length: 12 }, (_, index) =>
+      new Date(2026, index, 1).toLocaleString(i18n.language, { month: "short" }),
+    );
 
     const groups = new Map<
       string,
@@ -701,9 +670,13 @@ export default function SpendingTabContent() {
     const avg =
       observed.length > 0 ? observed.reduce((s, d) => s + d.value, 0) / observed.length : 0;
     const labelByGranularity =
-      granularity === "day" ? "daily avg" : granularity === "week" ? "weekly avg" : "monthly avg";
+      granularity === "day"
+        ? t("spending.dashboard.dailyAvg")
+        : granularity === "week"
+          ? t("spending.dashboard.weeklyAvg")
+          : t("spending.dashboard.monthlyAvg");
     return { barData: data, avgValue: avg, avgLabel: labelByGranularity };
-  }, [report?.byDay, granularity, dateRange, appTimezone]);
+  }, [report?.byDay, granularity, dateRange, appTimezone, i18n.language, t]);
 
   const categoriesMeta = useMemo(() => {
     const meta = new Map<
@@ -747,7 +720,7 @@ export default function SpendingTabContent() {
         const dPct = priorAmt > 0 ? (d / priorAmt) * 100 : null;
         return {
           id,
-          name: id === "__uncategorized__" ? "Uncategorized" : (meta?.name ?? id),
+          name: id === "__uncategorized__" ? t("spending.uncategorized") : (meta?.name ?? id),
           color: meta?.color ?? null,
           icon: meta?.icon ?? null,
           amount: e.amount,
@@ -758,7 +731,7 @@ export default function SpendingTabContent() {
         };
       })
       .filter((row) => row.amount > 0);
-  }, [report, priorReport, categoriesMeta]);
+  }, [report, priorReport, categoriesMeta, t]);
 
   const insights = useMemo(() => {
     const items: {
@@ -772,13 +745,17 @@ export default function SpendingTabContent() {
         icon: "!",
         title: (
           <>
-            Spending is <span className="font-semibold">{(deltaPct * 100).toFixed(0)}% above</span>{" "}
-            the prior period.
+            {t("spending.dashboard.spendingIs")}{" "}
+            <span className="font-semibold">
+              {t("spending.dashboard.percentAbove", { percent: (deltaPct * 100).toFixed(0) })}
+            </span>{" "}
+            {t("spending.dashboard.priorPeriod")}
           </>
         ),
-        sub: `${isBalanceHidden ? "••••" : formatAmount(delta, currency)} more than ${
-          isBalanceHidden ? "••••" : formatAmount(priorSpending, currency)
-        }`,
+        sub: t("spending.dashboard.moreThanPrior", {
+          amount: isBalanceHidden ? "••••" : formatAmount(delta, currency),
+          prior: isBalanceHidden ? "••••" : formatAmount(priorSpending, currency),
+        }),
       });
     }
     const uncategorized = categoryRows.find((c) => c.id === "__uncategorized__");
@@ -789,23 +766,25 @@ export default function SpendingTabContent() {
         icon: "+",
         title: (
           <>
-            <span className="font-semibold">{uncategorized.txCount} uncategorized</span>{" "}
-            {uncategorized.txCount === 1 ? "transaction" : "transactions"} totaling{" "}
+            <span className="font-semibold">
+              {t("spending.dashboard.uncategorizedCount", { count: uncategorized.txCount })}
+            </span>{" "}
+            {t("spending.dashboard.totaling")}{" "}
             <PrivacyAmount value={uncategorized.amount} currency={currency} />.
           </>
         ),
-        sub: "Categorize them to improve breakdowns",
+        sub: t("spending.dashboard.categorizeToImprove"),
         action: (
           <Link
             to="/assistant"
             state={{
-              aiPrompt: "Help me categorize all my uncategorized transactions.",
+              aiPrompt: t("spending.dashboard.aiCategorizePrompt"),
             }}
             className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium underline-offset-4 hover:underline"
             style={{ color: theme.deep }}
           >
             <Icons.Sparkles className="h-3 w-3" />
-            Ask AI to categorize
+            {t("activities.askAiCategorize")}
           </Link>
         ),
       });
@@ -814,16 +793,16 @@ export default function SpendingTabContent() {
           icon: "!",
           title: (
             <>
-              No categorization rules set.{" "}
+              {t("spending.dashboard.noCategorizationRules")}{" "}
               <Link
                 to="/settings/spending/rules"
                 className="font-semibold underline-offset-4 hover:underline"
               >
-                Create rules →
+                {t("spending.dashboard.createRules")}
               </Link>
             </>
           ),
-          sub: "Automate matching for recurring merchants",
+          sub: t("spending.dashboard.automateMatching"),
         });
       }
     }
@@ -838,6 +817,7 @@ export default function SpendingTabContent() {
     categorizationRules,
     categorizationRulesLoading,
     theme.deep,
+    t,
   ]);
 
   return (
@@ -845,14 +825,15 @@ export default function SpendingTabContent() {
       {dataErrored && (
         <div className="mx-4 mt-2 flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 md:mx-6 lg:mx-8 dark:text-amber-300">
           <span>
-            <span className="font-semibold">Couldn't load spending data.</span> Showing zeros below.
+            <span className="font-semibold">{t("spending.dashboard.loadFailed")}</span>{" "}
+            {t("spending.dashboard.showingZeros")}
           </span>
           <button
             type="button"
             onClick={() => void refetchReport()}
             className="text-foreground hover:underline"
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       )}
@@ -860,7 +841,8 @@ export default function SpendingTabContent() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
           <div>
             <div className="text-muted-foreground/80 text-[11px] font-semibold uppercase tracking-[0.12em]">
-              Spent{selectedIntervalDescription ? ` · ${selectedIntervalDescription}` : ""}
+              {t("spending.dashboard.spent")}
+              {selectedIntervalLabel ? ` · ${selectedIntervalLabel}` : ""}
             </div>
             <Balance
               isLoading={isLoading}
@@ -911,7 +893,9 @@ export default function SpendingTabContent() {
           ) : barData.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center">
               <Icons.CreditCard className="text-muted-foreground/30 mb-3 h-12 w-12" />
-              <p className="text-muted-foreground text-sm">No spending in this period</p>
+              <p className="text-muted-foreground text-sm">
+                {t("spending.dashboard.noSpendingInPeriod")}
+              </p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -1011,15 +995,15 @@ export default function SpendingTabContent() {
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:gap-20">
             <div className="contents lg:col-span-2 lg:block lg:space-y-6">
               <DashboardCard
-                title="Where it went"
+                title={t("spending.dashboard.whereItWent")}
                 className="order-1 overflow-hidden lg:order-none"
                 action={
                   <div className="flex items-center gap-3">
                     <SegmentedToggle
-                      ariaLabel="Where it went view"
+                      ariaLabel={t("spending.dashboard.whereItWentView")}
                       items={[
-                        { value: "list", label: "List" },
-                        { value: "map", label: "Map" },
+                        { value: "list", label: t("spending.dashboard.list") },
+                        { value: "map", label: t("spending.dashboard.map") },
                       ]}
                       value={whereItWentView}
                       onChange={(v) => setWhereItWentView(v as "list" | "map")}
@@ -1028,7 +1012,7 @@ export default function SpendingTabContent() {
                       to={dashboardInsightHref.where}
                       className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
                     >
-                      View all →
+                      {t("common.viewAll")} →
                     </Link>
                   </div>
                 }
@@ -1066,7 +1050,9 @@ export default function SpendingTabContent() {
               </div>
 
               <div className="order-6 lg:order-none">
-                <h2 className="pb-2 text-sm font-semibold tracking-tight">Dig deeper</h2>
+                <h2 className="pb-2 text-sm font-semibold tracking-tight">
+                  {t("spending.dashboard.digDeeper")}
+                </h2>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                   {INSIGHT_STAGES.map((s) => (
                     <Link
@@ -1079,9 +1065,11 @@ export default function SpendingTabContent() {
                         <Icons.ArrowRight className="text-muted-foreground/40 group-hover:text-foreground h-3.5 w-3.5 transition-colors" />
                       </div>
                       <div>
-                        <div className="text-foreground text-sm font-medium">{s.label}</div>
+                        <div className="text-foreground text-sm font-medium">
+                          {t(`spending.dashboard.insightStages.${s.labelKey}`)}
+                        </div>
                         <div className="text-muted-foreground/80 mt-0.5 text-xs leading-snug">
-                          {s.sub}
+                          {t(`spending.dashboard.insightStages.${s.subKey}`)}
                         </div>
                       </div>
                     </Link>
@@ -1118,9 +1106,11 @@ export default function SpendingTabContent() {
                 <div className="border-border/40 bg-card/70 order-4 rounded-xl border p-4 backdrop-blur-xl md:p-5 lg:order-none">
                   <div className="mb-2 flex items-center gap-2">
                     <Icons.AlertCircle className="h-4 w-4 shrink-0" style={{ color: theme.deep }} />
-                    <h3 className="text-foreground text-sm font-semibold">Worth a look</h3>
+                    <h3 className="text-foreground text-sm font-semibold">
+                      {t("spending.dashboard.worthALook")}
+                    </h3>
                     <span className="text-muted-foreground/70 ml-auto text-xs">
-                      {insights.length} {insights.length === 1 ? "signal" : "signals"}
+                      {t("spending.dashboard.signalCount", { count: insights.length })}
                     </span>
                   </div>
                   <div className="space-y-2.5">
@@ -1240,20 +1230,25 @@ function spendingActivityHref(id: string): string {
 }
 
 function WhereItWentEmptyState({ hasNoIncludedAccounts }: { hasNoIncludedAccounts: boolean }) {
+  const { t } = useTranslation();
   return (
     <div className="py-6 text-center">
       {hasNoIncludedAccounts ? (
         <div className="space-y-2">
-          <p className="text-muted-foreground text-sm">No spending accounts selected.</p>
+          <p className="text-muted-foreground text-sm">
+            {t("spending.dashboard.noSpendingAccounts")}
+          </p>
           <Link
             to="/settings/spending"
             className="text-foreground inline-flex text-xs underline-offset-4 hover:underline"
           >
-            Open spending settings →
+            {t("spending.dashboard.openSpendingSettings")}
           </Link>
         </div>
       ) : (
-        <p className="text-muted-foreground text-sm">No categorized spending in this period.</p>
+        <p className="text-muted-foreground text-sm">
+          {t("spending.dashboard.noCategorizedSpending")}
+        </p>
       )}
     </div>
   );
@@ -1291,6 +1286,7 @@ function CategoryTreemapMono({
   themeColor: string;
   hasNoIncludedAccounts: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   if (rows.length === 0 || total <= 0) {
@@ -1316,7 +1312,7 @@ function CategoryTreemapMono({
   }));
   if (restAmount > 0) {
     data.push({
-      name: "Other",
+      name: t("spending.other"),
       amount: restAmount,
       fill: themeColor,
       accent: null,
@@ -1391,6 +1387,7 @@ const CategoryTreemapNodeMono: FC<CategoryTreemapNodeMonoProps> = ({
   id,
   onActivate,
 }) => {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   if (depth === 0) return null;
 
@@ -1419,7 +1416,7 @@ const CategoryTreemapNodeMono: FC<CategoryTreemapNodeMonoProps> = ({
     ? {
         role: "button" as const,
         tabIndex: 0,
-        "aria-label": `${name ?? "Category"}: ${amountText}, ${pctText}`,
+        "aria-label": `${name ?? t("spending.dashboard.category")}: ${amountText}, ${pctText}`,
         onKeyDown: (e: React.KeyboardEvent<SVGGElement>) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -1515,6 +1512,7 @@ function CategoryRankedBar({
    */
   groupRows?: import("../types/budget").BudgetGroupRow[];
 }) {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   // Memoize derivations so we don't rebuild the Map + reduce + slices on every
   // parent re-render — this card lives inside a chart-heavy page.
@@ -1539,14 +1537,14 @@ function CategoryRankedBar({
     if (restAmount > 0) {
       barSegments.push({
         id: "__other__",
-        name: "Other",
+        name: t("spending.other"),
         amount: restAmount,
         color: null,
         icon: null,
       });
     }
     return { categoryGroup, hasAnyGroup, uncategorizedAmount, top, restAmount, barSegments };
-  }, [rows, total, groupRows]);
+  }, [rows, total, groupRows, t]);
 
   if (rows.length === 0 || total <= 0) {
     return <WhereItWentEmptyState hasNoIncludedAccounts={hasNoIncludedAccounts} />;
@@ -1608,7 +1606,7 @@ function CategoryRankedBar({
     const ensureOther = () =>
       fallbackGroup
         ? ensureBucket(fallbackGroup.group.id, fallbackGroup.group.name, fallbackGroup.group.color)
-        : ensureBucket("__other__", "Other", null);
+        : ensureBucket("__other__", t("spending.other"), null);
 
     for (const row of rows) {
       const g = categoryGroup.get(row.id);
@@ -1620,7 +1618,7 @@ function CategoryRankedBar({
       const b = ensureOther();
       b.categories.push({
         id: "__uncategorized__",
-        name: "Uncategorized — review",
+        name: t("spending.dashboard.uncategorizedReview"),
         color: null,
         icon: null,
         amount: uncategorizedAmount,
@@ -1828,14 +1826,15 @@ function SpendingDeltaLine({
   currency: string;
   deltaPct: number | null;
 }) {
+  const { t } = useTranslation();
   const isFlat = Math.abs(delta) < 1;
-  const direction = delta < 0 ? "Down" : "Up";
+  const direction = delta < 0 ? t("spending.dashboard.down") : t("spending.dashboard.up");
   const tone = isFlat ? "text-muted-foreground" : delta < 0 ? "text-success" : "text-destructive";
 
   if (isFlat) {
     return (
       <span className="text-muted-foreground lg:text-md text-sm font-light">
-        About the same as prior period
+        {t("spending.dashboard.aboutSameAsPrior")}
       </span>
     );
   }
@@ -1848,7 +1847,7 @@ function SpendingDeltaLine({
         {direction} <PrivacyAmount value={Math.abs(delta)} currency={currency} />
         {pctSuffix}
       </span>{" "}
-      <span className="text-muted-foreground">from prior period</span>
+      <span className="text-muted-foreground">{t("spending.dashboard.fromPriorPeriod")}</span>
     </span>
   );
 }

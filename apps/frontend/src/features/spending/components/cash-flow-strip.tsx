@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Skeleton, formatCompactAmount } from "@wealthfolio/ui";
 import { useBalancePrivacy } from "@/hooks/use-balance-privacy";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export interface CashFlowStripProps {
   income: number;
@@ -28,6 +29,7 @@ export function CashFlowStrip({
   spendingHref,
   savingHref,
 }: CashFlowStripProps) {
+  const { t } = useTranslation();
   const net = income - spending - saving;
   const netPositive = net >= 0;
   const showSaving = saving > 0;
@@ -48,7 +50,7 @@ export function CashFlowStrip({
   return (
     <div className="flex items-end gap-6 sm:gap-8">
       <KpiStat
-        label="Income"
+        label={t("spending.income")}
         value={income}
         sign="+"
         currency={currency}
@@ -56,7 +58,7 @@ export function CashFlowStrip({
         href={incomeHref}
       />
       <KpiStat
-        label="Spending"
+        label={t("spending.dashboard.spending")}
         value={spending}
         currency={currency}
         tone="muted"
@@ -64,7 +66,7 @@ export function CashFlowStrip({
       />
       {showSaving && (
         <KpiStat
-          label="Saving"
+          label={t("spending.dashboard.saving")}
           value={saving}
           currency={currency}
           tone="saving"
@@ -72,7 +74,7 @@ export function CashFlowStrip({
         />
       )}
       <KpiStat
-        label="Net"
+        label={t("spending.dashboard.net")}
         value={Math.abs(net)}
         sign={netPositive ? "+" : "−"}
         currency={currency}

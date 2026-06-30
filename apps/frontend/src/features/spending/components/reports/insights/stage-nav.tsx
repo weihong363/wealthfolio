@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -9,13 +10,14 @@ interface StageNavProps {
   onStageChange: (s: InsightsStage) => void;
 }
 
-const STAGES: { id: InsightsStage; label: string }[] = [
-  { id: "where", label: "Where I am" },
-  { id: "changed", label: "What changed" },
-  { id: "when", label: "When & where" },
+const STAGES: { id: InsightsStage; labelKey: string }[] = [
+  { id: "where", labelKey: "spending.insights.stages.where" },
+  { id: "changed", labelKey: "spending.insights.stages.changed" },
+  { id: "when", labelKey: "spending.insights.stages.when" },
 ];
 
 export function StageNav({ stage, onStageChange }: StageNavProps) {
+  const { t } = useTranslation();
   const activeRef = useRef<HTMLButtonElement | null>(null);
   // When the URL deep-links to a stage on mount or `stage` changes
   // (e.g. via the dashboard "Where I am" link), scroll the active chip
@@ -30,7 +32,7 @@ export function StageNav({ stage, onStageChange }: StageNavProps) {
 
   return (
     <nav
-      aria-label="Insights stages"
+      aria-label={t("spending.insights.stageNavAria")}
       className="border-border/60 bg-card/40 flex items-center gap-1 overflow-x-auto rounded-2xl border p-1 backdrop-blur-xl"
     >
       {STAGES.map((s) => {
@@ -49,7 +51,7 @@ export function StageNav({ stage, onStageChange }: StageNavProps) {
             )}
             aria-current={active ? "step" : undefined}
           >
-            <span className="font-medium">{s.label}</span>
+            <span className="font-medium">{t(s.labelKey)}</span>
           </button>
         );
       })}

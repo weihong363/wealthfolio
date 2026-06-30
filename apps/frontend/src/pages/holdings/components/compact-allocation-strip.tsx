@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@wealthfolio/ui/components/ui/tooltip";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 type VariantType = "security-types" | "risk-composition";
 
@@ -62,6 +63,7 @@ export function CompactAllocationStrip({
   variant = "security-types",
   onSegmentClick,
 }: CompactAllocationStripProps) {
+  const { t } = useTranslation();
   const processedCategories = useMemo(() => {
     if (!allocation?.categories?.length) return [];
 
@@ -122,8 +124,8 @@ export function CompactAllocationStrip({
       })),
       {
         id: "other",
-        name: "Other",
-        label: "Other",
+        name: t("holdings.other"),
+        label: t("holdings.other"),
         value: otherValue,
         percent: otherPercent,
         color: THEME_COLORS[THEME_COLORS.length - 1],
@@ -151,7 +153,7 @@ export function CompactAllocationStrip({
         <p className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
           {title}
         </p>
-        <p className="text-muted-foreground mt-2 text-xs">No data</p>
+        <p className="text-muted-foreground mt-2 text-xs">{t("holdings.noData")}</p>
       </Card>
     );
   }

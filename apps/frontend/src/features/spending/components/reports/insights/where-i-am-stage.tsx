@@ -1,4 +1,5 @@
 import { useMemo, useState, type FC, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import {
@@ -143,14 +144,15 @@ const PaceCard: FC<PaceCardProps> = ({
   isLoading,
   reconciledPace,
 }) => {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   // `spendingPlanned` is the period-level target straight from the insight
   // payload (already buffered + prorated). No range.months multiplier.
   const target = budget?.computed.totals.spendingPlanned ?? 0;
 
   const pace = useMemo(
-    () => computePace(range, spent, target, currency, isBalanceHidden, reconciledPace),
-    [range, spent, target, currency, isBalanceHidden, reconciledPace],
+    () => computePace(range, spent, target, currency, isBalanceHidden, reconciledPace, t),
+    [range, spent, target, currency, isBalanceHidden, reconciledPace, t],
   );
 
   if (isLoading) {
@@ -173,23 +175,27 @@ const PaceCard: FC<PaceCardProps> = ({
         ? "var(--status-warn)"
         : "var(--success)";
   const statusLabel =
-    status === "over" ? "OVER BUDGET" : status === "approach" ? "TRENDING HIGH" : "ON TRACK";
+    status === "over"
+      ? t("spending.insights.where.status.over")
+      : status === "approach"
+        ? t("spending.insights.where.status.approach")
+        : t("spending.insights.where.status.ok");
 
   if (target <= 0) {
     return (
       <div className={CARD_CLASS}>
-        <div className={LABEL_CLASS}>NO BUDGET SET</div>
+        <div className={LABEL_CLASS}>{t("spending.insights.where.noBudgetSet")}</div>
         <p className="text-foreground mt-3 text-lg font-semibold leading-snug tracking-tight">
-          Set a monthly target to see how you're pacing.
+          {t("spending.insights.where.setMonthlyTarget")}
         </p>
         <p className="text-muted-foreground/80 mt-2 text-sm">
-          A budget unlocks pace, projection, and remaining-balance signals on this card.
+          {t("spending.insights.where.budgetUnlocks")}
         </p>
         <Link
           to="/spending/budget"
           className="text-foreground mt-6 inline-flex items-center gap-1 text-xs font-medium underline-offset-4 hover:underline"
         >
-          Create a budget →
+          {t("spending.insights.where.createBudget")}
         </Link>
       </div>
     );
@@ -255,7 +261,8 @@ function computePace(
   target: number,
   currency: string,
   isBalanceHidden: boolean,
-  reconciledPace?: PaceState,
+  reconciledPace: PaceState | undefined,
+  t: ReturnType<typeof useTranslation>["t"],
 ): PaceComputed {
   // Determine elapsed fraction of the active range. For periods that include
   // "today" we treat (today - start)/(end - start) as elapsed; for fully-past
@@ -307,19 +314,25 @@ function computePace(
   // Right-side context line. "left in [month]" only makes sense when the
   // window IS that month; for multi-month windows say "left in the period".
   const contextRight = !isLive
-    ? `${totalDays} ${totalDays === 1 ? "day" : "days"} · period closed`
+    ? t("spending.insights.where.periodClosed", { count: totalDays })
     : daysRemaining === 0
-      ? "Last day of the period"
-      : `${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left ${
-          range.months <= 1 ? `in ${formatMonthName(range.end)}` : "in the period"
-        }`;
+      ? t("spending.insights.where.lastDay")
+      : range.months <= 1
+        ? t("spending.insights.where.daysLeftInMonth", {
+            count: daysRemaining,
+            month: formatMonthName(range.end),
+          })
+        : t("spending.insights.where.daysLeftInPeriod", { count: daysRemaining });
 
   // Narrative sentence. When the window is closed OR today is the last day,
   // there's nothing to project — describe the actual outcome instead.
   const isComplete = !isLive || daysRemaining === 0;
-  const closeLabel = range.months <= 1 ? "month end" : "period close";
+  const closeLabel =
+    range.months <= 1
+      ? t("spending.insights.where.monthEnd")
+      : t("spending.insights.where.periodClose");
   const narrative = isComplete
-    ? buildClosedNarrative({ spent, target, currency, isBalanceHidden })
+    ? buildClosedNarrative({ spent, target, currency, isBalanceHidden, t })
     : buildLiveNarrative({
         diffFromPace,
         projection,
@@ -327,6 +340,7 @@ function computePace(
         currency,
         closeLabel,
         isBalanceHidden,
+        t,
       });
 
   return {
@@ -349,6 +363,7 @@ function buildLiveNarrative({
   currency,
   closeLabel,
   isBalanceHidden,
+  t,
 }: {
   diffFromPace: number;
   projection: number;
@@ -356,8 +371,12 @@ function buildLiveNarrative({
   currency: string;
   closeLabel: string;
   isBalanceHidden: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
 }): ReactNode {
-  const direction = diffFromPace > 0 ? "over" : "under";
+  const direction =
+    diffFromPace > 0
+      ? t("spending.insights.where.overPace")
+      : t("spending.insights.where.underPace");
   const colorClass = diffFromPace > 0 ? "text-destructive" : "text-success";
   const projColorClass = projection > target ? "text-destructive" : "text-success";
   const pctOfBudget = target > 0 ? (projection / target) * 100 : 0;
@@ -370,17 +389,19 @@ function buildLiveNarrative({
         <span className="tabular-nums">
           {isBalanceHidden ? "••••" : formatCompactAmount(Math.abs(diffFromPace), currency)}
         </span>{" "}
-        <span className="font-serif">{direction} pace</span>
+        <span className="font-serif">{direction}</span>
       </div>
       <div className="text-foreground/90 text-sm">
-        Projected{" "}
+        {t("spending.insights.where.projected")}{" "}
         <span className={cn("font-medium tabular-nums", projColorClass)}>
           {isBalanceHidden ? "••••" : formatCompactAmount(projection, currency)}
         </span>{" "}
-        by {closeLabel}
+        {t("spending.insights.where.byClose", { close: closeLabel })}
       </div>
       <div className="text-muted-foreground/80 text-xs tabular-nums">
-        {formatPercentValue(pctOfBudget, { digits: 0 })} of budget
+        {t("spending.insights.where.ofBudget", {
+          percent: formatPercentValue(pctOfBudget, { digits: 0 }),
+        })}
       </div>
     </div>
   );
@@ -391,11 +412,13 @@ function buildClosedNarrative({
   target,
   currency,
   isBalanceHidden,
+  t,
 }: {
   spent: number;
   target: number;
   currency: string;
   isBalanceHidden: boolean;
+  t: ReturnType<typeof useTranslation>["t"];
 }): ReactNode {
   const diff = spent - target;
   const colorClass = diff > 0 ? "text-destructive" : "text-success";
@@ -405,17 +428,28 @@ function buildClosedNarrative({
       <div
         className={cn("text-xl font-semibold tabular-nums tracking-tight md:text-2xl", colorClass)}
       >
-        {isBalanceHidden ? "••••" : formatCompactAmount(spent, currency)} spent
+        {t("spending.insights.where.spentAmount", {
+          amount: isBalanceHidden ? "••••" : formatCompactAmount(spent, currency),
+        })}
       </div>
       <div className="text-foreground/90 text-sm">
-        Against a {isBalanceHidden ? "••••" : formatCompactAmount(target, currency)} target —{" "}
+        {t("spending.insights.where.againstTarget", {
+          target: isBalanceHidden ? "••••" : formatCompactAmount(target, currency),
+        })}{" "}
         <span className={cn("font-medium", colorClass)}>
-          {diff > 0 ? "over" : "under"} by{" "}
-          {isBalanceHidden ? "••••" : formatCompactAmount(Math.abs(diff), currency)}
+          {diff > 0
+            ? t("spending.insights.where.overBy", {
+                amount: isBalanceHidden ? "••••" : formatCompactAmount(Math.abs(diff), currency),
+              })
+            : t("spending.insights.where.underBy", {
+                amount: isBalanceHidden ? "••••" : formatCompactAmount(Math.abs(diff), currency),
+              })}
         </span>
       </div>
       <div className="text-muted-foreground/80 text-xs tabular-nums">
-        {formatPercentValue(pctOfBudget, { digits: 0 })} of budget
+        {t("spending.insights.where.ofBudget", {
+          percent: formatPercentValue(pctOfBudget, { digits: 0 }),
+        })}
       </div>
     </div>
   );
@@ -444,18 +478,19 @@ const SpentThisPeriodCard: FC<SpentThisPeriodCardProps> = ({
   currency,
   isLoading,
 }) => {
+  const { t } = useTranslation();
   const { isBalanceHidden } = useBalancePrivacy();
   const segments = useMemo(
-    () => buildShareSegments(breakdown, taxonomyCategories, spent),
-    [breakdown, taxonomyCategories, spent],
+    () => buildShareSegments(breakdown, taxonomyCategories, spent, t("spending.other")),
+    [breakdown, taxonomyCategories, spent, t],
   );
 
   const periodLabel =
     range.months <= 1
-      ? "SPENT THIS MONTH"
+      ? t("spending.insights.where.spentThisMonth")
       : range.months <= 3
-        ? `SPENT THIS PERIOD`
-        : `SPENT · ${range.months} MO`;
+        ? t("spending.insights.where.spentThisPeriod")
+        : t("spending.insights.where.spentMonths", { count: range.months });
 
   const deltaPct =
     priorSpent != null && priorSpent > 0 ? ((spent - priorSpent) / priorSpent) * 100 : null;
@@ -466,8 +501,8 @@ const SpentThisPeriodCard: FC<SpentThisPeriodCardProps> = ({
       prev.setMonth(prev.getMonth() - 1);
       return `vs ${formatMonthName(prev).slice(0, 3)}`;
     }
-    return "vs prior";
-  }, [range]);
+    return t("spending.insights.where.vsPrior");
+  }, [range, t]);
 
   if (isLoading) {
     return (
@@ -537,14 +572,14 @@ const SpentThisPeriodCard: FC<SpentThisPeriodCardProps> = ({
             ))}
             {segments.length > 4 && (
               <span className="text-muted-foreground/70 inline-flex items-center text-[11px]">
-                +{segments.length - 4} more
+                {t("dashboard.holdings.more", { count: segments.length - 4 })}
               </span>
             )}
           </div>
         </>
       ) : (
         <div className="text-muted-foreground/70 mt-4 text-xs">
-          No categorized spending in this period.
+          {t("spending.dashboard.noCategorizedSpending")}
         </div>
       )}
     </div>
@@ -563,6 +598,7 @@ function buildShareSegments(
   breakdown: CategoryBreakdownRow[],
   taxonomyCategories: TaxonomyCategory[],
   total: number,
+  otherLabel: string,
 ): ShareSegment[] {
   if (total <= 0) return [];
   const meta = new Map(taxonomyCategories.map((c) => [c.id, c]));
@@ -593,7 +629,7 @@ function buildShareSegments(
   if (rest > 0) {
     top.push({
       id: "__other__",
-      name: "Other",
+      name: otherLabel,
       color: "#9CA3AF",
       amount: rest,
       share: (rest / positiveTotal) * 100,
@@ -613,6 +649,7 @@ interface NetCashflowCardProps {
 }
 
 const NetCashflowCard: FC<NetCashflowCardProps> = ({ months, currency, isLoading }) => {
+  const { t } = useTranslation();
   const totals = useMemo(() => {
     let income = 0;
     let spent = 0;
@@ -647,7 +684,7 @@ const NetCashflowCard: FC<NetCashflowCardProps> = ({ months, currency, isLoading
   return (
     <div className={CARD_CLASS}>
       <div className="flex items-baseline justify-between">
-        <div className={LABEL_CLASS}>NET CASHFLOW</div>
+        <div className={LABEL_CLASS}>{t("spending.insights.where.netCashflow")}</div>
       </div>
       <div className="mt-2 flex items-baseline justify-between gap-2">
         <div
@@ -674,11 +711,15 @@ const NetCashflowCard: FC<NetCashflowCardProps> = ({ months, currency, isLoading
               // 250%") is misleading — cap the display at "by 100%+".
               const ratePct = Math.abs(totals.surplusRate) * 100;
               if (totals.net >= 0) {
-                return `Left over ${formatPercentValue(Math.min(100, ratePct), { digits: 0 })}`;
+                return t("spending.insights.where.leftOver", {
+                  percent: formatPercentValue(Math.min(100, ratePct), { digits: 0 }),
+                });
               }
               return ratePct >= 100
-                ? "Overspent by 100%+"
-                : `Overspent by ${formatPercentValue(ratePct, { digits: 0 })}`;
+                ? t("spending.insights.where.overspentByMax")
+                : t("spending.insights.where.overspentBy", {
+                    percent: formatPercentValue(ratePct, { digits: 0 }),
+                  });
             })()}
           </span>
         )}
@@ -686,7 +727,7 @@ const NetCashflowCard: FC<NetCashflowCardProps> = ({ months, currency, isLoading
 
       <div className="mt-4 space-y-2">
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="text-muted-foreground w-12 shrink-0">Income</span>
+          <span className="text-muted-foreground w-12 shrink-0">{t("insights.income")}</span>
           <div className="bg-foreground/5 h-1.5 flex-1 overflow-hidden rounded-full">
             <div
               className="bg-success/65 h-full rounded-full transition-all"
@@ -699,11 +740,13 @@ const NetCashflowCard: FC<NetCashflowCardProps> = ({ months, currency, isLoading
         </div>
         {totals.income === 0 && (
           <p className="text-muted-foreground/70 pl-14 text-[10px] leading-snug">
-            No income in selected accounts for this period.
+            {t("spending.insights.where.noIncome")}
           </p>
         )}
         <div className="flex items-center gap-2 text-[11px]">
-          <span className="text-muted-foreground w-12 shrink-0">Spent</span>
+          <span className="text-muted-foreground w-12 shrink-0">
+            {t("spending.dashboard.spent")}
+          </span>
           <div className="bg-foreground/5 h-1.5 flex-1 overflow-hidden rounded-full">
             <div
               className="bg-foreground/60 h-full rounded-full transition-all"
@@ -716,7 +759,9 @@ const NetCashflowCard: FC<NetCashflowCardProps> = ({ months, currency, isLoading
         </div>
         {totals.saved > 0 && (
           <div className="flex items-center gap-2 text-[11px]">
-            <span className="text-muted-foreground w-12 shrink-0">Saved</span>
+            <span className="text-muted-foreground w-12 shrink-0">
+              {t("spending.dashboard.saving")}
+            </span>
             <div className="bg-foreground/5 h-1.5 flex-1 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full bg-[#6B8E54]/70 transition-all"
@@ -754,14 +799,25 @@ function CashflowOverview({
   currency,
   isLoading,
 }: CashflowOverviewProps) {
+  const { t } = useTranslation();
   const periodLabel = useMemo(() => buildPeriodSubtitle(range), [range]);
   const incomeRows = useMemo(
-    () => buildCashflowRows(currentReport?.incomeBreakdown ?? [], incomeCategories),
-    [currentReport?.incomeBreakdown, incomeCategories],
+    () =>
+      buildCashflowRows(
+        currentReport?.incomeBreakdown ?? [],
+        incomeCategories,
+        t("spending.uncategorized"),
+      ),
+    [currentReport?.incomeBreakdown, incomeCategories, t],
   );
   const savingsRows = useMemo(
-    () => buildCashflowRows(currentReport?.savingsBreakdown ?? [], savingsCategories),
-    [currentReport?.savingsBreakdown, savingsCategories],
+    () =>
+      buildCashflowRows(
+        currentReport?.savingsBreakdown ?? [],
+        savingsCategories,
+        t("spending.uncategorized"),
+      ),
+    [currentReport?.savingsBreakdown, savingsCategories, t],
   );
   const hasIncome = incomeRows.length > 0;
   const hasSaving = savingsRows.length > 0;
@@ -771,8 +827,12 @@ function CashflowOverview({
   return (
     <section id="cashflow">
       <header className="mb-3">
-        <h2 className="text-foreground text-base font-semibold tracking-tight">Income & saving</h2>
-        <p className="text-muted-foreground text-xs">Non-spending cashflow for {periodLabel}.</p>
+        <h2 className="text-foreground text-base font-semibold tracking-tight">
+          {t("spending.insights.where.incomeSaving")}
+        </h2>
+        <p className="text-muted-foreground text-xs">
+          {t("spending.insights.where.nonSpendingCashflow", { period: periodLabel })}
+        </p>
       </header>
       <div className="border-border/60 bg-card/40 overflow-hidden rounded-2xl border backdrop-blur-xl">
         {isLoading ? (
@@ -796,16 +856,16 @@ function CashflowOverview({
           >
             {hasIncome && (
               <CashflowGroup
-                label="Money in"
-                sublabel="Income sources"
+                label={t("spending.insights.where.moneyIn")}
+                sublabel={t("spending.insights.where.incomeSources")}
                 rows={incomeRows}
                 currency={currency}
               />
             )}
             {hasSaving && (
               <CashflowGroup
-                label="Set aside"
-                sublabel="Saving destinations"
+                label={t("spending.insights.where.setAside")}
+                sublabel={t("spending.insights.where.savingDestinations")}
                 rows={savingsRows}
                 currency={currency}
               />
@@ -893,6 +953,7 @@ interface CashflowRow {
 function buildCashflowRows(
   breakdown: CategoryBreakdownRow[],
   taxonomyCategories: TaxonomyCategory[],
+  uncategorizedLabel: string,
 ): CashflowRow[] {
   const meta = new Map(taxonomyCategories.map((c) => [c.id, c]));
   const byTop = new Map<string, CashflowRow>();
@@ -903,7 +964,7 @@ function buildCashflowRows(
     const top = meta.get(topId);
     const existing = byTop.get(topId) ?? {
       id: topId,
-      name: topId === "__uncategorized__" ? "Uncategorized" : (top?.name ?? topId),
+      name: topId === "__uncategorized__" ? uncategorizedLabel : (top?.name ?? topId),
       color: topId === "__uncategorized__" ? "#9CA3AF" : (top?.color ?? "#9CA3AF"),
       icon: top?.icon ?? null,
       amount: 0,
@@ -931,11 +992,6 @@ type BreakdownFilter = "all" | "over" | "movers" | "no_budget";
 type BreakdownSort = CategorySort;
 
 const SORT_OPTIONS: BreakdownSort[] = ["spent", "delta", "name"];
-const SORT_LABELS: Record<BreakdownSort, string> = {
-  spent: "spent",
-  delta: "change",
-  name: "name",
-};
 
 interface BreakdownCanvasProps {
   currentReport: MonthlyReport | undefined;
@@ -958,8 +1014,14 @@ function BreakdownCanvas({
   isLoading,
   onCategoryClick,
 }: BreakdownCanvasProps) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<BreakdownFilter>("all");
   const [sort, setSort] = useState<BreakdownSort>("spent");
+  const sortLabels: Record<BreakdownSort, string> = {
+    spent: t("spending.insights.where.sortSpent"),
+    delta: t("spending.insights.where.sortChange"),
+    name: t("spending.insights.where.sortName"),
+  };
 
   // Memoize these so downstream `counts`/`filteredBreakdown` memos stay valid
   // — otherwise a fresh array on every render busts memoization.
@@ -1004,31 +1066,37 @@ function BreakdownCanvas({
 
   const filterChips = useMemo<{ id: BreakdownFilter; label: string; count: number }[]>(
     () => [
-      { id: "all", label: "All", count: counts.all },
-      { id: "over", label: "Over budget", count: counts.over },
-      { id: "movers", label: "Largest movers", count: counts.movers },
-      { id: "no_budget", label: "No budget set", count: counts.noBudget },
+      { id: "all", label: t("spending.insights.where.filters.all"), count: counts.all },
+      { id: "over", label: t("spending.insights.where.filters.over"), count: counts.over },
+      { id: "movers", label: t("spending.insights.where.filters.movers"), count: counts.movers },
+      {
+        id: "no_budget",
+        label: t("spending.insights.where.filters.noBudget"),
+        count: counts.noBudget,
+      },
     ],
-    [counts],
+    [counts, t],
   );
 
   return (
     <section id="breakdown">
       <header className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-foreground text-base font-semibold tracking-tight">Spending plan</h2>
+          <h2 className="text-foreground text-base font-semibold tracking-tight">
+            {t("spending.insights.where.spendingPlan")}
+          </h2>
           <p className="text-muted-foreground text-xs">
-            Budgeted spending by category for {periodLabel}.
+            {t("spending.insights.where.budgetedByCategory", { period: periodLabel })}
           </p>
         </div>
         <div className="text-muted-foreground/80 hidden items-center gap-1.5 text-xs md:inline-flex">
-          <span>Sort by</span>
+          <span>{t("spending.insights.where.sortBy")}</span>
           <DropdownMenu>
             <DropdownMenuTrigger
-              aria-label={`Sort by ${SORT_LABELS[sort]}`}
+              aria-label={t("spending.insights.where.sortByValue", { value: sortLabels[sort] })}
               className="bg-secondary text-foreground hover:bg-secondary/80 inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium tabular-nums focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--ring)]"
             >
-              {SORT_LABELS[sort]}
+              {sortLabels[sort]}
               <Icons.ChevronDown className="size-3 opacity-60" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[140px]">
@@ -1038,7 +1106,7 @@ function BreakdownCanvas({
                   onSelect={() => setSort(opt)}
                   className={cn("text-xs", sort === opt && "font-semibold")}
                 >
-                  {SORT_LABELS[opt]}
+                  {sortLabels[opt]}
                   {sort === opt && <Icons.Check className="ml-auto size-3" />}
                 </DropdownMenuItem>
               ))}
@@ -1094,13 +1162,16 @@ function BreakdownCanvas({
         {/* Desktop footer: count + link */}
         <div className="text-muted-foreground/80 border-border/40 hidden items-center justify-between border-t px-4 py-3 text-xs md:flex">
           <span className="tabular-nums">
-            {shownCats} of {totalCats} categor{totalCats === 1 ? "y" : "ies"} shown
+            {t("spending.insights.where.categoriesShown", {
+              shown: shownCats,
+              total: totalCats,
+            })}
           </span>
           <Link
             to="/activities?tab=spending"
             className="text-foreground hover:text-foreground/80 inline-flex items-center gap-1 font-medium underline-offset-4 hover:underline"
           >
-            Open transactions →
+            {t("spending.insights.where.openTransactions")}
           </Link>
         </div>
         {/* Mobile footer: count + low-emphasis link */}
