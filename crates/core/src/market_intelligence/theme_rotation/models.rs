@@ -40,8 +40,8 @@ impl ThemeRotationRules {
             .filter_map(|mapping| calculate_theme_snapshot(mapping, sector_snapshots))
             .collect();
         snapshots.sort_by(|a, b| {
-            b.flow_score
-                .partial_cmp(&a.flow_score)
+            theme_rank_value(b)
+                .partial_cmp(&theme_rank_value(a))
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
         for (index, snapshot) in snapshots.iter_mut().enumerate() {
@@ -65,7 +65,8 @@ fn calculate_theme_snapshot(
         })
         .collect();
     let first = matched.first()?;
-    let flow_score = average(matched.iter().filter_map(|snapshot| snapshot.net_flow));
+    let flow_score = average(matched.iter().filter_map(|snapshot| snapshot.net_flow))
+        .or_else(|| average(matched.iter().filter_map(|snapshot| snapshot.change_pct)));
     let momentum = average(matched.iter().filter_map(|snapshot| snapshot.change_pct));
     Some(ThemeRotationSnapshot {
         theme: mapping.theme.clone(),
@@ -74,6 +75,13 @@ fn calculate_theme_snapshot(
         momentum,
         ranking: None,
     })
+}
+
+fn theme_rank_value(snapshot: &ThemeRotationSnapshot) -> f64 {
+    snapshot
+        .flow_score
+        .or(snapshot.momentum)
+        .unwrap_or(f64::NEG_INFINITY)
 }
 
 fn average(values: impl Iterator<Item = f64>) -> Option<f64> {

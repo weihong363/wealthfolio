@@ -18,7 +18,9 @@ use serde::Deserialize;
 use crate::SymbolResolver;
 use std::collections::HashMap;
 use std::str::FromStr;
-use std::time::Duration;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 
 use crate::errors::MarketDataError;
 use crate::models::{
@@ -30,6 +32,8 @@ use crate::resolver::ResolverChain;
 
 const BASE_URL: &str = "https://www.alphavantage.co/query";
 const PROVIDER_ID: &str = "ALPHA_VANTAGE";
+const ENV_API_KEY: &str = "ALPHA_VANTAGE_API_KEY";
+const DEFAULT_MIN_DELAY: Duration = Duration::from_secs(15);
 
 /// Alpha Vantage market data provider.
 ///
@@ -38,11 +42,171 @@ const PROVIDER_ID: &str = "ALPHA_VANTAGE";
 pub struct AlphaVantageProvider {
     client: Client,
     api_key: String,
+    base_url: String,
+    cache: Arc<Mutex<HashMap<String, CachedResponse>>>,
+    last_request_at: Arc<Mutex<Option<Instant>>>,
+    min_delay: Duration,
 }
+
+#[derive(Clone, Debug)]
+struct CachedResponse {
+    body: String,
+    expires_at: Instant,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OutputSize {
+    Compact,
+    Full,
+}
+
+impl OutputSize {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Compact => "compact",
+            Self::Full => "full",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MarketQuote {
+    pub symbol: String,
+    pub open: Decimal,
+    pub high: Decimal,
+    pub low: Decimal,
+    pub price: Decimal,
+    pub volume: Decimal,
+    pub latest_trading_day: String,
+    pub previous_close: Decimal,
+    pub change: Decimal,
+    pub change_percent: Decimal,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct OhlcvBar {
+    pub date: NaiveDate,
+    pub open: Decimal,
+    pub high: Decimal,
+    pub low: Decimal,
+    pub close: Decimal,
+    pub volume: Decimal,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MarketStatus {
+    pub market_type: String,
+    pub region: String,
+    pub primary_exchanges: String,
+    pub local_open: String,
+    pub local_close: String,
+    pub current_status: String,
+    pub notes: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CompanyOverview {
+    pub symbol: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub exchange: Option<String>,
+    pub currency: Option<String>,
+    pub country: Option<String>,
+    pub sector: Option<String>,
+    pub industry: Option<String>,
+    pub market_capitalization: Option<f64>,
+    pub pe_ratio: Option<f64>,
+    pub peg_ratio: Option<f64>,
+    pub book_value: Option<f64>,
+    pub dividend_yield: Option<f64>,
+    pub eps: Option<f64>,
+    pub revenue_ttm: Option<f64>,
+    pub profit_margin: Option<f64>,
+    pub operating_margin_ttm: Option<f64>,
+    pub return_on_assets_ttm: Option<f64>,
+    pub return_on_equity_ttm: Option<f64>,
+    pub beta: Option<f64>,
+    pub week_52_high: Option<f64>,
+    pub week_52_low: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EtfProfile {
+    pub symbol: String,
+    pub net_assets: Option<f64>,
+    pub net_expense_ratio: Option<f64>,
+    pub turnover: Option<f64>,
+    pub dividend_yield: Option<f64>,
+    pub holdings: Vec<EtfHoldingProfile>,
+    pub sector_allocation: Vec<EtfAllocation>,
+    pub asset_allocation: Vec<EtfAllocation>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EtfHoldingProfile {
+    pub symbol: Option<String>,
+    pub description: Option<String>,
+    pub weight: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EtfAllocation {
+    pub name: String,
+    pub weight: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct NewsSentimentItem {
+    pub title: String,
+    pub url: String,
+    pub time_published: Option<String>,
+    pub summary: Option<String>,
+    pub source: Option<String>,
+    pub overall_sentiment_score: Option<f64>,
+    pub overall_sentiment_label: Option<String>,
+}
+
+pub type SymbolSearchResult = SearchResult;
 
 // ============================================================================
 // Response structures for Alpha Vantage API
 // ============================================================================
+
+#[derive(Debug, Deserialize)]
+struct GlobalQuoteResponse {
+    #[serde(rename = "Global Quote")]
+    global_quote: Option<GlobalQuotePayload>,
+    #[serde(rename = "Error Message")]
+    error_message: Option<String>,
+    #[serde(rename = "Note")]
+    note: Option<String>,
+    #[serde(rename = "Information")]
+    information: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GlobalQuotePayload {
+    #[serde(rename = "01. symbol")]
+    symbol: String,
+    #[serde(rename = "02. open")]
+    open: String,
+    #[serde(rename = "03. high")]
+    high: String,
+    #[serde(rename = "04. low")]
+    low: String,
+    #[serde(rename = "05. price")]
+    price: String,
+    #[serde(rename = "06. volume")]
+    volume: String,
+    #[serde(rename = "07. latest trading day")]
+    latest_trading_day: String,
+    #[serde(rename = "08. previous close")]
+    previous_close: String,
+    #[serde(rename = "09. change")]
+    change: String,
+    #[serde(rename = "10. change percent")]
+    change_percent: String,
+}
 
 /// TIME_SERIES_DAILY response for equities
 #[derive(Debug, Deserialize)]
@@ -282,6 +446,10 @@ struct CompanyOverviewResponse {
     name: Option<String>,
     #[serde(rename = "Description")]
     description: Option<String>,
+    #[serde(rename = "Exchange")]
+    exchange: Option<String>,
+    #[serde(rename = "Currency")]
+    currency: Option<String>,
     #[serde(rename = "Country")]
     country: Option<String>,
     #[serde(rename = "Sector")]
@@ -296,8 +464,26 @@ struct CompanyOverviewResponse {
     // Valuation ratios
     #[serde(rename = "PERatio")]
     pe_ratio: Option<String>,
+    #[serde(rename = "PEGRatio")]
+    peg_ratio: Option<String>,
+    #[serde(rename = "BookValue")]
+    book_value: Option<String>,
     #[serde(rename = "TrailingPE")]
     trailing_pe: Option<String>,
+    #[serde(rename = "EPS")]
+    eps: Option<String>,
+    #[serde(rename = "RevenueTTM")]
+    revenue_ttm: Option<String>,
+    #[serde(rename = "ProfitMargin")]
+    profit_margin: Option<String>,
+    #[serde(rename = "OperatingMarginTTM")]
+    operating_margin_ttm: Option<String>,
+    #[serde(rename = "ReturnOnAssetsTTM")]
+    return_on_assets_ttm: Option<String>,
+    #[serde(rename = "ReturnOnEquityTTM")]
+    return_on_equity_ttm: Option<String>,
+    #[serde(rename = "Beta")]
+    beta: Option<String>,
 
     // Dividend data
     #[serde(rename = "DividendYield")]
@@ -332,10 +518,13 @@ struct EtfProfileResponse {
     // Holdings data (not currently used but available)
     #[serde(default)]
     holdings: Vec<EtfHolding>,
+    #[serde(default)]
+    asset_allocation: Vec<EtfAllocationResponse>,
 
     // Fund metadata
     net_assets: Option<String>,
     net_expense_ratio: Option<String>,
+    portfolio_turnover: Option<String>,
     dividend_yield: Option<String>,
 
     // Error handling
@@ -354,6 +543,12 @@ struct EtfSectorWeight {
     weight: String, // e.g., "51.1%" or "0.511"
 }
 
+#[derive(Debug, Deserialize)]
+struct EtfAllocationResponse {
+    asset_type: String,
+    weight: String,
+}
+
 /// Holding entry from ETF_PROFILE (for future use)
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -364,6 +559,50 @@ struct EtfHolding {
     description: Option<String>,
     #[serde(default)]
     weight: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MarketStatusResponse {
+    markets: Option<Vec<MarketStatusPayload>>,
+    #[serde(rename = "Error Message")]
+    error_message: Option<String>,
+    #[serde(rename = "Note")]
+    note: Option<String>,
+    #[serde(rename = "Information")]
+    information: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MarketStatusPayload {
+    market_type: String,
+    region: String,
+    primary_exchanges: String,
+    local_open: String,
+    local_close: String,
+    current_status: String,
+    notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct NewsSentimentResponse {
+    feed: Option<Vec<NewsSentimentPayload>>,
+    #[serde(rename = "Error Message")]
+    error_message: Option<String>,
+    #[serde(rename = "Note")]
+    note: Option<String>,
+    #[serde(rename = "Information")]
+    information: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct NewsSentimentPayload {
+    title: String,
+    url: String,
+    time_published: Option<String>,
+    summary: Option<String>,
+    source: Option<String>,
+    overall_sentiment_score: Option<f64>,
+    overall_sentiment_label: Option<String>,
 }
 
 impl EtfProfileResponse {
@@ -442,6 +681,60 @@ impl EtfProfileResponse {
             isin: None,
         }
     }
+
+    fn to_etf_profile(&self, symbol: &str) -> EtfProfile {
+        EtfProfile {
+            symbol: symbol.to_string(),
+            net_assets: self
+                .net_assets
+                .as_ref()
+                .and_then(|value| value.parse().ok()),
+            net_expense_ratio: self
+                .net_expense_ratio
+                .as_ref()
+                .and_then(|value| Self::parse_weight(value)),
+            turnover: self
+                .portfolio_turnover
+                .as_ref()
+                .and_then(|value| Self::parse_weight(value)),
+            dividend_yield: self
+                .dividend_yield
+                .as_ref()
+                .and_then(|value| Self::parse_weight(value)),
+            holdings: self
+                .holdings
+                .iter()
+                .map(|holding| EtfHoldingProfile {
+                    symbol: holding.symbol.clone(),
+                    description: holding.description.clone(),
+                    weight: holding
+                        .weight
+                        .as_ref()
+                        .and_then(|value| Self::parse_weight(value)),
+                })
+                .collect(),
+            sector_allocation: self
+                .sectors
+                .iter()
+                .filter_map(|sector| {
+                    Some(EtfAllocation {
+                        name: sector.sector.clone(),
+                        weight: Self::parse_weight(&sector.weight)?,
+                    })
+                })
+                .collect(),
+            asset_allocation: self
+                .asset_allocation
+                .iter()
+                .filter_map(|allocation| {
+                    Some(EtfAllocation {
+                        name: allocation.asset_type.clone(),
+                        weight: Self::parse_weight(&allocation.weight)?,
+                    })
+                })
+                .collect(),
+        }
+    }
 }
 
 impl CompanyOverviewResponse {
@@ -495,6 +788,65 @@ impl CompanyOverviewResponse {
             isin: None,
         }
     }
+
+    fn to_company_overview(&self) -> CompanyOverview {
+        CompanyOverview {
+            symbol: self.symbol.clone().unwrap_or_default(),
+            name: self.name.clone(),
+            description: self.description.clone(),
+            exchange: self.exchange.clone(),
+            currency: self.currency.clone(),
+            country: self.country.clone(),
+            sector: self.sector.clone(),
+            industry: self.industry.clone(),
+            market_capitalization: Self::parse_f64(&self.market_capitalization),
+            pe_ratio: Self::parse_f64(&self.pe_ratio)
+                .or_else(|| Self::parse_f64(&self.trailing_pe)),
+            peg_ratio: Self::parse_f64(&self.peg_ratio),
+            book_value: Self::parse_f64(&self.book_value),
+            dividend_yield: Self::parse_f64(&self.dividend_yield),
+            eps: Self::parse_f64(&self.eps),
+            revenue_ttm: Self::parse_f64(&self.revenue_ttm),
+            profit_margin: Self::parse_f64(&self.profit_margin),
+            operating_margin_ttm: Self::parse_f64(&self.operating_margin_ttm),
+            return_on_assets_ttm: Self::parse_f64(&self.return_on_assets_ttm),
+            return_on_equity_ttm: Self::parse_f64(&self.return_on_equity_ttm),
+            beta: Self::parse_f64(&self.beta),
+            week_52_high: Self::parse_f64(&self.week_52_high),
+            week_52_low: Self::parse_f64(&self.week_52_low),
+        }
+    }
+}
+
+fn function_param<'a>(params: &'a [(&'a str, &'a str)]) -> &'a str {
+    params
+        .iter()
+        .find_map(|(key, value)| (*key == "function").then_some(*value))
+        .unwrap_or("UNKNOWN")
+}
+
+fn cache_ttl(function: &str) -> Duration {
+    match function {
+        "GLOBAL_QUOTE" => Duration::from_secs(60),
+        "TIME_SERIES_DAILY" => Duration::from_secs(6 * 60 * 60),
+        "SYMBOL_SEARCH" => Duration::from_secs(24 * 60 * 60),
+        "MARKET_STATUS" => Duration::from_secs(5 * 60),
+        "OVERVIEW" | "ETF_PROFILE" => Duration::from_secs(7 * 24 * 60 * 60),
+        "NEWS_SENTIMENT" => Duration::from_secs(30 * 60),
+        _ => Duration::from_secs(60),
+    }
+}
+
+fn parse_decimal_field(value: &str, field: &str) -> Result<Decimal, MarketDataError> {
+    Decimal::from_str(value).map_err(|e| MarketDataError::ProviderError {
+        provider: PROVIDER_ID.to_string(),
+        message: format!("Invalid {} value '{}': {}", field, value, e),
+    })
+}
+
+fn parse_percent_field(value: &str, field: &str) -> Result<Decimal, MarketDataError> {
+    let cleaned = value.trim().trim_end_matches('%');
+    parse_decimal_field(cleaned, field)
 }
 
 // ============================================================================
@@ -508,32 +860,291 @@ impl AlphaVantageProvider {
     ///
     /// Returns an error if the HTTP client cannot be created.
     pub fn new(api_key: String) -> Self {
+        Self::with_config(api_key, BASE_URL.to_string(), DEFAULT_MIN_DELAY)
+    }
+
+    fn with_config(api_key: String, base_url: String, min_delay: Duration) -> Self {
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
             .unwrap_or_else(|_| Client::new());
 
-        Self { client, api_key }
+        Self {
+            client,
+            api_key,
+            base_url,
+            cache: Arc::new(Mutex::new(HashMap::new())),
+            last_request_at: Arc::new(Mutex::new(None)),
+            min_delay,
+        }
+    }
+
+    pub fn from_env() -> Result<Self, MarketDataError> {
+        let api_key = std::env::var(ENV_API_KEY).unwrap_or_default();
+        if api_key.trim().is_empty() {
+            return Err(MarketDataError::MissingApiKey {
+                provider: PROVIDER_ID.to_string(),
+            });
+        }
+        Ok(Self::new(api_key))
+    }
+
+    pub async fn get_quote(&self, symbol: &str) -> Result<MarketQuote, MarketDataError> {
+        let params = [("function", "GLOBAL_QUOTE"), ("symbol", symbol)];
+        let text = self.fetch(&params).await?;
+        let response: GlobalQuoteResponse =
+            serde_json::from_str(&text).map_err(|e| MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to parse global quote response: {}", e),
+            })?;
+
+        Self::check_api_error(
+            &response.error_message,
+            &response.note,
+            &response.information,
+        )?;
+
+        let quote = response.global_quote.ok_or_else(|| {
+            MarketDataError::SymbolNotFound(format!("No global quote for symbol: {}", symbol))
+        })?;
+
+        Ok(MarketQuote {
+            symbol: quote.symbol,
+            open: parse_decimal_field(&quote.open, "open")?,
+            high: parse_decimal_field(&quote.high, "high")?,
+            low: parse_decimal_field(&quote.low, "low")?,
+            price: parse_decimal_field(&quote.price, "price")?,
+            volume: parse_decimal_field(&quote.volume, "volume")?,
+            latest_trading_day: quote.latest_trading_day,
+            previous_close: parse_decimal_field(&quote.previous_close, "previous close")?,
+            change: parse_decimal_field(&quote.change, "change")?,
+            change_percent: parse_percent_field(&quote.change_percent, "change percent")?,
+        })
+    }
+
+    pub async fn get_daily_series(
+        &self,
+        symbol: &str,
+        output_size: OutputSize,
+    ) -> Result<Vec<OhlcvBar>, MarketDataError> {
+        let params = [
+            ("function", "TIME_SERIES_DAILY"),
+            ("symbol", symbol),
+            ("outputsize", output_size.as_str()),
+        ];
+
+        let text = self.fetch(&params).await?;
+        let response: TimeSeriesResponse =
+            serde_json::from_str(&text).map_err(|e| MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to parse daily series response: {}", e),
+            })?;
+
+        Self::check_api_error(
+            &response.error_message,
+            &response.note,
+            &response.information,
+        )?;
+
+        let time_series = response.time_series.ok_or_else(|| {
+            MarketDataError::SymbolNotFound(format!("No daily series for symbol: {}", symbol))
+        })?;
+
+        let mut bars = time_series
+            .into_iter()
+            .map(|(date, quote)| {
+                let date = NaiveDate::parse_from_str(&date, "%Y-%m-%d").map_err(|e| {
+                    MarketDataError::ProviderError {
+                        provider: PROVIDER_ID.to_string(),
+                        message: format!("Invalid daily series date: {}", e),
+                    }
+                })?;
+
+                Ok(OhlcvBar {
+                    date,
+                    open: parse_decimal_field(&quote.open, "open")?,
+                    high: parse_decimal_field(&quote.high, "high")?,
+                    low: parse_decimal_field(&quote.low, "low")?,
+                    close: parse_decimal_field(&quote.close, "close")?,
+                    volume: parse_decimal_field(&quote.volume, "volume")?,
+                })
+            })
+            .collect::<Result<Vec<_>, MarketDataError>>()?;
+
+        bars.sort_by_key(|bar| bar.date);
+        Ok(bars)
+    }
+
+    pub async fn search_symbol(
+        &self,
+        keywords: &str,
+    ) -> Result<Vec<SymbolSearchResult>, MarketDataError> {
+        self.search_symbols(keywords).await
+    }
+
+    pub async fn get_market_status(&self) -> Result<Vec<MarketStatus>, MarketDataError> {
+        let params = [("function", "MARKET_STATUS")];
+        let text = self.fetch(&params).await?;
+        let response: MarketStatusResponse =
+            serde_json::from_str(&text).map_err(|e| MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to parse market status response: {}", e),
+            })?;
+
+        Self::check_api_error(
+            &response.error_message,
+            &response.note,
+            &response.information,
+        )?;
+
+        Ok(response
+            .markets
+            .unwrap_or_default()
+            .into_iter()
+            .map(|market| MarketStatus {
+                market_type: market.market_type,
+                region: market.region,
+                primary_exchanges: market.primary_exchanges,
+                local_open: market.local_open,
+                local_close: market.local_close,
+                current_status: market.current_status,
+                notes: market.notes,
+            })
+            .collect())
+    }
+
+    pub async fn get_company_overview(
+        &self,
+        symbol: &str,
+    ) -> Result<CompanyOverview, MarketDataError> {
+        let params = [("function", "OVERVIEW"), ("symbol", symbol)];
+        let text = self.fetch(&params).await?;
+        let response: CompanyOverviewResponse =
+            serde_json::from_str(&text).map_err(|e| MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to parse company overview response: {}", e),
+            })?;
+
+        Self::check_api_error(
+            &response.error_message,
+            &response.note,
+            &response.information,
+        )?;
+
+        if response.symbol.is_none() || response.has_error() {
+            return Err(MarketDataError::SymbolNotFound(format!(
+                "No company overview data for symbol: {}",
+                symbol
+            )));
+        }
+
+        Ok(response.to_company_overview())
+    }
+
+    pub async fn get_etf_profile(&self, symbol: &str) -> Result<EtfProfile, MarketDataError> {
+        let params = [("function", "ETF_PROFILE"), ("symbol", symbol)];
+        let text = self.fetch(&params).await?;
+        let response: EtfProfileResponse =
+            serde_json::from_str(&text).map_err(|e| MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to parse ETF profile response: {}", e),
+            })?;
+
+        Self::check_api_error(
+            &response.error_message,
+            &response.note,
+            &response.information,
+        )?;
+
+        if response.has_error() {
+            return Err(MarketDataError::SymbolNotFound(format!(
+                "No ETF profile data for symbol: {}",
+                symbol
+            )));
+        }
+
+        Ok(response.to_etf_profile(symbol))
+    }
+
+    pub async fn get_news_sentiment(
+        &self,
+        tickers: Option<Vec<String>>,
+        topics: Option<Vec<String>>,
+        limit: Option<u32>,
+    ) -> Result<Vec<NewsSentimentItem>, MarketDataError> {
+        let tickers_value = tickers.map(|values| values.join(","));
+        let topics_value = topics.map(|values| values.join(","));
+        let limit_value = limit.map(|value| value.to_string());
+
+        let mut params = vec![("function", "NEWS_SENTIMENT"), ("sort", "LATEST")];
+        if let Some(value) = tickers_value.as_deref() {
+            params.push(("tickers", value));
+        }
+        if let Some(value) = topics_value.as_deref() {
+            params.push(("topics", value));
+        }
+        if let Some(value) = limit_value.as_deref() {
+            params.push(("limit", value));
+        }
+
+        let text = self.fetch(&params).await?;
+        let response: NewsSentimentResponse =
+            serde_json::from_str(&text).map_err(|e| MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to parse news sentiment response: {}", e),
+            })?;
+
+        Self::check_api_error(
+            &response.error_message,
+            &response.note,
+            &response.information,
+        )?;
+
+        Ok(response
+            .feed
+            .unwrap_or_default()
+            .into_iter()
+            .map(|item| NewsSentimentItem {
+                title: item.title,
+                url: item.url,
+                time_published: item.time_published,
+                summary: item.summary,
+                source: item.source,
+                overall_sentiment_score: item.overall_sentiment_score,
+                overall_sentiment_label: item.overall_sentiment_label,
+            })
+            .collect())
     }
 
     /// Make a request to the Alpha Vantage API.
     async fn fetch(&self, params: &[(&str, &str)]) -> Result<String, MarketDataError> {
+        self.ensure_api_key()?;
+        let function = function_param(params);
+        let ttl = cache_ttl(function);
+        let cache_key = self.cache_key(params);
+
+        if let Some(body) = self.get_cached(&cache_key).await {
+            debug!(
+                "provider=alpha_vantage function={} status=cache cache_hit=true",
+                function
+            );
+            return Ok(body);
+        }
+
+        self.wait_for_rate_limit().await;
+
         let mut all_params: Vec<(&str, &str)> = params.to_vec();
         all_params.push(("apikey", &self.api_key));
 
-        let url = reqwest::Url::parse_with_params(BASE_URL, &all_params).map_err(|e| {
-            MarketDataError::ProviderError {
-                provider: PROVIDER_ID.to_string(),
-                message: format!("Failed to build URL: {}", e),
-            }
-        })?;
+        let url = self.build_url(&all_params)?;
 
         debug!(
-            "Alpha Vantage request: {}",
-            url.as_str().replace(&self.api_key, "***")
+            "provider=alpha_vantage function={} url={} cache_hit=false",
+            function,
+            self.sanitized_url(params)
         );
 
-        let response = self.client.get(url).send().await.map_err(|e| {
+        let response = self.client.get(url.clone()).send().await.map_err(|e| {
             if e.is_timeout() {
                 MarketDataError::Timeout {
                     provider: PROVIDER_ID.to_string(),
@@ -547,6 +1158,10 @@ impl AlphaVantageProvider {
         })?;
 
         let status = response.status();
+        debug!(
+            "provider=alpha_vantage function={} status={} cache_hit=false",
+            function, status
+        );
         if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
             return Err(MarketDataError::RateLimited {
                 provider: PROVIDER_ID.to_string(),
@@ -560,13 +1175,140 @@ impl AlphaVantageProvider {
             });
         }
 
-        response
+        let body = response
             .text()
             .await
             .map_err(|e| MarketDataError::ProviderError {
                 provider: PROVIDER_ID.to_string(),
                 message: e.to_string(),
+            })?;
+
+        Self::check_api_error_value(&body)?;
+        self.put_cached(cache_key, body.clone(), ttl).await;
+        Ok(body)
+    }
+
+    fn ensure_api_key(&self) -> Result<(), MarketDataError> {
+        if self.api_key.trim().is_empty() {
+            return Err(MarketDataError::MissingApiKey {
+                provider: PROVIDER_ID.to_string(),
+            });
+        }
+        Ok(())
+    }
+
+    fn build_url(&self, params: &[(&str, &str)]) -> Result<reqwest::Url, MarketDataError> {
+        reqwest::Url::parse_with_params(&self.base_url, params).map_err(|e| {
+            MarketDataError::ProviderError {
+                provider: PROVIDER_ID.to_string(),
+                message: format!("Failed to build URL: {}", e),
+            }
+        })
+    }
+
+    fn sanitized_url(&self, params: &[(&str, &str)]) -> String {
+        let mut safe_params = params.to_vec();
+        safe_params.push(("apikey", "***"));
+        self.build_url(&safe_params)
+            .map(|url| url.to_string())
+            .unwrap_or_else(|_| self.base_url.clone())
+    }
+
+    fn cache_key(&self, params: &[(&str, &str)]) -> String {
+        let mut pairs = params
+            .iter()
+            .map(|(key, value)| format!("{key}={value}"))
+            .collect::<Vec<_>>();
+        pairs.sort();
+        pairs.join("&")
+    }
+
+    async fn get_cached(&self, key: &str) -> Option<String> {
+        let mut cache = self.cache.lock().await;
+        let cached = cache.get(key)?;
+        if Instant::now() <= cached.expires_at {
+            return Some(cached.body.clone());
+        }
+        cache.remove(key);
+        None
+    }
+
+    async fn put_cached(&self, key: String, body: String, ttl: Duration) {
+        let mut cache = self.cache.lock().await;
+        cache.insert(
+            key,
+            CachedResponse {
+                body,
+                expires_at: Instant::now() + ttl,
+            },
+        );
+    }
+
+    async fn wait_for_rate_limit(&self) {
+        if self.min_delay.is_zero() {
+            return;
+        }
+
+        loop {
+            let wait_for = {
+                let mut last_request = self.last_request_at.lock().await;
+                match *last_request {
+                    Some(last) if last.elapsed() < self.min_delay => {
+                        Some(self.min_delay - last.elapsed())
+                    }
+                    _ => {
+                        *last_request = Some(Instant::now());
+                        None
+                    }
+                }
+            };
+
+            if let Some(wait_for) = wait_for {
+                tokio::time::sleep(wait_for).await;
+            } else {
+                return;
+            }
+        }
+    }
+
+    fn check_api_error_value(text: &str) -> Result<(), MarketDataError> {
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(text) else {
+            return Ok(());
+        };
+
+        if let Some(message) = value
+            .get("Error Message")
+            .and_then(serde_json::Value::as_str)
+        {
+            return Err(MarketDataError::InvalidRequest {
+                provider: PROVIDER_ID.to_string(),
+                message: message.to_string(),
+            });
+        }
+
+        if value
+            .get("Note")
+            .and_then(serde_json::Value::as_str)
+            .is_some()
+        {
+            return Err(MarketDataError::RateLimited {
+                provider: PROVIDER_ID.to_string(),
+            });
+        }
+
+        if value
+            .get("Information")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|message| {
+                message.contains("API call frequency") || message.contains("rate limit")
             })
+        {
+            return Err(MarketDataError::RateLimited {
+                provider: PROVIDER_ID.to_string(),
+            });
+        }
+
+        Ok(())
     }
 
     /// Get the currency: prefer exchange metadata, fall back to asset's quote_ccy.
@@ -586,11 +1328,7 @@ impl AlphaVantageProvider {
         information: &Option<String>,
     ) -> Result<(), MarketDataError> {
         if let Some(ref msg) = error_message {
-            // Check if it's a "not found" type error
-            if msg.contains("Invalid API call") || msg.contains("not found") {
-                return Err(MarketDataError::SymbolNotFound(msg.clone()));
-            }
-            return Err(MarketDataError::ProviderError {
+            return Err(MarketDataError::InvalidRequest {
                 provider: PROVIDER_ID.to_string(),
                 message: msg.clone(),
             });
@@ -630,6 +1368,21 @@ impl AlphaVantageProvider {
     /// Parse a decimal value from a string.
     fn parse_decimal(s: &str) -> Option<Decimal> {
         Decimal::from_str(s).ok()
+    }
+
+    fn supports_equity_symbol(symbol: &str) -> bool {
+        let symbol = symbol.trim();
+        !symbol.starts_with('^')
+            && !symbol.ends_with(".SS")
+            && !symbol.ends_with(".SZ")
+            && !symbol.ends_with(".HK")
+    }
+
+    fn unsupported_equity_symbol(symbol: &str) -> MarketDataError {
+        MarketDataError::NotSupported {
+            operation: format!("equity_symbol:{symbol}"),
+            provider: PROVIDER_ID.to_string(),
+        }
     }
 
     /// Fetch equity quotes using TIME_SERIES_DAILY endpoint.
@@ -1113,9 +1866,9 @@ impl MarketDataProvider for AlphaVantageProvider {
 
     fn rate_limit(&self) -> RateLimit {
         RateLimit {
-            requests_per_minute: 25,           // Free tier: 25 requests/day
-            max_concurrency: 1,                // Sequential requests only
-            min_delay: Duration::from_secs(3), // ~25 requests per minute
+            requests_per_minute: 4,
+            max_concurrency: 1,
+            min_delay: DEFAULT_MIN_DELAY,
         }
     }
 
@@ -1136,6 +1889,9 @@ impl MarketDataProvider for AlphaVantageProvider {
         // Fetch historical quotes and return the most recent one
         let quotes = match instrument {
             ProviderInstrument::EquitySymbol { ref symbol } => {
+                if !Self::supports_equity_symbol(symbol) {
+                    return Err(Self::unsupported_equity_symbol(symbol));
+                }
                 let currency = self.resolve_currency(context);
                 self.fetch_equity_quotes(symbol, &currency).await?
             }
@@ -1210,6 +1966,9 @@ impl MarketDataProvider for AlphaVantageProvider {
 
         let quotes = match instrument {
             ProviderInstrument::EquitySymbol { ref symbol } => {
+                if !Self::supports_equity_symbol(symbol) {
+                    return Err(Self::unsupported_equity_symbol(symbol));
+                }
                 let currency = self.resolve_currency(context);
                 self.fetch_equity_quotes(symbol, &currency).await?
             }
@@ -1335,6 +2094,16 @@ impl MarketDataProvider for AlphaVantageProvider {
 mod tests {
     use super::*;
     use std::borrow::Cow;
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    fn create_test_provider(base_url: String) -> AlphaVantageProvider {
+        AlphaVantageProvider::with_config("test_key".to_string(), base_url, Duration::ZERO)
+    }
+
+    fn query_url(server: &MockServer) -> String {
+        format!("{}/query", server.uri())
+    }
 
     fn create_test_fx_context(
         currency_hint: Option<&'static str>,
@@ -1413,9 +2182,189 @@ mod tests {
     fn test_rate_limit() {
         let provider = AlphaVantageProvider::new("test_key".to_string());
         let limit = provider.rate_limit();
-        assert_eq!(limit.requests_per_minute, 25);
+        assert_eq!(limit.requests_per_minute, 4);
         assert_eq!(limit.max_concurrency, 1);
-        assert_eq!(limit.min_delay, Duration::from_secs(3));
+        assert_eq!(limit.min_delay, Duration::from_secs(15));
+    }
+
+    #[test]
+    fn test_supports_equity_symbol_rejects_yahoo_index_and_cn_hk_suffixes() {
+        assert!(AlphaVantageProvider::supports_equity_symbol("SPY"));
+        assert!(AlphaVantageProvider::supports_equity_symbol("AAPL"));
+        assert!(!AlphaVantageProvider::supports_equity_symbol("^GSPC"));
+        assert!(!AlphaVantageProvider::supports_equity_symbol("000001.SS"));
+        assert!(!AlphaVantageProvider::supports_equity_symbol("399001.SZ"));
+        assert!(!AlphaVantageProvider::supports_equity_symbol("0700.HK"));
+    }
+
+    #[tokio::test]
+    async fn test_missing_api_key_returns_missing_api_key() {
+        let provider = AlphaVantageProvider::with_config(
+            "".to_string(),
+            "http://127.0.0.1/query".to_string(),
+            Duration::ZERO,
+        );
+
+        let error = provider.get_quote("IBM").await.unwrap_err();
+        assert!(matches!(error, MarketDataError::MissingApiKey { .. }));
+    }
+
+    #[test]
+    fn test_global_quote_url_construction_and_sanitization() {
+        let provider = AlphaVantageProvider::new("test_key".to_string());
+        let url = provider
+            .build_url(&[
+                ("function", "GLOBAL_QUOTE"),
+                ("symbol", "IBM"),
+                ("apikey", "test_key"),
+            ])
+            .unwrap();
+
+        assert_eq!(url.path(), "/query");
+        assert!(url.query().unwrap().contains("function=GLOBAL_QUOTE"));
+        assert!(url.query().unwrap().contains("symbol=IBM"));
+        assert!(url.query().unwrap().contains("apikey=test_key"));
+
+        let sanitized = provider.sanitized_url(&[("function", "GLOBAL_QUOTE"), ("symbol", "IBM")]);
+        assert!(sanitized.contains("apikey=***") || sanitized.contains("apikey=%2A%2A%2A"));
+        assert!(!sanitized.contains("test_key"));
+    }
+
+    #[tokio::test]
+    async fn test_global_quote_response_parsing() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/query"))
+            .and(query_param("function", "GLOBAL_QUOTE"))
+            .and(query_param("symbol", "IBM"))
+            .and(query_param("apikey", "test_key"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "Global Quote": {
+                    "01. symbol": "IBM",
+                    "02. open": "281.0000",
+                    "03. high": "282.5000",
+                    "04. low": "279.1000",
+                    "05. price": "280.4200",
+                    "06. volume": "1234567",
+                    "07. latest trading day": "2026-06-30",
+                    "08. previous close": "279.3000",
+                    "09. change": "1.1200",
+                    "10. change percent": "0.4010%"
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let provider = create_test_provider(query_url(&server));
+        let quote = provider.get_quote("IBM").await.unwrap();
+
+        assert_eq!(quote.symbol, "IBM");
+        assert_eq!(quote.price.to_string(), "280.4200");
+        assert_eq!(quote.volume.to_string(), "1234567");
+        assert_eq!(quote.change_percent.to_string(), "0.4010");
+    }
+
+    #[tokio::test]
+    async fn test_daily_series_response_parsing() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/query"))
+            .and(query_param("function", "TIME_SERIES_DAILY"))
+            .and(query_param("symbol", "IBM"))
+            .and(query_param("outputsize", "compact"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "Time Series (Daily)": {
+                    "2026-06-30": {
+                        "1. open": "280.0000",
+                        "2. high": "282.0000",
+                        "3. low": "279.0000",
+                        "4. close": "281.0000",
+                        "5. volume": "2000"
+                    },
+                    "2026-06-29": {
+                        "1. open": "278.0000",
+                        "2. high": "280.0000",
+                        "3. low": "277.0000",
+                        "4. close": "279.0000",
+                        "5. volume": "1000"
+                    }
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let provider = create_test_provider(query_url(&server));
+        let bars = provider
+            .get_daily_series("IBM", OutputSize::Compact)
+            .await
+            .unwrap();
+
+        assert_eq!(bars.len(), 2);
+        assert_eq!(bars[0].date.to_string(), "2026-06-29");
+        assert_eq!(bars[1].close.to_string(), "281.0000");
+    }
+
+    #[tokio::test]
+    async fn test_note_response_is_rate_limited() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "Note": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute."
+            })))
+            .mount(&server)
+            .await;
+
+        let provider = create_test_provider(query_url(&server));
+        let error = provider.get_quote("IBM").await.unwrap_err();
+
+        assert!(matches!(error, MarketDataError::RateLimited { .. }));
+    }
+
+    #[tokio::test]
+    async fn test_error_message_response_is_invalid_request() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/query"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "Error Message": "Invalid API call. Please retry or visit the documentation."
+            })))
+            .mount(&server)
+            .await;
+
+        let provider = create_test_provider(query_url(&server));
+        let error = provider.get_quote("IBM").await.unwrap_err();
+
+        assert!(matches!(error, MarketDataError::InvalidRequest { .. }));
+    }
+
+    #[tokio::test]
+    async fn test_cache_hit_does_not_repeat_request() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/query"))
+            .and(query_param("function", "GLOBAL_QUOTE"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "Global Quote": {
+                    "01. symbol": "IBM",
+                    "02. open": "281.0000",
+                    "03. high": "282.5000",
+                    "04. low": "279.1000",
+                    "05. price": "280.4200",
+                    "06. volume": "1234567",
+                    "07. latest trading day": "2026-06-30",
+                    "08. previous close": "279.3000",
+                    "09. change": "1.1200",
+                    "10. change percent": "0.4010%"
+                }
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let provider = create_test_provider(query_url(&server));
+        provider.get_quote("IBM").await.unwrap();
+        provider.get_quote("IBM").await.unwrap();
     }
 
     #[test]

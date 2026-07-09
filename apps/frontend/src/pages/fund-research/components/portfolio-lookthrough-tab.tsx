@@ -7,6 +7,7 @@ import {
   formatPercent,
   Icons,
 } from "@wealthfolio/ui";
+import { MetricLabelWithInfo } from "@/components/metric-display";
 import { Skeleton } from "@wealthfolio/ui/components/ui/skeleton";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -123,6 +124,7 @@ export function PortfolioLookthroughTab() {
 
       {/* Top N Selector */}
       <div className="flex items-center gap-2">
+        <MetricLabelWithInfo label="" infoText={t("fundResearch.sectionsInfo.lookthrough")} />
         <span className="text-muted-foreground text-xs">{t("fundResearch.underlyingHolding")}</span>
         {[10, 20, 50, 0].map((n) => (
           <Button

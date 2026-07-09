@@ -7,9 +7,11 @@
 pub mod capital_flow;
 pub mod eastmoney;
 pub mod evidence;
+pub mod intraday;
 pub mod market_overview;
 pub mod portfolio_exposure;
 pub mod repository;
+pub mod scheduler;
 pub mod sector_rotation;
 pub mod service;
 pub mod theme_rotation;
@@ -18,6 +20,10 @@ pub use capital_flow::{
     CapitalFlowProvider, CapitalFlowRepository, CapitalFlowService, CapitalFlowSnapshot,
 };
 pub use eastmoney::{default_theme_mappings, EastmoneyMarketIntelligenceProvider};
+pub use intraday::{
+    IntradayMarketIntelligenceProvider, MarketIntelligenceIntradayRepository,
+    MarketIntelligenceIntradayService, MarketIntelligenceIntradaySnapshot,
+};
 pub use market_overview::{
     MarketDataProvider, MarketOverviewService, MarketSnapshot, MarketSnapshotRepository,
 };

@@ -39,6 +39,22 @@ pub enum MarketDataError {
         provider: String,
     },
 
+    /// The provider requires an API key and none was configured.
+    #[error("Missing API key: {provider}")]
+    MissingApiKey {
+        /// The provider that requires an API key
+        provider: String,
+    },
+
+    /// The provider rejected the request parameters as invalid.
+    #[error("Invalid request: {provider} - {message}")]
+    InvalidRequest {
+        /// The provider that rejected the request
+        provider: String,
+        /// The provider-supplied error detail
+        message: String,
+    },
+
     /// The request to the provider timed out.
     /// Should retry with exponential backoff.
     #[error("Timeout: {provider}")]
@@ -133,6 +149,8 @@ impl MarketDataError {
             // Terminal errors - never retry
             Self::SymbolNotFound(_)
             | Self::UnsupportedAssetType(_)
+            | Self::MissingApiKey { .. }
+            | Self::InvalidRequest { .. }
             | Self::ValidationFailed { .. } => RetryClass::Never,
 
             // Timeout - failover with circuit breaker penalty

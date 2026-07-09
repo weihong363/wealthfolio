@@ -2035,10 +2035,18 @@ export const invoke = async <T>(command: string, payload?: Record<string, unknow
       break;
     }
     case "get_market_intelligence_summary": {
-      const { portfolioId } = (payload ?? {}) as { portfolioId?: string };
+      const { portfolioId, window } = (payload ?? {}) as {
+        portfolioId?: string;
+        window?: string;
+      };
+      const params = new URLSearchParams();
       if (portfolioId) {
-        const params = new URLSearchParams();
         params.set("portfolioId", portfolioId);
+      }
+      if (window) {
+        params.set("window", window);
+      }
+      if (params.size > 0) {
         url += `?${params.toString()}`;
       }
       break;

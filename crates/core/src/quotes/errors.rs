@@ -118,6 +118,15 @@ impl From<ExternalMarketDataError> for MarketDataError {
             ExternalMarketDataError::RateLimited { provider } => {
                 MarketDataError::RateLimitExceeded(provider)
             }
+            ExternalMarketDataError::MissingApiKey { provider } => {
+                MarketDataError::ProviderError(format!("{}: missing API key", provider))
+            }
+            ExternalMarketDataError::InvalidRequest { provider, message } => {
+                MarketDataError::ProviderError(format!(
+                    "{}: invalid request - {}",
+                    provider, message
+                ))
+            }
             ExternalMarketDataError::Timeout { provider } => MarketDataError::Timeout(provider),
             ExternalMarketDataError::ProviderError { provider, message } => {
                 MarketDataError::ProviderError(format!("{}: {}", provider, message))

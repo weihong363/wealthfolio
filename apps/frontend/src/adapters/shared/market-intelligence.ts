@@ -7,10 +7,12 @@ import { invoke, isWeb, logger } from "./platform";
 
 export const getMarketIntelligenceSummary = async (
   portfolioId?: string,
+  window?: string,
 ): Promise<MarketIntelligenceSummary> => {
   try {
     return await invoke<MarketIntelligenceSummary>("get_market_intelligence_summary", {
       portfolioId,
+      window,
     });
   } catch (error) {
     logger.error("Error fetching market intelligence summary.");
@@ -23,9 +25,7 @@ export const refreshMarketIntelligence = async (): Promise<MarketIntelligenceSum
     try {
       const snapshots = await fetchEastmoneyMarketIntelligenceSnapshots();
       if (hasBrowserSnapshots(snapshots)) {
-        return await invoke<MarketIntelligenceSummary>("ingest_market_intelligence_snapshots", {
-          snapshots,
-        });
+        return await ingestMarketIntelligenceSnapshots(snapshots);
       }
     } catch (error) {
       logger.warn("Browser Eastmoney refresh failed; falling back to backend refresh.", error);
@@ -38,6 +38,14 @@ export const refreshMarketIntelligence = async (): Promise<MarketIntelligenceSum
     logger.error("Error refreshing market intelligence.");
     throw error;
   }
+};
+
+export const ingestMarketIntelligenceSnapshots = async (
+  snapshots: BrowserMarketIntelligenceSnapshots,
+): Promise<MarketIntelligenceSummary> => {
+  return await invoke<MarketIntelligenceSummary>("ingest_market_intelligence_snapshots", {
+    snapshots,
+  });
 };
 
 function hasBrowserSnapshots(snapshots: BrowserMarketIntelligenceSnapshots): boolean {

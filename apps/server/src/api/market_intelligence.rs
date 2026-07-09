@@ -14,6 +14,7 @@ use wealthfolio_core::market_intelligence::{
 #[serde(rename_all = "camelCase")]
 struct MarketIntelligenceQuery {
     portfolio_id: Option<String>,
+    window: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,7 +47,7 @@ async fn get_summary(
 ) -> ApiResult<Json<MarketIntelligenceSummary>> {
     let summary = state
         .market_intelligence_service
-        .summary(query.portfolio_id.as_deref())
+        .summary_for_window(query.portfolio_id.as_deref(), query.window.as_deref())
         .await
         .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(Json(summary))
@@ -55,7 +56,7 @@ async fn get_summary(
 async fn refresh(State(state): State<Arc<AppState>>) -> ApiResult<Json<MarketIntelligenceSummary>> {
     let summary = state
         .market_intelligence_service
-        .refresh_eastmoney()
+        .refresh_market_data()
         .await
         .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(Json(summary))

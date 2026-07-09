@@ -52,7 +52,59 @@ export interface MarketIntelligenceSummary {
   sectorRotation: SectorRotationSnapshot[];
   themeRotation: ThemeRotationSnapshot[];
   portfolioExposure: PortfolioThemeExposure[];
+  trends: MarketIntelligenceTrends;
   dataStatus: MarketIntelligenceDataStatus[];
+}
+
+export interface MarketIntelligenceTrends {
+  granularity: string;
+  windows: MarketIntelligenceTrendWindow[];
+}
+
+export interface MarketIntelligenceTrendWindow {
+  window: string;
+  days?: number | null;
+  capitalFlow: FlowTrend;
+  sectorRotation: FlowTrend;
+  themeRotation: ThemeTrend;
+}
+
+export interface FlowTrend {
+  series: NamedTimeSeries[];
+  topInflows: RankingItem[];
+  topOutflows: RankingItem[];
+}
+
+export interface ThemeTrend {
+  flowScoreSeries: NamedTimeSeries[];
+  momentumSeries: NamedTimeSeries[];
+  topThemes: RankingItem[];
+  bottomThemes: RankingItem[];
+}
+
+export interface NamedTimeSeries {
+  name: string;
+  market?: string | null;
+  points: TimeSeriesPoint[];
+  latestValue?: number | null;
+  cumulativeValue: number;
+  source?: string | null;
+}
+
+export interface TimeSeriesPoint {
+  date: string;
+  value: number;
+  cumulative: number;
+}
+
+export interface RankingItem {
+  name: string;
+  market?: string | null;
+  value: number;
+  secondaryValue?: number | null;
+  ranking?: number | null;
+  date?: string | null;
+  source?: string | null;
 }
 
 export interface MarketIntelligenceDataStatus {

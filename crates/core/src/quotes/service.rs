@@ -457,6 +457,19 @@ pub trait QuoteServiceTrait: Send + Sync {
         end: NaiveDate,
     ) -> Result<Vec<Quote>>;
 
+    async fn fetch_quotes_for_symbol_with_provider(
+        &self,
+        asset_id: &str,
+        currency: &str,
+        preferred_provider: Option<&str>,
+        start: NaiveDate,
+        end: NaiveDate,
+    ) -> Result<Vec<Quote>> {
+        let _ = preferred_provider;
+        self.fetch_quotes_for_symbol(asset_id, currency, start, end)
+            .await
+    }
+
     /// Fetch cash dividends for a single symbol.
     async fn fetch_dividends(&self, _params: FetchDividendsParams) -> Result<Vec<DividendEvent>> {
         unimplemented!("fetch_dividends is not implemented for this quote service")
@@ -1580,6 +1593,18 @@ where
         start: NaiveDate,
         end: NaiveDate,
     ) -> Result<Vec<Quote>> {
+        self.fetch_quotes_for_symbol_with_provider(asset_id, currency, None, start, end)
+            .await
+    }
+
+    async fn fetch_quotes_for_symbol_with_provider(
+        &self,
+        asset_id: &str,
+        currency: &str,
+        preferred_provider: Option<&str>,
+        start: NaiveDate,
+        end: NaiveDate,
+    ) -> Result<Vec<Quote>> {
         // First try to find an existing asset by ID
         if let Ok(asset) = self.asset_repo.get_by_id(asset_id) {
             let start_dt = Utc.from_utc_datetime(&start.and_hms_opt(0, 0, 0).unwrap());
@@ -1601,6 +1626,8 @@ where
             instrument_type: Some(InstrumentType::Equity),
             quote_ccy: currency.to_string(),
             quote_mode: QuoteMode::Market,
+            provider_config: preferred_provider
+                .map(|provider| serde_json::json!({ "preferred_provider": provider })),
             ..Default::default()
         };
 

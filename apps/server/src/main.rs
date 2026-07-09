@@ -120,6 +120,17 @@ async fn main() -> anyhow::Result<()> {
         .await;
     });
 
+    let market_intelligence_service = state.market_intelligence_service.clone();
+    tokio::spawn(async move {
+        wealthfolio_core::market_intelligence::scheduler::run_periodic_market_intelligence_refresh(
+            market_intelligence_service,
+            std::time::Duration::from_secs(180),
+            std::time::Duration::from_secs(24 * 3600),
+            std::time::Duration::from_secs(5 * 60),
+        )
+        .await;
+    });
+
     let static_dir = std::path::PathBuf::from(&config.static_dir);
     let index_file = static_dir.join("index.html");
     let static_service = ServeDir::new(static_dir).fallback(ServeFile::new(index_file));

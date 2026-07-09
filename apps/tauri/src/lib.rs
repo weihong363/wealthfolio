@@ -196,6 +196,17 @@ mod desktop {
             .await;
         });
 
+        let market_intelligence_service = Arc::clone(&context.market_intelligence_service);
+        tauri::async_runtime::spawn(async move {
+            wealthfolio_core::market_intelligence::scheduler::run_periodic_market_intelligence_refresh(
+                market_intelligence_service,
+                std::time::Duration::from_secs(180),
+                std::time::Duration::from_secs(24 * 3600),
+                std::time::Duration::from_secs(5 * 60),
+            )
+            .await;
+        });
+
         // Start background device sync engine (self-skips when device is not READY).
         #[cfg(feature = "device-sync")]
         {

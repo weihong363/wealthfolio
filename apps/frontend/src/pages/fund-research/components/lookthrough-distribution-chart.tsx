@@ -1,4 +1,5 @@
 import { AmountDisplay, Button, Card, formatPercent } from "@wealthfolio/ui";
+import { MetricLabelWithInfo } from "@/components/metric-display";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { useTranslation } from "react-i18next";
 
@@ -35,7 +36,10 @@ export function LookthroughDistributionChart({
     <Card className="p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium">{t("fundResearch.distribution")}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium">{t("fundResearch.distribution")}</p>
+            <MetricLabelWithInfo label="" infoText={t("fundResearch.sectionsInfo.distribution")} />
+          </div>
           <p className="text-muted-foreground text-xs">{t("fundResearch.distributionDesc")}</p>
         </div>
         <div className="flex flex-wrap gap-2">

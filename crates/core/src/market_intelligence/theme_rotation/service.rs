@@ -29,6 +29,12 @@ impl ThemeRotationService {
         self
     }
 
+    pub async fn ingest_snapshots(&self, snapshots: Vec<ThemeRotationSnapshot>) -> Result<()> {
+        self.repository
+            .save_theme_rotation_snapshots(&snapshots)
+            .await
+    }
+
     pub async fn calculate_and_save(
         &self,
         mappings: Vec<ThemeMapping>,

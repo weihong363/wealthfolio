@@ -13,29 +13,23 @@ import { formatPercent, GainAmount, GainPercent } from "@wealthfolio/ui";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
-// Explanatory texts for info popovers
-export const TIME_WEIGHTED_RETURN_INFO =
-  "Time-weighted return (TWR) measures investment performance after removing the effect of deposits and withdrawals. Periods under one year are shown as selected-period returns; periods of one year or longer are shown annualized when available.";
-export const IRR_RETURN_INFO =
-  "Internal rate of return (IRR) measures money-weighted performance using the size and timing of external cash flows. For periods of one year or longer, annualized XIRR is the standard display.";
-export const SIMPLE_RETURN_INFO =
-  "Simple return compares total gain or loss with net contributions. It is cumulative and not time weighted.";
-export const VALUE_RETURN_INFO =
-  "Value return measures the change in account value over the selected period when transaction-level cash flows are not available.";
-export const PRICE_RETURN_INFO =
-  "Price return measures the selected symbol's price change over the selected period.";
-export const VOLATILITY_INFO =
-  "Volatility measures the dispersion of returns for a given investment. Higher volatility means the investment can change dramatically over a short period. It is annualized from calendar-daily returns.";
-export const MAX_DRAWDOWN_INFO =
-  "Maximum Drawdown represents the largest percentage decline from a peak to a subsequent trough in portfolio value during the specified period. It indicates downside risk.";
-export const ANNUALIZED_RETURN_INFO =
-  "Annualized return is the average yearly compounded rate for the selected period. It is not the cumulative total gain or loss.";
+// Explanatory texts for info popovers (translation keys)
+export const TIME_WEIGHTED_RETURN_INFO = "metricInfo.timeWeightedReturn";
+export const IRR_RETURN_INFO = "metricInfo.irrReturn";
+export const SIMPLE_RETURN_INFO = "metricInfo.simpleReturn";
+export const VALUE_RETURN_INFO = "metricInfo.valueReturn";
+export const PRICE_RETURN_INFO = "metricInfo.priceReturn";
+export const VOLATILITY_INFO = "metricInfo.volatility";
+export const MAX_DRAWDOWN_INFO = "metricInfo.maxDrawdown";
+export const ANNUALIZED_RETURN_INFO = "metricInfo.annualizedReturn";
 
-// Holdings mode specific info texts.
-export const HOLDINGS_MODE_VOLATILITY_INFO =
-  "Volatility of account value changes. Based on daily valuations without adjusting for deposits or withdrawals. Reflects how much the market value fluctuates.";
-export const HOLDINGS_MODE_MAX_DRAWDOWN_INFO =
-  "Largest peak-to-trough decline in account value. Based on daily valuations without adjusting for deposits or withdrawals.";
+// Holdings mode specific info texts (translation keys)
+export const HOLDINGS_MODE_VOLATILITY_INFO = "metricInfo.holdingsModeVolatility";
+export const HOLDINGS_MODE_MAX_DRAWDOWN_INFO = "metricInfo.holdingsModeMaxDrawdown";
+
+// Concatenated info texts (with hover hint)
+export const TIME_WEIGHTED_RETURN_INFO_WITH_HOVER = "metricInfo.timeWeightedReturnWithHover";
+export const IRR_RETURN_INFO_WITH_HOVER = "metricInfo.irrReturnWithHover";
 
 export interface MetricDisplayProps {
   label: string;

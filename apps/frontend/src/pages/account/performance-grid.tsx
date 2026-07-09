@@ -2,9 +2,11 @@ import {
   HOLDINGS_MODE_MAX_DRAWDOWN_INFO,
   HOLDINGS_MODE_VOLATILITY_INFO,
   IRR_RETURN_INFO,
+  IRR_RETURN_INFO_WITH_HOVER,
   MAX_DRAWDOWN_INFO,
   MetricDisplay,
   TIME_WEIGHTED_RETURN_INFO,
+  TIME_WEIGHTED_RETURN_INFO_WITH_HOVER,
   VALUE_RETURN_INFO,
   VOLATILITY_INFO,
 } from "@/components/metric-display";
@@ -87,11 +89,11 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
   const twrDisplayValue = showAnnualizedTwr ? twrAnnualized : twrValue;
   const irrDisplayValue = showAnnualizedIrr ? irrAnnualized : irrValue;
   const twrInfoText = showAnnualizedTwr
-    ? `${TIME_WEIGHTED_RETURN_INFO} Hover the value to see cumulative TWR.`
-    : TIME_WEIGHTED_RETURN_INFO;
+    ? t(TIME_WEIGHTED_RETURN_INFO_WITH_HOVER)
+    : t(TIME_WEIGHTED_RETURN_INFO);
   const irrInfoText = showAnnualizedIrr
-    ? `${IRR_RETURN_INFO} Hover the value to see the selected-period IRR.`
-    : IRR_RETURN_INFO;
+    ? t(IRR_RETURN_INFO_WITH_HOVER)
+    : t(IRR_RETURN_INFO);
   const holdingsValueReturn = performanceSummaryReturn(performance) ?? undefined;
   const periodPnl = performancePeriodPnl(performance) ?? undefined;
   const volatility = performance.risk.volatility ?? undefined;
@@ -111,7 +113,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
                 label={t("account.valueReturn")}
                 value={holdingsValueReturn}
                 emptyReason={unavailableReason}
-                infoText={VALUE_RETURN_INFO}
+                infoText={t(VALUE_RETURN_INFO)}
                 isPercentage={true}
                 className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
               />
@@ -128,7 +130,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
                 label={t("account.volatility")}
                 value={volatility}
                 emptyReason={unavailableReason}
-                infoText={HOLDINGS_MODE_VOLATILITY_INFO}
+                infoText={t(HOLDINGS_MODE_VOLATILITY_INFO)}
                 isPercentage={true}
                 tone="neutral"
                 className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
@@ -137,7 +139,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
                 label={t("account.maxDrawdown")}
                 value={maxDrawdown}
                 emptyReason={unavailableReason}
-                infoText={HOLDINGS_MODE_MAX_DRAWDOWN_INFO}
+                infoText={t(HOLDINGS_MODE_MAX_DRAWDOWN_INFO)}
                 isPercentage={true}
                 className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
               />
@@ -177,7 +179,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
               label="Volatility"
               value={volatility}
               emptyReason={unavailableReason}
-              infoText={VOLATILITY_INFO}
+              infoText={t(VOLATILITY_INFO)}
               isPercentage={true}
               tone="neutral"
               className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
@@ -186,7 +188,7 @@ export const PerformanceGrid: React.FC<PerformanceGridProps> = ({
               label="Max Drawdown"
               value={maxDrawdown}
               emptyReason={unavailableReason}
-              infoText={MAX_DRAWDOWN_INFO}
+              infoText={t(MAX_DRAWDOWN_INFO)}
               isPercentage={true}
               className="border-muted/30 bg-muted/30 min-h-16 rounded-md border p-2.5"
             />

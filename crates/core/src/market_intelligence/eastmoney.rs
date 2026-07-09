@@ -5,7 +5,8 @@ use std::{
 };
 
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use chrono::{NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono_tz::Asia::Shanghai;
 use reqwest::{header, StatusCode};
 use serde_json::Value;
 use tokio::sync::Mutex;
@@ -14,6 +15,7 @@ use crate::errors::{Error, Result};
 
 use super::{
     capital_flow::{CapitalFlowProvider, CapitalFlowSnapshot},
+    intraday::{IntradayMarketIntelligenceProvider, MarketIntelligenceIntradaySnapshot},
     market_overview::{MarketDataProvider, MarketSnapshot},
     sector_rotation::{SectorRotationProvider, SectorRotationSnapshot},
     theme_rotation::{ThemeMapping, ThemeMappingProvider},
@@ -21,6 +23,7 @@ use super::{
 
 const SOURCE: &str = "eastmoney";
 const PUSH2_BASE_URL: &str = "https://push2.eastmoney.com";
+const PUSH2HIS_BASE_URL: &str = "https://push2his.eastmoney.com";
 const EASTMONEY_SESSION_URL: &str = "https://quote.eastmoney.com/";
 const EASTMONEY_ORIGIN: &str = "https://quote.eastmoney.com";
 const EASTMONEY_UT: &str = "bd1d9ddb04089700cf9c27f6f7426281";
@@ -56,12 +59,25 @@ impl EastmoneyMarketIntelligenceProvider {
     }
 
     async fn get_json(&self, path: &str) -> Result<Value> {
+        self.get_json_from_base(&self.base_url, path).await
+    }
+
+    async fn get_his_json(&self, path: &str) -> Result<Value> {
+        let base_url = if self.uses_default_base_url() {
+            PUSH2HIS_BASE_URL
+        } else {
+            &self.base_url
+        };
+        self.get_json_from_base(base_url, path).await
+    }
+
+    async fn get_json_from_base(&self, base_url: &str, path: &str) -> Result<Value> {
         if self.uses_default_base_url() {
             self.ensure_session().await?;
         }
         rate_limit(api_key(path)).await;
 
-        let url = format!("{}{}", self.base_url, path);
+        let url = format!("{}{}", base_url, path);
         let mut last_error = None;
 
         for attempt in 0..=MAX_RETRIES {
@@ -105,9 +121,9 @@ impl EastmoneyMarketIntelligenceProvider {
         })))
     }
 
-    async fn fetch_sector_rows(&self, fid: &str, limit: usize) -> Result<Vec<Value>> {
+    async fn fetch_sector_rows(&self, fs: &str, fid: &str, limit: usize) -> Result<Vec<Value>> {
         let path = format!(
-            "/api/qt/clist/get?pn=1&pz={limit}&po=1&np=1&fltt=2&invt=2&fid={fid}&fs=m:90+t:2&fields=f12,f14,f3,f6,f62&ut={EASTMONEY_UT}&_={}",
+            "/api/qt/clist/get?pn=1&pz={limit}&po=1&np=1&fltt=2&invt=2&fid={fid}&fs={fs}&fields=f12,f13,f14,f3,f6,f62&ut={EASTMONEY_UT}&_={}",
             Utc::now().timestamp_millis()
         );
         let value = self.get_json(&path).await?;
@@ -116,6 +132,61 @@ impl EastmoneyMarketIntelligenceProvider {
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default())
+    }
+
+    /// Fetch both industry (m:90+t:2) and concept (m:90+t:3) board rows,
+    /// deduplicating by secid so each board appears only once.
+    async fn fetch_all_sector_rows(
+        &self,
+        fid: &str,
+        industry_limit: usize,
+        concept_limit: usize,
+    ) -> Result<Vec<Value>> {
+        let (industry, concept) = tokio::join!(
+            self.fetch_sector_rows("m:90+t:2", fid, industry_limit),
+            self.fetch_sector_rows("m:90+t:3", fid, concept_limit),
+        );
+        let industry = industry.unwrap_or_default();
+        let concept = concept.unwrap_or_default();
+
+        let mut unique = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for row in industry.into_iter().chain(concept) {
+            if let Some(code) = string_field(&row, "f12") {
+                let secid = eastmoney_secid(&row, &code);
+                if seen.insert(secid) {
+                    unique.push(row);
+                }
+            }
+        }
+        Ok(unique)
+    }
+
+    async fn fetch_sector_minute_klines(
+        &self,
+        secid: &str,
+        sector: &str,
+        market: &str,
+        ranking: Option<i32>,
+        date: NaiveDate,
+    ) -> Result<Vec<MarketIntelligenceIntradaySnapshot>> {
+        let day = date.format("%Y%m%d").to_string();
+        let path = format!(
+            "/api/qt/stock/kline/get?secid={secid}&klt=1&fqt=1&beg={day}&end={day}&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&rtntype=6&ut={EASTMONEY_UT}&_={}",
+            Utc::now().timestamp_millis()
+        );
+        let value = self.get_his_json(&path).await?;
+        let rows = value
+            .pointer("/data/klines")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+
+        Ok(rows
+            .iter()
+            .filter_map(Value::as_str)
+            .filter_map(|row| parse_minute_kline(row, sector, market, ranking))
+            .collect())
     }
 
     fn uses_default_base_url(&self) -> bool {
@@ -171,6 +242,68 @@ impl EastmoneyMarketIntelligenceProvider {
         let status = response.status();
         let body = response.text().await?;
         Ok((status, body))
+    }
+}
+
+#[async_trait]
+impl IntradayMarketIntelligenceProvider for EastmoneyMarketIntelligenceProvider {
+    async fn fetch_intraday_snapshots(
+        &self,
+        date: Option<NaiveDate>,
+    ) -> Result<Vec<MarketIntelligenceIntradaySnapshot>> {
+        let snapshot_date = date.unwrap_or_else(|| Utc::now().date_naive());
+        let rows = self.fetch_all_sector_rows("f62", 100, 100).await?;
+        let now = Utc::now();
+        let mut snapshots = rows
+            .iter()
+            .enumerate()
+            .filter_map(|(index, row)| {
+                Some(MarketIntelligenceIntradaySnapshot {
+                    market: "CN".to_string(),
+                    kind: "sector_rotation".to_string(),
+                    name: string_field(row, "f14")?,
+                    timestamp: now,
+                    open: None,
+                    close: None,
+                    high: None,
+                    low: None,
+                    volume: None,
+                    amount: number_field(row, "f6"),
+                    net_flow: number_field(row, "f62"),
+                    change_pct: number_field(row, "f3"),
+                    turnover: None,
+                    ranking: Some((index + 1) as i32),
+                    source: "eastmoney_realtime".to_string(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        for (index, row) in rows.iter().take(12).enumerate() {
+            let Some(code) = string_field(row, "f12") else {
+                continue;
+            };
+            let Some(sector) = string_field(row, "f14") else {
+                continue;
+            };
+            let secid = eastmoney_secid(row, &code);
+            match self
+                .fetch_sector_minute_klines(
+                    &secid,
+                    &sector,
+                    "CN",
+                    Some((index + 1) as i32),
+                    snapshot_date,
+                )
+                .await
+            {
+                Ok(mut rows) => snapshots.append(&mut rows),
+                Err(error) => {
+                    log::debug!("Failed to fetch Eastmoney minute kline {secid}: {error}")
+                }
+            }
+        }
+
+        Ok(snapshots)
     }
 }
 
@@ -307,7 +440,7 @@ impl SectorRotationProvider for EastmoneyMarketIntelligenceProvider {
         date: Option<NaiveDate>,
     ) -> Result<Vec<SectorRotationSnapshot>> {
         let snapshot_date = date.unwrap_or_else(|| Utc::now().date_naive());
-        let rows = self.fetch_sector_rows("f62", 50).await?;
+        let rows = self.fetch_all_sector_rows("f62", 100, 100).await?;
         Ok(rows
             .iter()
             .enumerate()
@@ -334,7 +467,7 @@ impl CapitalFlowProvider for EastmoneyMarketIntelligenceProvider {
         date: Option<NaiveDate>,
     ) -> Result<Vec<CapitalFlowSnapshot>> {
         let snapshot_date = date.unwrap_or_else(|| Utc::now().date_naive());
-        let rows = self.fetch_sector_rows("f62", 200).await?;
+        let rows = self.fetch_all_sector_rows("f62", 200, 300).await?;
         let net_flows: Vec<f64> = rows
             .iter()
             .filter_map(|row| number_field(row, "f62"))
@@ -371,20 +504,62 @@ pub fn default_theme_mappings() -> Vec<ThemeMapping> {
     vec![
         mapping(
             "AI",
-            &["计算机", "软件开发", "通信设备", "光学光电子", "半导体"],
+            &[
+                "计算机",
+                "软件开发",
+                "通信设备",
+                "光学光电子",
+                "半导体",
+                "人工智能",
+                "AI芯片",
+                "ChatGPT概念",
+                "AIGC概念",
+                "大模型",
+                "算力概念",
+            ],
         ),
         mapping(
             "GPU",
-            &["半导体", "数字芯片设计", "模拟芯片设计", "集成电路封测"],
+            &[
+                "半导体",
+                "数字芯片设计",
+                "模拟芯片设计",
+                "集成电路封测",
+                "GPU",
+                "AI芯片",
+                "先进封装",
+            ],
         ),
-        mapping("HBM", &["半导体", "存储芯片", "数字芯片设计"]),
+        mapping("HBM", &["半导体", "存储芯片", "数字芯片设计", "HBM概念"]),
         mapping(
             "CPO",
-            &["通信设备", "光模块", "光学光电子", "通信网络设备及器件"],
+            &[
+                "通信设备",
+                "光模块",
+                "光学光电子",
+                "通信网络设备及器件",
+                "CPO概念",
+                "共封装光学",
+            ],
         ),
-        mapping("IDC", &["计算机", "通信服务", "互联网服务"]),
-        mapping("机器人", &["机器人", "自动化设备", "通用设备"]),
-        mapping("自动驾驶", &["汽车零部件", "汽车服务", "软件开发"]),
+        mapping(
+            "IDC",
+            &["计算机", "通信服务", "互联网服务", "数据中心", "东数西算"],
+        ),
+        mapping(
+            "机器人",
+            &[
+                "机器人",
+                "机器人概念",
+                "人形机器人",
+                "自动化设备",
+                "通用设备",
+            ],
+        ),
+        mapping(
+            "自动驾驶",
+            &["汽车零部件", "汽车服务", "软件开发", "无人驾驶", "智能驾驶"],
+        ),
         mapping("创新药", &["化学制药", "生物制品", "医疗服务"]),
         mapping("消费电子", &["消费电子", "电子元件", "光学光电子"]),
         mapping("新能源", &["电池", "光伏设备", "风电设备", "能源金属"]),
@@ -417,9 +592,76 @@ fn number_field(row: &Value, field: &str) -> Option<f64> {
     }
 }
 
+fn eastmoney_secid(row: &Value, code: &str) -> String {
+    let market = row
+        .get("f13")
+        .and_then(Value::as_i64)
+        .map(|value| value.to_string())
+        .or_else(|| string_field(row, "f13"))
+        .unwrap_or_else(|| {
+            if code.starts_with('6') {
+                "1".to_string()
+            } else if code.starts_with("BK") {
+                "90".to_string()
+            } else {
+                "0".to_string()
+            }
+        });
+    format!("{market}.{code}")
+}
+
+fn parse_minute_kline(
+    row: &str,
+    sector: &str,
+    market: &str,
+    ranking: Option<i32>,
+) -> Option<MarketIntelligenceIntradaySnapshot> {
+    let parts = row.split(',').collect::<Vec<_>>();
+    let timestamp = parse_eastmoney_minute_timestamp(parts.first().copied()?)?;
+    Some(MarketIntelligenceIntradaySnapshot {
+        market: market.to_string(),
+        kind: "sector_rotation".to_string(),
+        name: sector.to_string(),
+        timestamp,
+        open: parse_kline_number(parts.get(1).copied()),
+        close: parse_kline_number(parts.get(2).copied()),
+        high: parse_kline_number(parts.get(3).copied()),
+        low: parse_kline_number(parts.get(4).copied()),
+        volume: parse_kline_number(parts.get(5).copied()),
+        amount: parse_kline_number(parts.get(6).copied()),
+        net_flow: None,
+        change_pct: parse_kline_number(parts.get(8).copied()),
+        turnover: parse_kline_number(parts.get(10).copied()),
+        ranking,
+        source: "eastmoney_kline_1m".to_string(),
+    })
+}
+
+fn parse_eastmoney_minute_timestamp(value: &str) -> Option<chrono::DateTime<Utc>> {
+    let naive = NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M")
+        .ok()
+        .or_else(|| {
+            NaiveDate::parse_from_str(value, "%Y-%m-%d")
+                .ok()
+                .and_then(|date| date.and_hms_opt(0, 0, 0))
+        })?;
+    Shanghai
+        .from_local_datetime(&naive)
+        .single()
+        .map(|value| value.with_timezone(&Utc))
+}
+
+fn parse_kline_number(value: Option<&str>) -> Option<f64> {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty() && *value != "-")
+        .and_then(|value| value.parse::<f64>().ok())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::TcpListener;
     use wiremock::{matchers::method, Mock, MockServer, ResponseTemplate};
 
     // ─── Helper function tests ───────────────────────────────────
@@ -517,12 +759,43 @@ mod tests {
         assert!(!should_retry_status(StatusCode::BAD_REQUEST));
     }
 
+    #[test]
+    fn test_eastmoney_secid_uses_f13_when_available() {
+        let row = serde_json::json!({"f12": "BK1036", "f13": 90});
+        assert_eq!(eastmoney_secid(&row, "BK1036"), "90.BK1036");
+    }
+
+    #[test]
+    fn test_parse_minute_kline_builds_intraday_snapshot() {
+        let snapshot = parse_minute_kline(
+            "2026-07-03 09:31,10.1,10.2,10.3,10.0,1234,567890,1.2,0.8,0.08,2.1",
+            "半导体",
+            "CN",
+            Some(1),
+        )
+        .unwrap();
+
+        assert_eq!(snapshot.kind, "sector_rotation");
+        assert_eq!(snapshot.name, "半导体");
+        assert_eq!(snapshot.close, Some(10.2));
+        assert_eq!(snapshot.change_pct, Some(0.8));
+        assert_eq!(snapshot.turnover, Some(2.1));
+        assert_eq!(snapshot.source, "eastmoney_kline_1m");
+    }
+
     // ─── fetch_sector_rows tests ─────────────────────────────────
 
-    async fn setup_mock_server() -> (MockServer, EastmoneyMarketIntelligenceProvider) {
-        let server = MockServer::start().await;
+    async fn setup_mock_server() -> Option<(MockServer, EastmoneyMarketIntelligenceProvider)> {
+        let listener = match TcpListener::bind("127.0.0.1:0") {
+            Ok(listener) => listener,
+            Err(error) => {
+                eprintln!("Skipping Eastmoney HTTP mock test: cannot bind local port ({error})");
+                return None;
+            }
+        };
+        let server = MockServer::builder().listener(listener).start().await;
         let provider = EastmoneyMarketIntelligenceProvider::with_base_url(&server.uri());
-        (server, provider)
+        Some((server, provider))
     }
 
     fn sector_list_response() -> serde_json::Value {
@@ -541,7 +814,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_sector_rows_returns_diff_array() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_json(sector_list_response()))
@@ -549,7 +824,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let result = provider.fetch_sector_rows("f62", 50).await.unwrap();
+        let result = provider.fetch_sector_rows("m:90+t:2", "f62", 50).await.unwrap();
         assert_eq!(result.len(), 3);
         assert_eq!(string_field(&result[0], "f14"), Some("电子".to_string()));
         assert_eq!(string_field(&result[1], "f14"), Some("通信".to_string()));
@@ -559,7 +834,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_sector_rows_returns_empty_when_no_diff() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -568,13 +845,15 @@ mod tests {
             .mount(&server)
             .await;
 
-        let result = provider.fetch_sector_rows("f62", 50).await.unwrap();
+        let result = provider.fetch_sector_rows("m:90+t:2", "f62", 50).await.unwrap();
         assert!(result.is_empty());
     }
 
     #[tokio::test]
     async fn test_fetch_sector_rows_returns_empty_when_diff_null() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -583,7 +862,7 @@ mod tests {
             .mount(&server)
             .await;
 
-        let result = provider.fetch_sector_rows("f62", 50).await.unwrap();
+        let result = provider.fetch_sector_rows("m:90+t:2", "f62", 50).await.unwrap();
         assert!(result.is_empty());
     }
 
@@ -603,7 +882,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_market_snapshots_parses_all_indices() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_json(market_snapshot_response()))
@@ -633,7 +914,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_market_snapshots_filters_incomplete_rows() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         // Row without f2 (price) should be filtered out
         Mock::given(method("GET"))
@@ -658,17 +941,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_sector_rotation_enumerates_and_ranks() {
-        let (server, provider) = setup_mock_server().await;
-
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
+    
+        let body = serde_json::json!({
+            "data": {
+                "diff": [
+                    {"f12": "BK0001", "f13": 90, "f14": "电子", "f62": 1.0e8, "f3": 2.5, "f6": 1.0e9},
+                    {"f12": "BK0002", "f13": 90, "f14": "通信", "f62": 5.0e7, "f3": 1.2, "f6": 5.0e8}
+                ]
+            }
+        });
         Mock::given(method("GET"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "diff": [
-                        {"f14": "电子", "f62": 1.0e8, "f3": 2.5, "f6": 1.0e9},
-                        {"f14": "通信", "f62": 5.0e7, "f3": 1.2, "f6": 5.0e8}
-                    ]
-                }
-            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(body))
             .mount(&server)
             .await;
 
@@ -692,18 +978,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_sector_rotation_filters_missing_sector_name() {
-        let (server, provider) = setup_mock_server().await;
-
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
+    
+        let body = serde_json::json!({
+            "data": {
+                "diff": [
+                    {"f12": "BK0001", "f13": 90, "f14": "电子", "f62": 1.0e8, "f3": 2.5, "f6": 1.0e9},
+                    {"f12": "BK0002", "f13": 90, "f62": 5.0e7, "f3": 1.2, "f6": 5.0e8},
+                    {"f12": "BK0003", "f13": 90, "f14": "半导体", "f62": 3.0e7, "f3": -0.5, "f6": 3.0e8}
+                ]
+            }
+        });
         Mock::given(method("GET"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "diff": [
-                        {"f14": "电子", "f62": 1.0e8, "f3": 2.5, "f6": 1.0e9},
-                        {"f62": 5.0e7, "f3": 1.2, "f6": 5.0e8},   // missing f14
-                        {"f14": "半导体", "f62": 3.0e7, "f3": -0.5, "f6": 3.0e8}
-                    ]
-                }
-            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(body))
             .mount(&server)
             .await;
 
@@ -721,21 +1010,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_capital_flow_calculates_inflow_outflow() {
-        let (server, provider) = setup_mock_server().await;
-
-        // Mix of positive and negative net flows
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
+    
+        let body = serde_json::json!({
+            "data": {
+                "diff": [
+                    {"f12": "BK0001", "f13": 90, "f14": "电子", "f62": 100.0},
+                    {"f12": "BK0002", "f13": 90, "f14": "通信", "f62": 50.0},
+                    {"f12": "BK0003", "f13": 90, "f14": "银行", "f62": -30.0},
+                    {"f12": "BK0004", "f13": 90, "f14": "地产", "f62": -20.0},
+                    {"f12": "BK0005", "f13": 90, "f14": "消费", "f62": 10.0}
+                ]
+            }
+        });
         Mock::given(method("GET"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "diff": [
-                        {"f14": "电子", "f62": 100.0},
-                        {"f14": "通信", "f62": 50.0},
-                        {"f14": "银行", "f62": -30.0},
-                        {"f14": "地产", "f62": -20.0},
-                        {"f14": "消费", "f62": 10.0}
-                    ]
-                }
-            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(body))
             .mount(&server)
             .await;
 
@@ -756,17 +1047,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_capital_flow_handles_all_negative() {
-        let (server, provider) = setup_mock_server().await;
-
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
+    
+        let body = serde_json::json!({
+            "data": {
+                "diff": [
+                    {"f12": "BK0003", "f13": 90, "f14": "银行", "f62": -50.0},
+                    {"f12": "BK0004", "f13": 90, "f14": "地产", "f62": -30.0}
+                ]
+            }
+        });
         Mock::given(method("GET"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "data": {
-                    "diff": [
-                        {"f14": "银行", "f62": -50.0},
-                        {"f14": "地产", "f62": -30.0}
-                    ]
-                }
-            })))
+            .respond_with(ResponseTemplate::new(200).set_body_json(body))
             .mount(&server)
             .await;
 
@@ -781,7 +1075,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_capital_flow_handles_empty_sectors() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -803,14 +1099,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_sector_rows_returns_error_on_http_500() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(500))
             .mount(&server)
             .await;
 
-        let result = provider.fetch_sector_rows("f62", 50).await;
+        let result = provider.fetch_sector_rows("m:90+t:2", "f62", 50).await;
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("HTTP 500"));
@@ -818,14 +1116,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_sector_rows_returns_error_on_invalid_json() {
-        let (server, provider) = setup_mock_server().await;
+        let Some((server, provider)) = setup_mock_server().await else {
+            return;
+        };
 
         Mock::given(method("GET"))
             .respond_with(ResponseTemplate::new(200).set_body_string("not json at all"))
             .mount(&server)
             .await;
 
-        let result = provider.fetch_sector_rows("f62", 50).await;
+        let result = provider.fetch_sector_rows("m:90+t:2", "f62", 50).await;
         assert!(result.is_err());
         let err = result.unwrap_err().to_string();
         assert!(err.contains("Invalid Eastmoney response"));

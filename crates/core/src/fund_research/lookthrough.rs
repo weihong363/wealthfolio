@@ -143,9 +143,7 @@ pub fn portfolio_fund_lookthrough(
                 market: holding.market.clone(),
             };
 
-            let entry = by_asset
-                .entry(key.clone())
-                .or_insert_with(LookthroughAccumulator::default);
+            let entry = by_asset.entry(key.clone()).or_default();
             entry.exposure_value_base += exposure_value;
             entry.source_funds.push(FundLookthroughContribution {
                 fund_code: position.fund_code.clone(),

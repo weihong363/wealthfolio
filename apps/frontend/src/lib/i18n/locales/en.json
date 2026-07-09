@@ -1964,6 +1964,20 @@
     "closePrice": "Close",
     "stockQuoteLoadFailed": "Quote data failed to load. Please try again later."
   },
+  "metricInfo": {
+    "timeWeightedReturn": "Time-weighted return (TWR) measures investment performance after removing the effect of deposits and withdrawals. Periods under one year are shown as selected-period returns; periods of one year or longer are shown annualized when available.",
+    "irrReturn": "Internal rate of return (IRR) measures money-weighted performance using the size and timing of external cash flows. For periods of one year or longer, annualized XIRR is the standard display.",
+    "simpleReturn": "Simple return compares total gain or loss with net contributions. It is cumulative and not time weighted.",
+    "valueReturn": "Value return measures the change in account value over the selected period when transaction-level cash flows are not available.",
+    "priceReturn": "Price return measures the selected symbol's price change over the selected period.",
+    "volatility": "Volatility measures the dispersion of returns for a given investment. Higher volatility means the investment can change dramatically over a short period. It is annualized from calendar-daily returns.",
+    "maxDrawdown": "Maximum Drawdown represents the largest percentage decline from a peak to a subsequent trough in portfolio value during the specified period. It indicates downside risk.",
+    "annualizedReturn": "Annualized return is the average yearly compounded rate for the selected period. It is not the cumulative total gain or loss.",
+    "holdingsModeVolatility": "Volatility of account value changes. Based on daily valuations without adjusting for deposits or withdrawals. Reflects how much the market value fluctuates.",
+    "holdingsModeMaxDrawdown": "Largest peak-to-trough decline in account value. Based on daily valuations without adjusting for deposits or withdrawals.",
+    "timeWeightedReturnWithHover": "Time-weighted return (TWR) measures investment performance after removing the effect of deposits and withdrawals. Periods under one year are shown as selected-period returns; periods of one year or longer are shown annualized when available. Hover the value to see cumulative TWR.",
+    "irrReturnWithHover": "Internal rate of return (IRR) measures money-weighted performance using the size and timing of external cash flows. For periods of one year or longer, annualized XIRR is the standard display. Hover the value to see the selected-period IRR."
+  },
   "marketIntelligence": {
     "title": "Market Intelligence",
     "subtitle": "Market snapshots, flows, rotations, and portfolio exposure from the data layer.",
@@ -1976,12 +1990,86 @@
     "refreshSuccess": "Market intelligence refreshed.",
     "refreshFailed": "Failed to refresh market intelligence.",
     "noSnapshots": "No snapshots",
+    "sectionsInfo": {
+      "marketOverview": "Current prices, changes, and turnover of major benchmark indices from Yahoo Finance / Alpha Vantage.",
+      "capitalFlow": "Aggregated net capital inflow/outflow across all sectors via the Eastmoney sector API.",
+      "sectorRotation": "Sector-level net capital flow, change percentage, and turnover ranked by Eastmoney industry data.",
+      "themeRotation": "Theme-level capital heat and price strength calculated by mapping sectors to themes (e.g. AI = Computer + Software + Telecom).",
+      "portfolioExposure": "Theme-level exposure aggregated from fund lookthrough analysis (AI, Robotics, New Energy, etc.)."
+    },
     "sections": {
       "marketOverview": "Market Overview",
       "capitalFlow": "Capital Flow",
       "sectorRotation": "Sector Rotation",
       "themeRotation": "Theme Rotation",
       "portfolioExposure": "Portfolio Exposure"
+    },
+    "trends": {
+      "title": "Flow Trends",
+      "subtitle": "Capital flow, sector rotation, and theme rotation trends aggregated by the available time granularity.",
+      "emptyTitle": "No trend lines yet",
+      "emptyDesc": "At least two snapshot points are needed to show useful trends. Refresh or import market intelligence data first.",
+      "capitalFlow": "Capital Flow",
+      "capitalFlowDesc": "Cumulative net flow by market and flow category.",
+      "sectorRotation": "Sector Rotation",
+      "sectorRotationDesc": "Capital-flow or price-strength trends and window rankings by sector.",
+      "themeRotation": "Theme Rotation",
+      "themeRotationDesc": "Theme capital heat and price strength trends aggregated from theme mapping rules.",
+      "topInflows": "Top Inflows",
+      "topOutflows": "Top Outflows",
+      "topRisers": "Top Risers",
+      "topFallers": "Top Fallers",
+      "topThemes": "Top Themes",
+      "risingThemes": "Rising Themes",
+      "fallingThemes": "Falling Themes",
+      "flowScore": "Theme Capital Heat",
+      "momentum": "Theme Price Strength",
+      "needMoreData": "There is not enough data in this window to draw a trend line.",
+      "windows": {
+        "3d": "3D",
+        "5d": "5D",
+        "10d": "10D",
+        "20d": "20D",
+        "history": "History"
+      }
+    },
+    "replay": {
+      "ranking": "Window Ranking",
+      "rankingDesc": "Top inflows and outflows by cumulative strength in the active window.",
+      "rankingInfo": "Window ranking uses real net inflow and net outflow amounts first. If the active window has no negative flow snapshots, the right side falls back to top decliners or weakest names and shows the cumulative window percentage.",
+      "chartDesc": "Daily replay view showing cumulative sector or theme strength over the active window.",
+      "chartInfo": "The line starts from 0 at the beginning of the window and compounds daily percentage changes as (1+r1)*(1+r2)*...-1. This is a daily replay view and does not include intraday minute-level movement.",
+      "lines": "lines",
+      "mode": {
+        "sector": "Sectors",
+        "theme": "Themes"
+      }
+    },
+    "breadth": {
+      "title": "Market Breadth",
+      "subtitle": "Latest sector, concept, and theme snapshots for reading upside breadth, downside breadth, and hotspot structure.",
+      "info": "Market breadth uses the same active-window cumulative calculation as the trend chart. Up, down, and average values are calculated from the currently filtered sector/theme samples.",
+      "search": "Search sectors or themes",
+      "kind": {
+        "all": "All",
+        "sector": "Sectors",
+        "theme": "Themes"
+      },
+      "direction": {
+        "all": "All",
+        "up": "Up",
+        "down": "Down"
+      },
+      "stats": {
+        "total": "Samples",
+        "up": "Up",
+        "down": "Down",
+        "average": "Avg Strength"
+      },
+      "metrics": {
+        "window": "Window Total",
+        "latest": "Latest Strength"
+      }
     },
     "quote": {
       "market": "Market",

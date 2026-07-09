@@ -550,6 +550,7 @@ pub async fn build_state(config: &Config) -> anyhow::Result<Arc<AppState>> {
             market_intelligence_repository.clone(),
             market_intelligence_repository.clone(),
             market_intelligence_repository.clone(),
+            market_intelligence_repository.clone(),
             market_intelligence_repository,
         )
         .with_quote_service(quote_service.clone())

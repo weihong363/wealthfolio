@@ -1937,6 +1937,10 @@
     "contribution": "贡献",
     "fundsCount": "{{count}} 只基金",
     "distribution": "持仓分布",
+    "sectionsInfo": {
+      "distribution": "按当前持有基金市值加权后的底层资产分布，支持按行业、主题、个股三种维度查看。",
+      "lookthrough": "穿透组合中所有基金的前十持仓，聚合展示每只底层个股的总暴露市值和来源基金。"
+    },
     "distributionDesc": "按当前持有基金市值加权后的底层资产暴露",
     "distributionModes": {
       "sector": "按行业",
@@ -1979,6 +1983,20 @@
     "closePrice": "收盘价",
     "stockQuoteLoadFailed": "行情数据暂时加载失败，请稍后重试。"
   },
+  "metricInfo": {
+    "timeWeightedReturn": "时间加权回报率 (TWR) 衡量扣除存取款影响后的投资表现。不足一年的期间显示为选定期间回报；一年及以上的期间在可用时显示为年化回报。",
+    "irrReturn": "内部回报率 (IRR) 使用外部现金流的规模和时点衡量资金加权表现。一年及以上的期间，标准展示为年化 XIRR。",
+    "simpleReturn": "简单回报将总收益或损失与净投入进行比较。它是累计值，非时间加权。",
+    "valueReturn": "价值回报衡量选定期间内账户价值的变化，适用于无法获取交易级现金流数据的情况。",
+    "priceReturn": "价格回报衡量选定标的在选定期间内的价格变化。",
+    "volatility": "波动率衡量投资回报的离散程度。波动率越高，意味着投资在短期内可能出现剧烈变化。基于日历日回报年化计算。",
+    "maxDrawdown": "最大回撤代表指定期间内组合价值从峰值到后续谷底的最大百分比跌幅。反映下行风险。",
+    "annualizedReturn": "年化回报是选定期间的平均年化复合收益率。它不是累计总收益或损失。",
+    "holdingsModeVolatility": "账户价值变动的波动率。基于每日估值，不调整存取款。反映市场价值的波动程度。",
+    "holdingsModeMaxDrawdown": "账户价值从峰值到谷底的最大跌幅。基于每日估值，不调整存取款。",
+    "timeWeightedReturnWithHover": "时间加权回报率 (TWR) 衡量扣除存取款影响后的投资表现。不足一年的期间显示为选定期间回报；一年及以上的期间在可用时显示为年化回报。悬停数值可查看累计 TWR。",
+    "irrReturnWithHover": "内部回报率 (IRR) 使用外部现金流的规模和时点衡量资金加权表现。一年及以上的期间，标准展示为年化 XIRR。悬停数值可查看选定期间 IRR。"
+  },
   "marketIntelligence": {
     "title": "市场情报",
     "subtitle": "来自数据层的市场快照、资金流、行业/主题轮动与组合暴露。",
@@ -1991,12 +2009,86 @@
     "refreshSuccess": "市场情报已刷新。",
     "refreshFailed": "市场情报刷新失败。",
     "noSnapshots": "暂无快照",
+    "sectionsInfo": {
+      "marketOverview": "基于 Yahoo Finance / Alpha Vantage 等数据源，反映主要基准指数的当前价格、涨跌幅和成交额。",
+      "capitalFlow": "通过东方财富板块行情接口，统计全市场各板块净资金流入/流出，汇总为整体资金流向。",
+      "sectorRotation": "基于东方财富行业板块数据，展示各板块的资金净流入、涨跌幅和成交额排名。",
+      "themeRotation": "根据行业板块数据，通过内置映射规则（如 AI = 计算机+软件开发+通信设备）聚合计算各主题的资金热度和涨跌强度。",
+      "portfolioExposure": "基于组合中基金的穿透分析，按主题（AI、机器人、新能源等）汇总持仓暴露敞口。"
+    },
     "sections": {
       "marketOverview": "市场概览",
       "capitalFlow": "资金流向",
       "sectorRotation": "行业轮动",
       "themeRotation": "主题轮动",
       "portfolioExposure": "组合暴露"
+    },
+    "trends": {
+      "title": "资金趋势",
+      "subtitle": "按可用时间粒度聚合资金流向、行业轮动和主题轮动，用于观察持续流入、持续流出和轮动变化。",
+      "emptyTitle": "暂无趋势曲线",
+      "emptyDesc": "至少需要 2 个快照点才能形成可读趋势。请先刷新或导入市场情报数据。",
+      "capitalFlow": "资金流向",
+      "capitalFlowDesc": "按市场与资金类别聚合的累计净流入曲线。",
+      "sectorRotation": "行业轮动",
+      "sectorRotationDesc": "按行业聚合的资金流向或涨跌强度曲线和窗口排行。",
+      "themeRotation": "主题轮动",
+      "themeRotationDesc": "基于主题映射规则聚合的主题资金热度和主题涨跌强度趋势。",
+      "topInflows": "流入 TOP",
+      "topOutflows": "流出 TOP",
+      "topRisers": "上涨 TOP",
+      "topFallers": "下跌 TOP",
+      "topThemes": "主题 TOP",
+      "risingThemes": "上升主题 TOP",
+      "fallingThemes": "下降主题 TOP",
+      "flowScore": "主题资金热度",
+      "momentum": "主题涨跌强度",
+      "needMoreData": "当前窗口内数据不足，暂时无法绘制趋势曲线。",
+      "windows": {
+        "3d": "3日",
+        "5d": "5日",
+        "10d": "10日",
+        "20d": "20日",
+        "history": "历史"
+      }
+    },
+    "replay": {
+      "ranking": "窗口排行",
+      "rankingDesc": "按当前窗口累计强弱展示流入和流出前列。",
+      "rankingInfo": "窗口排行优先使用当前窗口内真实资金或热度净流入、净流出金额。若当前窗口没有负向资金流快照，右侧会回退显示下跌或走弱 TOP，并以窗口累计百分比展示。",
+      "chartDesc": "日级复刻版，按当前窗口绘制行业或主题的累计强弱曲线。",
+      "chartInfo": "曲线以窗口起点为 0，按每日涨跌幅进行复合累计，计算方式为 (1+r1)*(1+r2)*...-1。当前版本是日级复刻版，不包含盘中分钟级波动。",
+      "lines": "条线",
+      "mode": {
+        "sector": "行业",
+        "theme": "主题"
+      }
+    },
+    "breadth": {
+      "title": "全市场热度",
+      "subtitle": "汇总最新行业、概念和主题快照，用于观察上涨扩散、下跌扩散和热点结构。",
+      "info": "全市场热度使用与上方趋势图相同的窗口累计口径。上涨、下跌和均值都基于筛选后的行业/主题样本计算，用于观察市场扩散程度。",
+      "search": "搜索行业或主题",
+      "kind": {
+        "all": "全部",
+        "sector": "行业",
+        "theme": "主题"
+      },
+      "direction": {
+        "all": "全部",
+        "up": "上涨",
+        "down": "下跌"
+      },
+      "stats": {
+        "total": "样本数",
+        "up": "上涨",
+        "down": "下跌",
+        "average": "平均强度"
+      },
+      "metrics": {
+        "window": "窗口累计",
+        "latest": "最新强度"
+      }
     },
     "quote": {
       "market": "市场",

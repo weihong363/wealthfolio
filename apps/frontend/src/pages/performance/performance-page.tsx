@@ -149,31 +149,31 @@ function metricPresentation(metric: PerformanceMetric, t: TFunction): {
       return {
         label: t("insights.timeWeightedReturn"),
         mobileLabel: "TWR",
-        infoText: TIME_WEIGHTED_RETURN_INFO,
+        infoText: t(TIME_WEIGHTED_RETURN_INFO),
       };
     case "irr":
       return {
         label: "IRR",
         mobileLabel: "IRR",
-        infoText: IRR_RETURN_INFO,
+        infoText: t(IRR_RETURN_INFO),
       };
     case "valueReturn":
       return {
         label: t("insights.valueReturn"),
         mobileLabel: t("insights.valueReturnShort"),
-        infoText: VALUE_RETURN_INFO,
+        infoText: t(VALUE_RETURN_INFO),
       };
     case "volatility":
       return {
         label: t("insights.volatility"),
         mobileLabel: t("insights.volatilityShort"),
-        infoText: volatilityInfo,
+        infoText: t(volatilityInfo),
       };
     case "drawdown":
       return {
         label: t("insights.maxDrawdown"),
         mobileLabel: t("insights.drawdownShort"),
-        infoText: maxDrawdownInfo,
+        infoText: t(maxDrawdownInfo),
       };
   }
 }
@@ -954,7 +954,7 @@ export default function PerformancePage() {
         ? {
             label: t("insights.priceReturn"),
             mobileLabel: t("insights.priceReturnShort"),
-            infoText: PRICE_RETURN_INFO,
+            infoText: t(PRICE_RETURN_INFO),
           }
         : metricPresentation(selectedMetric, t);
     const selectedMetricValue = displayMetricValue(found, selectedMetric);
@@ -1274,7 +1274,7 @@ export default function PerformancePage() {
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
                                 label={selectedItemData?.mobileLabel ?? t("insights.return")}
-                                infoText={selectedItemData?.infoText ?? SIMPLE_RETURN_INFO}
+                                infoText={selectedItemData?.infoText ?? t(SIMPLE_RETURN_INFO)}
                                 warningText={selectedItemData?.returnWarnings}
                                 value={selectedItemData?.selectedMetricValue ?? null}
                                 reason={selectedItemData?.selectedMetricReason}
@@ -1287,7 +1287,7 @@ export default function PerformancePage() {
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
                                 label={t("insights.annualized")}
-                                infoText={annualizedReturnInfo}
+                                infoText={t(annualizedReturnInfo)}
                                 value={selectedItemData?.annualizedReturn ?? null}
                                 align="left"
                                 valueClassName="text-base"
@@ -1298,7 +1298,7 @@ export default function PerformancePage() {
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
                                 label={t("insights.volatility")}
-                                infoText={volatilityInfo}
+                                infoText={t(volatilityInfo)}
                                 warningText={selectedItemData?.volatilityWarnings}
                                 value={selectedItemData?.volatility ?? null}
                                 tone="neutral"
@@ -1311,7 +1311,7 @@ export default function PerformancePage() {
                             <div className="bg-muted/30 rounded-lg px-3 py-2">
                               <HeaderMetric
                                 label={t("insights.maxDrawdown")}
-                                infoText={maxDrawdownInfo}
+                                infoText={t(maxDrawdownInfo)}
                                 value={selectedItemData?.maxDrawdown ?? null}
                                 align="left"
                                 valueClassName="text-base"
@@ -1344,7 +1344,7 @@ export default function PerformancePage() {
                       >
                         <HeaderMetric
                           label={selectedItemData?.label ?? t("insights.return")}
-                          infoText={selectedItemData?.infoText ?? SIMPLE_RETURN_INFO}
+                          infoText={selectedItemData?.infoText ?? t(SIMPLE_RETURN_INFO)}
                           warningText={selectedItemData?.returnWarnings}
                           value={selectedItemData?.selectedMetricValue ?? null}
                           reason={selectedItemData?.selectedMetricReason}
@@ -1352,13 +1352,13 @@ export default function PerformancePage() {
                         />
                         <HeaderMetric
                           label={t("insights.annualizedReturn")}
-                          infoText={annualizedReturnInfo}
+                          infoText={t(annualizedReturnInfo)}
                           value={selectedItemData?.annualizedReturn ?? null}
                           valueClassName="text-base"
                         />
                         <HeaderMetric
                           label={t("insights.volatility")}
-                          infoText={volatilityInfo}
+                          infoText={t(volatilityInfo)}
                           warningText={selectedItemData?.volatilityWarnings}
                           value={selectedItemData?.volatility ?? null}
                           tone="neutral"
@@ -1366,7 +1366,7 @@ export default function PerformancePage() {
                         />
                         <HeaderMetric
                           label={t("insights.maxDrawdown")}
-                          infoText={maxDrawdownInfo}
+                          infoText={t(maxDrawdownInfo)}
                           value={selectedItemData?.maxDrawdown ?? null}
                           valueClassName="text-base"
                         />

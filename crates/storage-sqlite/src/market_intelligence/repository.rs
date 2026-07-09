@@ -14,7 +14,8 @@ use crate::db::{get_connection, WriteHandle};
 use crate::errors::StorageError;
 use wealthfolio_core::errors::{Error, Result};
 use wealthfolio_core::market_intelligence::{
-    CapitalFlowRepository, CapitalFlowSnapshot, MarketSnapshot, MarketSnapshotRepository,
+    CapitalFlowRepository, CapitalFlowSnapshot, MarketIntelligenceIntradayRepository,
+    MarketIntelligenceIntradaySnapshot, MarketSnapshot, MarketSnapshotRepository,
     PortfolioThemeExposure, PortfolioThemeExposureRepository, SectorRotationRepository,
     SectorRotationSnapshot, ThemeRotationRepository, ThemeRotationSnapshot,
 };
@@ -114,6 +115,40 @@ struct PortfolioThemeExposureRow {
     source: String,
     #[diesel(sql_type = Text)]
     timestamp: String,
+}
+
+#[derive(QueryableByName)]
+struct IntradaySnapshotRow {
+    #[diesel(sql_type = Text)]
+    market: String,
+    #[diesel(sql_type = Text)]
+    kind: String,
+    #[diesel(sql_type = Text)]
+    name: String,
+    #[diesel(sql_type = Text)]
+    timestamp: String,
+    #[diesel(sql_type = Nullable<Double>)]
+    open: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    close: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    high: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    low: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    volume: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    amount: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    net_flow: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    change_pct: Option<f64>,
+    #[diesel(sql_type = Nullable<Double>)]
+    turnover: Option<f64>,
+    #[diesel(sql_type = Nullable<Integer>)]
+    ranking: Option<i32>,
+    #[diesel(sql_type = Text)]
+    source: String,
 }
 
 #[async_trait]
@@ -457,6 +492,88 @@ impl PortfolioThemeExposureRepository for MarketIntelligenceSqliteRepository {
     }
 }
 
+#[async_trait]
+impl MarketIntelligenceIntradayRepository for MarketIntelligenceSqliteRepository {
+    async fn save_intraday_snapshots(
+        &self,
+        snapshots: &[MarketIntelligenceIntradaySnapshot],
+    ) -> Result<()> {
+        let snapshots = snapshots.to_vec();
+        self.writer
+            .exec_tx(move |tx| {
+                for snapshot in &snapshots {
+                    sql_query(
+                        "INSERT OR IGNORE INTO market_intelligence_intraday_snapshots
+                         (id, market, kind, name, timestamp, open, close, high, low, volume,
+                          amount, net_flow, change_pct, turnover, ranking, source, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    )
+                    .bind::<Text, _>(stable_id(
+                        "market_intelligence_intraday",
+                        &[
+                            &snapshot.market,
+                            &snapshot.kind,
+                            &snapshot.name,
+                            &snapshot.timestamp.to_rfc3339(),
+                            &snapshot.source,
+                        ],
+                    ))
+                    .bind::<Text, _>(&snapshot.market)
+                    .bind::<Text, _>(&snapshot.kind)
+                    .bind::<Text, _>(&snapshot.name)
+                    .bind::<Text, _>(snapshot.timestamp.to_rfc3339())
+                    .bind::<Nullable<Double>, _>(snapshot.open)
+                    .bind::<Nullable<Double>, _>(snapshot.close)
+                    .bind::<Nullable<Double>, _>(snapshot.high)
+                    .bind::<Nullable<Double>, _>(snapshot.low)
+                    .bind::<Nullable<Double>, _>(snapshot.volume)
+                    .bind::<Nullable<Double>, _>(snapshot.amount)
+                    .bind::<Nullable<Double>, _>(snapshot.net_flow)
+                    .bind::<Nullable<Double>, _>(snapshot.change_pct)
+                    .bind::<Nullable<Double>, _>(snapshot.turnover)
+                    .bind::<Nullable<Integer>, _>(snapshot.ranking)
+                    .bind::<Text, _>(&snapshot.source)
+                    .bind::<Text, _>(Utc::now().to_rfc3339())
+                    .execute(tx.conn())
+                    .map_err(StorageError::QueryFailed)?;
+                }
+                Ok(())
+            })
+            .await
+    }
+
+    async fn intraday_snapshots(
+        &self,
+        kind: Option<&str>,
+        name: Option<&str>,
+        since: Option<DateTime<Utc>>,
+        limit: usize,
+    ) -> Result<Vec<MarketIntelligenceIntradaySnapshot>> {
+        let mut conn = get_connection(&self.pool)?;
+        let since = since.map(|value| value.to_rfc3339());
+        let rows = sql_query(
+            "SELECT market, kind, name, timestamp, open, close, high, low, volume,
+                    amount, net_flow, change_pct, turnover, ranking, source
+             FROM market_intelligence_intraday_snapshots
+             WHERE (? IS NULL OR kind = ?)
+               AND (? IS NULL OR name = ?)
+               AND (? IS NULL OR timestamp >= ?)
+             ORDER BY timestamp DESC, ranking ASC
+             LIMIT ?",
+        )
+        .bind::<Nullable<Text>, _>(kind)
+        .bind::<Nullable<Text>, _>(kind)
+        .bind::<Nullable<Text>, _>(name)
+        .bind::<Nullable<Text>, _>(name)
+        .bind::<Nullable<Text>, _>(since.as_deref())
+        .bind::<Nullable<Text>, _>(since.as_deref())
+        .bind::<Integer, _>(limit as i32)
+        .load::<IntradaySnapshotRow>(&mut conn)
+        .map_err(StorageError::QueryFailed)?;
+        rows.into_iter().map(TryInto::try_into).collect()
+    }
+}
+
 fn latest_by_key<T, K>(rows: Vec<T>, key: impl Fn(&T) -> K) -> Vec<T>
 where
     K: Ord,
@@ -541,6 +658,30 @@ impl TryFrom<PortfolioThemeExposureRow> for PortfolioThemeExposure {
             market_value: row.market_value,
             source: row.source,
             timestamp: parse_datetime(&row.timestamp)?,
+        })
+    }
+}
+
+impl TryFrom<IntradaySnapshotRow> for MarketIntelligenceIntradaySnapshot {
+    type Error = Error;
+
+    fn try_from(row: IntradaySnapshotRow) -> Result<Self> {
+        Ok(Self {
+            market: row.market,
+            kind: row.kind,
+            name: row.name,
+            timestamp: parse_datetime(&row.timestamp)?,
+            open: row.open,
+            close: row.close,
+            high: row.high,
+            low: row.low,
+            volume: row.volume,
+            amount: row.amount,
+            net_flow: row.net_flow,
+            change_pct: row.change_pct,
+            turnover: row.turnover,
+            ranking: row.ranking,
+            source: row.source,
         })
     }
 }

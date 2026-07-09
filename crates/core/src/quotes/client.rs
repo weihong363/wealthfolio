@@ -268,6 +268,9 @@ impl MarketDataClient {
                         return Ok(Some(Arc::new(provider)));
                     }
                 }
+                if let Ok(provider) = AlphaVantageProvider::from_env() {
+                    return Ok(Some(Arc::new(provider)));
+                }
                 Ok(None)
             }
             DATA_SOURCE_METAL_PRICE_API => {
