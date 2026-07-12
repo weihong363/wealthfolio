@@ -14,10 +14,11 @@ use crate::db::{get_connection, WriteHandle};
 use crate::errors::StorageError;
 use wealthfolio_core::errors::{Error, Result};
 use wealthfolio_core::market_intelligence::{
-    CapitalFlowRepository, CapitalFlowSnapshot, MarketIntelligenceIntradayRepository,
-    MarketIntelligenceIntradaySnapshot, MarketSnapshot, MarketSnapshotRepository,
-    PortfolioThemeExposure, PortfolioThemeExposureRepository, SectorRotationRepository,
-    SectorRotationSnapshot, ThemeRotationRepository, ThemeRotationSnapshot,
+    CapitalFlowRepository, CapitalFlowSnapshot, MacroCapitalRepository, MacroCapitalSnapshot,
+    MarketIntelligenceIntradayRepository, MarketIntelligenceIntradaySnapshot, MarketSnapshot,
+    MarketSnapshotRepository, PortfolioThemeExposure, PortfolioThemeExposureRepository,
+    SectorRotationRepository, SectorRotationSnapshot, ThemeRotationRepository,
+    ThemeRotationSnapshot,
 };
 
 pub struct MarketIntelligenceSqliteRepository {
@@ -147,6 +148,24 @@ struct IntradaySnapshotRow {
     turnover: Option<f64>,
     #[diesel(sql_type = Nullable<Integer>)]
     ranking: Option<i32>,
+    #[diesel(sql_type = Text)]
+    source: String,
+}
+
+#[derive(QueryableByName)]
+struct MacroCapitalRow {
+    #[diesel(sql_type = Text)]
+    indicator: String,
+    #[diesel(sql_type = Text)]
+    market: String,
+    #[diesel(sql_type = Text)]
+    date: String,
+    #[diesel(sql_type = Double)]
+    value: f64,
+    #[diesel(sql_type = Nullable<Double>)]
+    change: Option<f64>,
+    #[diesel(sql_type = Nullable<Text>)]
+    unit: Option<String>,
     #[diesel(sql_type = Text)]
     source: String,
 }
@@ -574,6 +593,73 @@ impl MarketIntelligenceIntradayRepository for MarketIntelligenceSqliteRepository
     }
 }
 
+#[async_trait]
+impl MacroCapitalRepository for MarketIntelligenceSqliteRepository {
+    async fn save_macro_capital_snapshots(&self, snapshots: &[MacroCapitalSnapshot]) -> Result<()> {
+        let snapshots = snapshots.to_vec();
+        self.writer
+            .exec_tx(move |tx| {
+                for snapshot in &snapshots {
+                    sql_query(
+                        "INSERT OR IGNORE INTO macro_capital_snapshots
+                         (id, indicator, market, date, value, change, unit, source, created_at)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    )
+                    .bind::<Text, _>(stable_id(
+                        "macro_capital",
+                        &[
+                            &snapshot.indicator,
+                            &snapshot.market,
+                            &snapshot.date.to_string(),
+                            &snapshot.source,
+                        ],
+                    ))
+                    .bind::<Text, _>(&snapshot.indicator)
+                    .bind::<Text, _>(&snapshot.market)
+                    .bind::<Text, _>(snapshot.date.to_string())
+                    .bind::<Double, _>(snapshot.value)
+                    .bind::<Nullable<Double>, _>(snapshot.change)
+                    .bind::<Nullable<Text>, _>(snapshot.unit.clone())
+                    .bind::<Text, _>(&snapshot.source)
+                    .bind::<Text, _>(Utc::now().to_rfc3339())
+                    .execute(tx.conn())
+                    .map_err(StorageError::QueryFailed)?;
+                }
+                Ok(())
+            })
+            .await
+    }
+
+    async fn macro_capital_snapshots(
+        &self,
+        indicator: Option<&str>,
+        market: Option<&str>,
+        since: Option<NaiveDate>,
+        limit: usize,
+    ) -> Result<Vec<MacroCapitalSnapshot>> {
+        let mut conn = get_connection(&self.pool)?;
+        let rows = sql_query(
+            "SELECT indicator, market, date, value, change, unit, source
+             FROM macro_capital_snapshots
+             WHERE (? IS NULL OR indicator = ?)
+               AND (? IS NULL OR market = ?)
+               AND (? IS NULL OR date >= ?)
+             ORDER BY date DESC
+             LIMIT ?",
+        )
+        .bind::<Nullable<Text>, _>(indicator)
+        .bind::<Nullable<Text>, _>(indicator)
+        .bind::<Nullable<Text>, _>(market)
+        .bind::<Nullable<Text>, _>(market)
+        .bind::<Nullable<Text>, _>(since.map(|date| date.to_string()))
+        .bind::<Nullable<Text>, _>(since.map(|date| date.to_string()))
+        .bind::<Integer, _>(limit as i32)
+        .load::<MacroCapitalRow>(&mut conn)
+        .map_err(StorageError::QueryFailed)?;
+        rows.into_iter().map(TryInto::try_into).collect()
+    }
+}
+
 fn latest_by_key<T, K>(rows: Vec<T>, key: impl Fn(&T) -> K) -> Vec<T>
 where
     K: Ord,
@@ -681,6 +767,22 @@ impl TryFrom<IntradaySnapshotRow> for MarketIntelligenceIntradaySnapshot {
             change_pct: row.change_pct,
             turnover: row.turnover,
             ranking: row.ranking,
+            source: row.source,
+        })
+    }
+}
+
+impl TryFrom<MacroCapitalRow> for MacroCapitalSnapshot {
+    type Error = Error;
+
+    fn try_from(row: MacroCapitalRow) -> Result<Self> {
+        Ok(Self {
+            indicator: row.indicator,
+            market: row.market,
+            date: parse_date(&row.date)?,
+            value: row.value,
+            change: row.change,
+            unit: row.unit,
             source: row.source,
         })
     }

@@ -2004,6 +2004,55 @@
       "themeRotation": "Theme Rotation",
       "portfolioExposure": "Portfolio Exposure"
     },
+    "macro": {
+      "title": "Macro Capital",
+      "info": "Macro-level capital gauges: northbound/southbound connect flows, margin balance, ETF flows, US Dollar Index and VIX. Northbound/margin come from Eastmoney; DXY and VIX reuse the shared quote data source.",
+      "unavailable": "Macro capital data is temporarily unavailable.",
+      "unknown": "Unknown",
+      "indicator": {
+        "northbound": "Northbound",
+        "southbound": "Southbound",
+        "margin_balance": "Margin Balance",
+        "etf_net_flow": "ETF Net Flow",
+        "etf_shares": "ETF Shares",
+        "dxy": "US Dollar Index",
+        "vix": "VIX"
+      }
+    },
+    "regime": {
+      "title": "Current Market State",
+      "info": "A rule-based (non-AI) read of whether money is entering, rotating, or leaving the market, computed in the backend from objective flow data.",
+      "asOf": "As of",
+      "sources": "Sources",
+      "dataComplete": "Data complete",
+      "dataIncomplete": "Data incomplete",
+      "state": {
+        "new_money": "New Money",
+        "rotation": "Rotation",
+        "outflow": "Outflow",
+        "neutral": "Neutral",
+        "unknown": "Unknown"
+      }
+    },
+    "flowSignal": {
+      "title": "Market Flow Signal",
+      "info": "Computed by the backend flow-signal service from northbound/southbound flows, margin balance, market turnover, and sector/theme rotation using deterministic rules (non-AI, no trade advice). Returns Unknown when data is insufficient; never fabricated.",
+      "confidence": "Confidence",
+      "unavailable": "Not enough data to assess the flow signal.",
+      "state": {
+        "new_money": "New Money",
+        "rotation": "Rotation",
+        "outflow": "Outflow",
+        "neutral": "Neutral",
+        "unknown": "Unknown"
+      },
+      "liquidity": {
+        "totalTurnover": "Market Turnover",
+        "turnoverChange": "Turnover Change",
+        "advDecline": "Advancers / Decliners",
+        "advDeclineRatio": "A/D Ratio"
+      }
+    },
     "trends": {
       "title": "Flow Trends",
       "subtitle": "Capital flow, sector rotation, and theme rotation trends aggregated by the available time granularity.",

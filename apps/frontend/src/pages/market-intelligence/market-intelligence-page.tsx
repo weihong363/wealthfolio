@@ -19,8 +19,11 @@ import { toast } from "sonner";
 import { useMarketIntelligenceSummary } from "./hooks/use-market-intelligence-summary";
 import type {
   CapitalFlowSnapshot,
+  FlowSignal,
   FlowTrend,
+  MacroCapitalSnapshot,
   MarketIntelligenceTrendWindow,
+  MarketRegimeAssessment,
   NamedTimeSeries,
   RankingItem,
   SectorRotationSnapshot,
@@ -157,7 +160,8 @@ export default function MarketIntelligencePage() {
     summary.flows.length > 0 ||
     summary.sectors.length > 0 ||
     summary.themes.length > 0 ||
-    summary.exposures.length > 0;
+    summary.exposures.length > 0 ||
+    (data?.macroCapital?.length ?? 0) > 0;
 
   return (
     <div className="space-y-5 p-4 md:p-6">
@@ -203,6 +207,13 @@ export default function MarketIntelligencePage() {
         />
       )}
 
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <MarketRegimeCard regime={data?.marketRegime} status={statusBySection.macroCapital} />
+        <MacroCapitalPanel items={data?.macroCapital ?? []} status={statusBySection.macroCapital} />
+      </div>
+
+      <FlowSignalCard signal={data?.flowSignal} status={statusBySection.flowSignal} />
+
       <TrendDashboard
         activeWindow={trendWindow}
         windows={summary.trends?.windows ?? []}
@@ -242,16 +253,22 @@ function TrendDashboard({
     (activeWindow.sectorRotation.series.length > 0 ||
       activeWindow.themeRotation.flowScoreSeries.length > 0);
   const rankingTrend =
-    mode === "sector" ? activeWindow?.sectorRotation : themeRankingAsFlow(activeWindow?.themeRotation);
+    mode === "sector"
+      ? activeWindow?.sectorRotation
+      : themeRankingAsFlow(activeWindow?.themeRotation);
   const chartTrend = normalizeReplayTrend(
-    mode === "sector" ? activeWindow?.sectorRotation : themeTrendAsFlow(activeWindow?.themeRotation),
+    mode === "sector"
+      ? activeWindow?.sectorRotation
+      : themeTrendAsFlow(activeWindow?.themeRotation),
   );
   const rankingInflows = rankingTrend?.topInflows ?? [];
   const rankingOutflows = rankingTrend?.topOutflows ?? [];
   const hasPositiveMoneyRankings = rankingInflows.some((item) => item.value > 0);
   const hasNegativeMoneyRankings = rankingOutflows.some((item) => item.value < 0);
   const displayInflows = hasPositiveMoneyRankings ? rankingInflows : (chartTrend?.topInflows ?? []);
-  const displayOutflows = hasNegativeMoneyRankings ? rankingOutflows : (chartTrend?.topOutflows ?? []);
+  const displayOutflows = hasNegativeMoneyRankings
+    ? rankingOutflows
+    : (chartTrend?.topOutflows ?? []);
   const inflowValueKind: RankingValueKind = hasPositiveMoneyRankings ? "money" : "percent";
   const outflowValueKind: RankingValueKind = hasNegativeMoneyRankings ? "money" : "percent";
   const chartSeries = chartTrend?.series ?? [];
@@ -467,14 +484,14 @@ function MirrorRankingBoard({
   return (
     <div className="p-4">
       <div className="grid grid-cols-2 gap-7">
-        <p className="text-center text-xs font-medium text-muted-foreground">{inflowTitle}</p>
-        <p className="text-center text-xs font-medium text-muted-foreground">{outflowTitle}</p>
+        <p className="text-muted-foreground text-center text-xs font-medium">{inflowTitle}</p>
+        <p className="text-muted-foreground text-center text-xs font-medium">{outflowTitle}</p>
       </div>
       <div className="relative mt-4 grid grid-cols-2 gap-7">
-        <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border" />
+        <div className="bg-border absolute left-1/2 top-0 h-full w-px -translate-x-1/2" />
         <div className="space-y-3">
           {leftItems.length === 0 ? (
-            <p className="py-8 text-center text-xs text-muted-foreground">
+            <p className="text-muted-foreground py-8 text-center text-xs">
               {t("marketIntelligence.noSnapshots")}
             </p>
           ) : (
@@ -491,7 +508,7 @@ function MirrorRankingBoard({
         </div>
         <div className="space-y-3">
           {rightItems.length === 0 ? (
-            <p className="py-8 text-center text-xs text-muted-foreground">
+            <p className="text-muted-foreground py-8 text-center text-xs">
               {t("marketIntelligence.noSnapshots")}
             </p>
           ) : (
@@ -536,7 +553,7 @@ function MirrorRankingRow({
       <div className="grid grid-cols-[minmax(0,1fr)_118px] items-center gap-2 text-[11px]">
         <div className="min-w-0 text-right">
           <p className="truncate font-medium">{item.name}</p>
-          <p className="truncate text-muted-foreground">{value}</p>
+          <p className="text-muted-foreground truncate">{value}</p>
         </div>
         <div className="flex h-3 items-center justify-end">
           <div className="h-2.5 rounded-l-sm" style={{ width, backgroundColor: color }} />
@@ -552,7 +569,7 @@ function MirrorRankingRow({
       </div>
       <div className="min-w-0 text-left">
         <p className="truncate font-medium">{item.name}</p>
-        <p className="truncate text-muted-foreground">{value}</p>
+        <p className="text-muted-foreground truncate">{value}</p>
       </div>
     </div>
   );
@@ -659,9 +676,7 @@ function ReplayTooltip({ active, payload, label }: any) {
               style={{ backgroundColor: entry.color }}
             />
             <span className="min-w-0 truncate">{entry.name}</span>
-            <span className="shrink-0 font-mono">
-              {formatSignedPercent(Number(entry.value))}
-            </span>
+            <span className="shrink-0 font-mono">{formatSignedPercent(Number(entry.value))}</span>
           </div>
         ))}
       </div>
@@ -738,7 +753,7 @@ function MarketBreadthPanel({
         </div>
       </div>
 
-      <div className="grid border-b border-border md:grid-cols-4">
+      <div className="border-border grid border-b md:grid-cols-4">
         <BreadthStat
           label={t("marketIntelligence.breadth.stats.total")}
           value={String(stats.total)}
@@ -819,7 +834,7 @@ function BreadthStat({
   const toneClass =
     tone === "positive" ? "text-success" : tone === "negative" ? "text-destructive" : "";
   return (
-    <div className="border-border border-b px-4 py-3 md:border-b-0 md:border-r last:border-r-0">
+    <div className="border-border border-b px-4 py-3 last:border-r-0 md:border-b-0 md:border-r">
       <p className="text-muted-foreground text-xs">{label}</p>
       <p className={`mt-1 font-mono text-lg font-semibold ${toneClass}`}>{value}</p>
     </div>
@@ -1153,7 +1168,9 @@ function filterSnapshotsByRecentDates<T>(
   dateOf: (item: T) => string,
 ): T[] {
   if (!days) return snapshots;
-  const dates = Array.from(new Set(snapshots.map(dateOf))).sort().slice(-days);
+  const dates = Array.from(new Set(snapshots.map(dateOf)))
+    .sort()
+    .slice(-days);
   return snapshots.filter((item) => dates.includes(dateOf(item)));
 }
 
@@ -1163,7 +1180,9 @@ function trendWindowOptions(windows: MarketIntelligenceTrendWindow[]): string[] 
   return preferred.filter((window) => available.includes(window));
 }
 
-function buildLineChartData(series: NamedTimeSeries[]): Array<Record<string, string | number | null>> {
+function buildLineChartData(
+  series: NamedTimeSeries[],
+): Array<Record<string, string | number | null>> {
   const rows = new Map<string, Record<string, string | number | null>>();
   for (const item of series) {
     const key = seriesKey(item);
@@ -1251,10 +1270,23 @@ function PortfolioExposureCard({
     );
   }
 
-  const assessments: Record<string, { emoji: string; label: string; detail: string; tone: string }> = {
-    hot_heavy: { emoji: "🔥", label: "重仓强势", detail: "重仓顺势，动量强劲", tone: "text-red-600" },
+  const assessments: Record<
+    string,
+    { emoji: string; label: string; detail: string; tone: string }
+  > = {
+    hot_heavy: {
+      emoji: "🔥",
+      label: "重仓强势",
+      detail: "重仓顺势，动量强劲",
+      tone: "text-red-600",
+    },
     warm: { emoji: "✅", label: "顺势", detail: "顺势，仓位可考虑增加", tone: "text-green-600" },
-    cold_heavy: { emoji: "⚠️", label: "重仓逆势", detail: "重仓逆势，注意风险", tone: "text-amber-600" },
+    cold_heavy: {
+      emoji: "⚠️",
+      label: "重仓逆势",
+      detail: "重仓逆势，注意风险",
+      tone: "text-amber-600",
+    },
     neutral: { emoji: "—", label: "低仓", detail: "低仓，影响有限", tone: "text-muted-foreground" },
   };
 
@@ -1266,9 +1298,7 @@ function PortfolioExposureCard({
         <span className="text-muted-foreground">
           <Icons.PieChart className="h-5 w-5" />
         </span>
-        <h2 className="text-sm font-medium">
-          组合主题暴露 vs 市场趋势
-        </h2>
+        <h2 className="text-sm font-medium">组合主题暴露 vs 市场趋势</h2>
         <MetricLabelWithInfo
           label=""
           infoText={t("marketIntelligence.sectionsInfo.portfolioExposure")}
@@ -1318,12 +1348,10 @@ function PortfolioExposureCard({
           return (
             <div
               key={item.theme}
-              className="grid grid-cols-[2fr_1fr_2fr_2fr] items-center gap-4 px-4 py-2.5 hover:bg-muted/30"
+              className="hover:bg-muted/30 grid grid-cols-[2fr_1fr_2fr_2fr] items-center gap-4 px-4 py-2.5"
             >
               <span className="truncate text-sm font-medium">{item.theme}</span>
-              <span className="text-right font-mono text-xs">
-                {item.weightPct.toFixed(1)}%
-              </span>
+              <span className="text-right font-mono text-xs">{item.weightPct.toFixed(1)}%</span>
               <span
                 className={`text-right font-mono text-xs ${
                   item.momentum !== null
@@ -1346,6 +1374,340 @@ function PortfolioExposureCard({
       </div>
     </Card>
   );
+}
+
+function MarketRegimeCard({
+  regime,
+  status,
+}: {
+  regime?: MarketRegimeAssessment;
+  status?: { available: boolean; message?: string | null; source?: string | null };
+}) {
+  const { t } = useTranslation();
+  const state = regime?.state ?? "unknown";
+  const style = regimeStyle(state);
+  const rationale = regime?.rationale ?? [];
+  const sources = regime?.sources ?? [];
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="border-border flex items-center gap-2 border-b px-4 py-3">
+        <span className="text-muted-foreground">
+          <Icons.TrendingUp className="h-5 w-5" />
+        </span>
+        <h2 className="text-sm font-medium">{t("marketIntelligence.regime.title")}</h2>
+        <MetricLabelWithInfo label="" infoText={t("marketIntelligence.regime.info")} />
+      </div>
+      <div className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold"
+            style={{ backgroundColor: style.bg, color: style.fg }}
+          >
+            <span aria-hidden>{style.emoji}</span>
+            {t(`marketIntelligence.regime.state.${state}`)}
+          </span>
+          <Badge variant={regime?.dataComplete ? "outline" : "secondary"} className="text-[11px]">
+            {regime?.dataComplete
+              ? t("marketIntelligence.regime.dataComplete")
+              : t("marketIntelligence.regime.dataIncomplete")}
+          </Badge>
+        </div>
+
+        {rationale.length > 0 ? (
+          <ul className="text-muted-foreground space-y-1 text-xs">
+            {rationale.map((line, index) => (
+              <li key={index} className="flex gap-1.5">
+                <span className="text-muted-foreground/60">·</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            {status?.message ?? t("marketIntelligence.noSnapshots")}
+          </p>
+        )}
+
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+          <span>
+            {t("marketIntelligence.regime.asOf")}: {regime?.asOf ?? "—"}
+          </span>
+          <span className="flex flex-wrap items-center gap-1">
+            {t("marketIntelligence.regime.sources")}:
+            {sources.length > 0 ? (
+              sources.map((source) => (
+                <Badge key={source} variant="outline" className="text-[10px]">
+                  {source}
+                </Badge>
+              ))
+            ) : (
+              <span>—</span>
+            )}
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function regimeStyle(state: string): { bg: string; fg: string; emoji: string } {
+  switch (state) {
+    case "new_money":
+      return { bg: "rgba(216, 58, 52, 0.12)", fg: "#d83a34", emoji: "🔥" };
+    case "outflow":
+      return { bg: "rgba(22, 122, 68, 0.12)", fg: "#167a44", emoji: "🧊" };
+    case "rotation":
+      return { bg: "rgba(180, 83, 9, 0.14)", fg: "#b45309", emoji: "🔄" };
+    case "neutral":
+      return { bg: "rgba(71, 85, 105, 0.14)", fg: "#475569", emoji: "➖" };
+    default:
+      return { bg: "rgba(100, 116, 139, 0.12)", fg: "#64748b", emoji: "❔" };
+  }
+}
+
+function FlowSignalCard({
+  signal,
+  status,
+}: {
+  signal?: FlowSignal;
+  status?: { available: boolean; message?: string | null; source?: string | null };
+}) {
+  const { t } = useTranslation();
+  const state = signal?.state ?? "unknown";
+  const style = regimeStyle(state);
+  const evidence = signal?.evidence ?? [];
+  const sources = signal?.sources ?? [];
+  const confidencePct = Math.round((signal?.confidence ?? 0) * 100);
+  const liquidity = signal?.liquidity;
+
+  const liquidityTiles: { key: string; value: string }[] = [
+    {
+      key: "totalTurnover",
+      value:
+        liquidity?.totalTurnover != null
+          ? `${liquidity.totalTurnover.toFixed(0)} 亿`
+          : t("marketIntelligence.macro.unknown"),
+    },
+    {
+      key: "turnoverChange",
+      value:
+        liquidity?.turnoverChangePct != null
+          ? formatSignedPercent(liquidity.turnoverChangePct)
+          : t("marketIntelligence.macro.unknown"),
+    },
+    {
+      key: "advDecline",
+      value:
+        liquidity?.advancing != null && liquidity?.declining != null
+          ? `${liquidity.advancing} / ${liquidity.declining}`
+          : t("marketIntelligence.macro.unknown"),
+    },
+    {
+      key: "advDeclineRatio",
+      value:
+        liquidity?.advanceDeclineRatio != null
+          ? liquidity.advanceDeclineRatio.toFixed(2)
+          : t("marketIntelligence.macro.unknown"),
+    },
+  ];
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="border-border flex items-center gap-2 border-b px-4 py-3">
+        <span className="text-muted-foreground">
+          <Icons.Activity className="h-5 w-5" />
+        </span>
+        <h2 className="text-sm font-medium">{t("marketIntelligence.flowSignal.title")}</h2>
+        <MetricLabelWithInfo label="" infoText={t("marketIntelligence.flowSignal.info")} />
+      </div>
+      <div className="grid gap-px xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <div className="space-y-3 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold"
+              style={{ backgroundColor: style.bg, color: style.fg }}
+            >
+              <span aria-hidden>{style.emoji}</span>
+              {t(`marketIntelligence.flowSignal.state.${state}`)}
+            </span>
+            <Badge variant="outline" className="text-[11px]">
+              {t("marketIntelligence.flowSignal.confidence")}: {confidencePct}%
+            </Badge>
+            <Badge variant={signal?.dataComplete ? "outline" : "secondary"} className="text-[11px]">
+              {signal?.dataComplete
+                ? t("marketIntelligence.regime.dataComplete")
+                : t("marketIntelligence.regime.dataIncomplete")}
+            </Badge>
+          </div>
+
+          {evidence.length > 0 ? (
+            <ul className="text-muted-foreground space-y-1 text-xs">
+              {evidence.map((line, index) => (
+                <li key={index} className="flex gap-1.5">
+                  <span className="text-muted-foreground/60">·</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              {status?.message ?? t("marketIntelligence.flowSignal.unavailable")}
+            </p>
+          )}
+
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+            <span>
+              {t("marketIntelligence.regime.asOf")}: {liquidity?.asOf ?? "—"}
+            </span>
+            <span className="flex flex-wrap items-center gap-1">
+              {t("marketIntelligence.regime.sources")}:
+              {sources.length > 0 ? (
+                sources.map((source) => (
+                  <Badge key={source} variant="outline" className="text-[10px]">
+                    {source}
+                  </Badge>
+                ))
+              ) : (
+                <span>—</span>
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div className="border-border bg-border grid grid-cols-2 gap-px border-t xl:border-l xl:border-t-0">
+          {liquidityTiles.map((tile) => (
+            <div key={tile.key} className="bg-background p-3">
+              <p className="text-muted-foreground text-xs">
+                {t(`marketIntelligence.flowSignal.liquidity.${tile.key}`)}
+              </p>
+              <p className="mt-1 font-mono text-sm font-semibold">{tile.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function MacroCapitalPanel({
+  items,
+  status,
+}: {
+  items: MacroCapitalSnapshot[];
+  status?: { available: boolean; message?: string | null; source?: string | null };
+}) {
+  const { t } = useTranslation();
+  const latest = latestByIndicator(items);
+  const order = ["northbound", "southbound", "margin_balance", "dxy", "vix"];
+  const tiles = order.map((indicator) => ({ indicator, snapshot: latest.get(indicator) }));
+  const hasAny = tiles.some((tile) => tile.snapshot);
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="border-border flex items-center gap-2 border-b px-4 py-3">
+        <span className="text-muted-foreground">
+          <Icons.Coins className="h-5 w-5" />
+        </span>
+        <h2 className="text-sm font-medium">{t("marketIntelligence.macro.title")}</h2>
+        <MetricLabelWithInfo label="" infoText={t("marketIntelligence.macro.info")} />
+      </div>
+      {!hasAny ? (
+        <div className="flex h-32 flex-col items-center justify-center gap-2 px-6 text-center">
+          <p className="text-muted-foreground text-sm">
+            {status?.message ?? t("marketIntelligence.macro.unavailable")}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-border grid grid-cols-2 gap-px md:grid-cols-3 xl:grid-cols-5">
+          {tiles.map((tile) => (
+            <MacroCapitalTile
+              key={tile.indicator}
+              indicator={tile.indicator}
+              snapshot={tile.snapshot}
+            />
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function MacroCapitalTile({
+  indicator,
+  snapshot,
+}: {
+  indicator: string;
+  snapshot?: MacroCapitalSnapshot;
+}) {
+  const { t } = useTranslation();
+  const label = t(`marketIntelligence.macro.indicator.${indicator}`);
+
+  if (!snapshot) {
+    return (
+      <div className="bg-background p-3">
+        <p className="text-muted-foreground text-xs">{label}</p>
+        <p className="text-muted-foreground mt-1 font-mono text-sm">
+          {t("marketIntelligence.macro.unknown")}
+        </p>
+      </div>
+    );
+  }
+
+  const { display, changeText, tone } = formatMacroValue(snapshot);
+  const toneClass =
+    tone === "up" ? "text-red-600" : tone === "down" ? "text-green-600" : "text-foreground";
+
+  return (
+    <div className="bg-background p-3">
+      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className={`mt-1 font-mono text-sm font-semibold ${toneClass}`}>{display}</p>
+      {changeText && <p className={`font-mono text-[11px] ${toneClass}`}>{changeText}</p>}
+      <p className="text-muted-foreground/70 mt-1 text-[10px]">{snapshot.date}</p>
+    </div>
+  );
+}
+
+function latestByIndicator(items: MacroCapitalSnapshot[]): Map<string, MacroCapitalSnapshot> {
+  const map = new Map<string, MacroCapitalSnapshot>();
+  for (const item of items) {
+    const existing = map.get(item.indicator);
+    if (!existing || item.date > existing.date) {
+      map.set(item.indicator, item);
+    }
+  }
+  return map;
+}
+
+function formatMacroValue(snapshot: MacroCapitalSnapshot): {
+  display: string;
+  changeText: string | null;
+  tone: "up" | "down" | "flat";
+} {
+  const { indicator, value, change } = snapshot;
+  const toneOf = (n: number | null | undefined): "up" | "down" | "flat" =>
+    n == null || n === 0 ? "flat" : n > 0 ? "up" : "down";
+
+  if (indicator === "northbound" || indicator === "southbound") {
+    return {
+      display: `${value >= 0 ? "+" : ""}${value.toFixed(2)} 亿`,
+      changeText: null,
+      tone: toneOf(value),
+    };
+  }
+  if (indicator === "margin_balance") {
+    return {
+      display: `${value.toFixed(0)} 亿`,
+      changeText: change != null ? `${change >= 0 ? "+" : ""}${change.toFixed(0)} 亿` : null,
+      tone: toneOf(change),
+    };
+  }
+  // Index levels (DXY / VIX): show the level and day-over-day percent change.
+  return {
+    display: value.toFixed(2),
+    changeText: change != null ? formatSignedPercent(change) : null,
+    tone: toneOf(change),
+  };
 }
 
 function MarketIntelligenceSkeleton() {

@@ -52,8 +52,59 @@ export interface MarketIntelligenceSummary {
   sectorRotation: SectorRotationSnapshot[];
   themeRotation: ThemeRotationSnapshot[];
   portfolioExposure: PortfolioThemeExposure[];
+  macroCapital: MacroCapitalSnapshot[];
+  marketRegime: MarketRegimeAssessment;
+  flowSignal: FlowSignal;
   trends: MarketIntelligenceTrends;
   dataStatus: MarketIntelligenceDataStatus[];
+}
+
+export interface FlowSignal {
+  state: string;
+  confidence: number;
+  evidence: string[];
+  timestamp: string;
+  sources: string[];
+  dataComplete: boolean;
+  liquidity: MarketLiquidityMetrics;
+}
+
+export interface MarketLiquidityMetrics {
+  totalTurnover?: number | null;
+  turnoverChangePct?: number | null;
+  advancing?: number | null;
+  declining?: number | null;
+  advanceDeclineRatio?: number | null;
+  asOf?: string | null;
+}
+
+export interface MacroCapitalSnapshot {
+  indicator: string;
+  market: string;
+  date: string;
+  value: number;
+  change?: number | null;
+  unit?: string | null;
+  source: string;
+}
+
+export interface MarketRegimeAssessment {
+  state: string;
+  rationale: string[];
+  asOf?: string | null;
+  sources: string[];
+  dataComplete: boolean;
+  metrics: MarketRegimeMetrics;
+}
+
+export interface MarketRegimeMetrics {
+  breadth?: number | null;
+  netRatio?: number | null;
+  inflowSectors: number;
+  outflowSectors: number;
+  mainNetFlow?: number | null;
+  northboundNetFlow?: number | null;
+  marginBalance?: number | null;
 }
 
 export interface MarketIntelligenceTrends {

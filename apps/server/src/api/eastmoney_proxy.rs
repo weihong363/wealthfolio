@@ -11,15 +11,25 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 const EASTMONEY_REFERER: &str = "https://quote.eastmoney.com/center/boardlist.html";
+const EASTMONEY_ORIGIN: &str = "https://quote.eastmoney.com";
 const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 const MAX_RETRIES: u32 = 2;
 
 static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+    // Mirror the browser transport used by wealthfolio-core's Eastmoney client:
+    // automatic decompression, a cookie jar and keep-alive. Eastmoney's WAF
+    // resets connections whose fingerprint deviates from a real browser, which
+    // surfaces here as "error sending request for url".
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .user_agent(BROWSER_USER_AGENT)
         .http1_only()
+        .cookie_store(true)
+        .gzip(true)
+        .brotli(true)
+        .deflate(true)
         .tcp_nodelay(true)
+        .tcp_keepalive(std::time::Duration::from_secs(60))
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .build()
         .expect("failed to build eastmoney proxy client")
@@ -58,7 +68,10 @@ async fn proxy_eastmoney(
             .get(&req.url)
             .header(header::ACCEPT, "application/json, text/plain, */*")
             .header(header::ACCEPT_LANGUAGE, "zh-CN,zh;q=0.9,en;q=0.8")
-            .header(header::REFERER, referer);
+            .header(header::REFERER, referer)
+            .header(header::ORIGIN, EASTMONEY_ORIGIN)
+            .header(header::CACHE_CONTROL, "no-cache")
+            .header(header::PRAGMA, "no-cache");
 
         match request.send().await {
             Ok(response) => {

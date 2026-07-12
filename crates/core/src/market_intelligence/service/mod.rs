@@ -10,9 +10,14 @@ use super::{
         CapitalFlowProvider, CapitalFlowRepository, CapitalFlowService, CapitalFlowSnapshot,
     },
     eastmoney::{default_theme_mappings, EastmoneyMarketIntelligenceProvider},
+    flow_signal::{flow_state, FlowSignal, FlowSignalInputs, MarketFlowSignalService},
     intraday::{
         IntradayMarketIntelligenceProvider, MarketIntelligenceIntradayRepository,
         MarketIntelligenceIntradayService,
+    },
+    macro_capital::{
+        models::indicator, MacroCapitalProvider, MacroCapitalRepository, MacroCapitalService,
+        MacroCapitalSnapshot,
     },
     market_overview::{MarketOverviewService, MarketSnapshot, MarketSnapshotRepository},
     portfolio_exposure::{
@@ -40,8 +45,53 @@ pub struct MarketIntelligenceSummary {
     pub sector_rotation: Vec<SectorRotationSnapshot>,
     pub theme_rotation: Vec<ThemeRotationSnapshot>,
     pub portfolio_exposure: Vec<PortfolioThemeExposure>,
+    pub macro_capital: Vec<MacroCapitalSnapshot>,
+    pub market_regime: MarketRegimeAssessment,
+    pub flow_signal: FlowSignal,
     pub trends: MarketIntelligenceTrends,
     pub data_status: Vec<MarketIntelligenceDataStatus>,
+}
+
+/// Deterministic (non-AI) assessment of the current market money regime,
+/// derived entirely from already-collected objective data. The frontend only
+/// renders this; all judgement happens here in the service layer.
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketRegimeAssessment {
+    /// One of the [`regime`] state identifiers.
+    pub state: String,
+    /// Human-readable evidence lines explaining the decision.
+    pub rationale: Vec<String>,
+    /// Date of the freshest data used in the assessment.
+    pub as_of: Option<NaiveDate>,
+    /// Distinct data sources that contributed to the assessment.
+    pub sources: Vec<String>,
+    /// Whether every key input (breadth, main flow, connect flow) was present.
+    pub data_complete: bool,
+    pub metrics: MarketRegimeMetrics,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketRegimeMetrics {
+    /// Share of sectors with positive net flow on the latest date (0..1).
+    pub breadth: Option<f64>,
+    /// Net / gross sector flow ratio on the latest date (-1..1).
+    pub net_ratio: Option<f64>,
+    pub inflow_sectors: i32,
+    pub outflow_sectors: i32,
+    pub main_net_flow: Option<f64>,
+    pub northbound_net_flow: Option<f64>,
+    pub margin_balance: Option<f64>,
+}
+
+/// Canonical market regime state identifiers.
+pub mod regime {
+    pub const NEW_MONEY: &str = "new_money";
+    pub const ROTATION: &str = "rotation";
+    pub const OUTFLOW: &str = "outflow";
+    pub const NEUTRAL: &str = "neutral";
+    pub const UNKNOWN: &str = "unknown";
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize, PartialEq)]
@@ -125,6 +175,7 @@ pub struct MarketIntelligenceService {
     pub theme_rotation: ThemeRotationService,
     pub intraday: MarketIntelligenceIntradayService,
     pub portfolio_exposure: PortfolioExposureService,
+    pub macro_capital: MacroCapitalService,
     quote_service: Option<Arc<dyn QuoteServiceTrait>>,
     fund_research_service: Option<Arc<FundResearchService>>,
 }
@@ -137,6 +188,7 @@ impl MarketIntelligenceService {
         theme_rotation_repository: Arc<dyn ThemeRotationRepository>,
         intraday_repository: Arc<dyn MarketIntelligenceIntradayRepository>,
         portfolio_exposure_repository: Arc<dyn PortfolioThemeExposureRepository>,
+        macro_capital_repository: Arc<dyn MacroCapitalRepository>,
     ) -> Self {
         Self {
             market_overview: MarketOverviewService::new(market_overview_repository),
@@ -145,6 +197,7 @@ impl MarketIntelligenceService {
             theme_rotation: ThemeRotationService::new(theme_rotation_repository),
             intraday: MarketIntelligenceIntradayService::new(intraday_repository),
             portfolio_exposure: PortfolioExposureService::new(portfolio_exposure_repository),
+            macro_capital: MacroCapitalService::new(macro_capital_repository),
             quote_service: None,
             fund_research_service: None,
         }
@@ -188,12 +241,15 @@ impl MarketIntelligenceService {
                 .await?,
             theme_rotation: self.theme_rotation.snapshots(None, None, 500).await?,
             portfolio_exposure,
+            macro_capital: self.macro_capital.snapshots(None, None, None, 500).await?,
+            market_regime: MarketRegimeAssessment::default(),
+            flow_signal: FlowSignal::unknown(),
             trends: self.trends().await?,
             data_status: Vec::new(),
         };
 
         if summary.has_market_data() {
-            return Ok(with_data_status(summary));
+            return Ok(self.finalize(summary).await);
         }
 
         match self.refresh_market_data().await {
@@ -203,12 +259,11 @@ impl MarketIntelligenceService {
                         .latest_or_calculate_portfolio_exposure(portfolio_id)
                         .await?;
                 }
-                refreshed.data_status = data_status(&refreshed);
-                Ok(refreshed)
+                Ok(self.finalize(refreshed).await)
             }
             Err(error) => {
                 warn!("Failed to auto-refresh market intelligence summary: {error}");
-                Ok(with_data_status(summary))
+                Ok(self.finalize(summary).await)
             }
         }
     }
@@ -260,15 +315,22 @@ impl MarketIntelligenceService {
                 .await?
         };
 
-        Ok(with_data_status(MarketIntelligenceSummary {
-            market_overview,
-            capital_flow,
-            sector_rotation,
-            theme_rotation,
-            portfolio_exposure: Vec::new(),
-            trends: self.trends().await?,
-            data_status: Vec::new(),
-        }))
+        let macro_capital = self.refresh_macro_capital_with_provider(&provider).await;
+
+        Ok(self
+            .finalize(MarketIntelligenceSummary {
+                market_overview,
+                capital_flow,
+                sector_rotation,
+                theme_rotation,
+                portfolio_exposure: Vec::new(),
+                macro_capital,
+                market_regime: MarketRegimeAssessment::default(),
+                flow_signal: FlowSignal::unknown(),
+                trends: self.trends().await?,
+                data_status: Vec::new(),
+            })
+            .await)
     }
 
     pub async fn refresh_intraday_market_data(&self) -> Result<usize> {
@@ -307,15 +369,20 @@ impl MarketIntelligenceService {
                 .await?
         };
 
-        Ok(with_data_status(MarketIntelligenceSummary {
-            market_overview,
-            capital_flow,
-            sector_rotation,
-            theme_rotation,
-            portfolio_exposure: Vec::new(),
-            trends: self.trends().await?,
-            data_status: Vec::new(),
-        }))
+        Ok(self
+            .finalize(MarketIntelligenceSummary {
+                market_overview,
+                capital_flow,
+                sector_rotation,
+                theme_rotation,
+                portfolio_exposure: Vec::new(),
+                macro_capital: self.macro_capital.snapshots(None, None, None, 500).await?,
+                market_regime: MarketRegimeAssessment::default(),
+                flow_signal: FlowSignal::unknown(),
+                trends: self.trends().await?,
+                data_status: Vec::new(),
+            })
+            .await)
     }
 
     async fn trends(&self) -> Result<MarketIntelligenceTrends> {
@@ -465,6 +532,157 @@ impl MarketIntelligenceService {
         }
 
         Ok(snapshots)
+    }
+
+    /// Refresh macro capital indicators: Eastmoney connect/margin flows (best
+    /// effort) plus DXY and VIX sourced from the shared QuoteService. Any
+    /// individual failure degrades to "no data" rather than failing refresh.
+    async fn refresh_macro_capital_with_provider(
+        &self,
+        provider: &EastmoneyMarketIntelligenceProvider,
+    ) -> Vec<MacroCapitalSnapshot> {
+        let mut snapshots = match provider.fetch_macro_capital_snapshots(None).await {
+            Ok(snapshots) => snapshots,
+            Err(error) => {
+                warn!("Failed to fetch Eastmoney macro capital: {error}");
+                Vec::new()
+            }
+        };
+        snapshots.extend(self.fetch_macro_index_snapshots().await);
+
+        if !snapshots.is_empty() {
+            if let Err(error) = self.macro_capital.ingest_snapshots(snapshots.clone()).await {
+                warn!("Failed to persist macro capital snapshots: {error}");
+            }
+        }
+        snapshots
+    }
+
+    /// Fetch DXY and VIX daily levels via the shared QuoteService (Yahoo),
+    /// reusing the same benchmark-quote capability as the market overview.
+    async fn fetch_macro_index_snapshots(&self) -> Vec<MacroCapitalSnapshot> {
+        let Some(quote_service) = &self.quote_service else {
+            return Vec::new();
+        };
+        let end = Utc::now().date_naive();
+        let start = end - Duration::days(10);
+        let mut snapshots = Vec::new();
+
+        for index in macro_indices() {
+            let benchmark = BenchmarkIndex {
+                market: index.market,
+                name: index.indicator,
+                symbol: index.symbol,
+                fallback_symbols: index.fallback_symbols,
+                currency: index.currency,
+            };
+            let quotes = match fetch_first_available_benchmark_quotes(
+                quote_service.as_ref(),
+                &benchmark,
+                start,
+                end,
+            )
+            .await
+            {
+                Ok(Some((_, quotes))) => quotes,
+                Ok(None) => continue,
+                Err(error) => {
+                    warn!("Failed to fetch macro index {}: {error}", index.symbol);
+                    continue;
+                }
+            };
+
+            let mut quotes = quotes;
+            quotes.sort_by_key(|quote| quote.timestamp);
+            let Some(latest) = quotes.last() else {
+                continue;
+            };
+            let Some(price) = latest.close.to_f64() else {
+                continue;
+            };
+            let change = quotes
+                .iter()
+                .rev()
+                .skip(1)
+                .find(|quote| quote.close > rust_decimal::Decimal::ZERO)
+                .and_then(|quote| {
+                    let previous_close = quote.close.to_f64()?;
+                    if previous_close <= 0.0 {
+                        return None;
+                    }
+                    Some((price - previous_close) / previous_close * 100.0)
+                });
+            snapshots.push(MacroCapitalSnapshot {
+                indicator: index.indicator.to_string(),
+                market: index.market.to_string(),
+                date: latest.timestamp.date_naive(),
+                value: price,
+                change,
+                unit: Some("index".to_string()),
+                source: format!("yahoo:{}", index.symbol),
+            });
+        }
+        snapshots
+    }
+
+    /// Finalize a summary: compute the market regime (legacy field, kept for
+    /// backward compatibility), the new flow signal, and per-section data
+    /// status. Async because the flow signal needs the previous trading day's
+    /// turnover from historical market snapshots.
+    async fn finalize(&self, mut summary: MarketIntelligenceSummary) -> MarketIntelligenceSummary {
+        summary.market_regime = assess_market_regime(&summary);
+        let previous_turnover = self.previous_market_turnover(&summary).await;
+        summary.flow_signal = MarketFlowSignalService::new().evaluate(&FlowSignalInputs {
+            sector_rotation: &summary.sector_rotation,
+            theme_rotation: &summary.theme_rotation,
+            macro_capital: &summary.macro_capital,
+            market_overview: &summary.market_overview,
+            previous_turnover,
+        });
+        summary.data_status = data_status(&summary);
+        summary
+    }
+
+    /// Resolve the previous trading day's combined CN turnover from the market
+    /// snapshot history, so the flow signal can compute a turnover change rate.
+    /// Returns None (never fabricates) when history is unavailable.
+    async fn previous_market_turnover(&self, summary: &MarketIntelligenceSummary) -> Option<f64> {
+        let latest_date = summary
+            .market_overview
+            .iter()
+            .filter(|s| s.market == "CN")
+            .map(|s| s.timestamp.date_naive())
+            .max()?;
+
+        let cn_indices: Vec<&str> = summary
+            .market_overview
+            .iter()
+            .filter(|s| s.market == "CN" && s.turnover.is_some())
+            .map(|s| s.index_name.as_str())
+            .collect();
+        if cn_indices.is_empty() {
+            return None;
+        }
+
+        let mut previous_total = 0.0;
+        let mut found_any = false;
+        for index_name in cn_indices {
+            let history = self
+                .market_overview
+                .history("CN", index_name, 10)
+                .await
+                .unwrap_or_default();
+            let previous = history
+                .iter()
+                .filter(|s| s.timestamp.date_naive() < latest_date)
+                .filter_map(|s| s.turnover)
+                .next();
+            if let Some(turnover) = previous {
+                previous_total += turnover;
+                found_any = true;
+            }
+        }
+        (found_any && previous_total > 0.0).then_some(previous_total)
     }
 }
 
@@ -814,9 +1032,187 @@ fn filter_by_last_dates<T>(
         .collect()
 }
 
-fn with_data_status(mut summary: MarketIntelligenceSummary) -> MarketIntelligenceSummary {
-    summary.data_status = data_status(&summary);
-    summary
+/// Deterministically assess the current market money regime from already
+/// collected objective data (sector breadth, aggregate capital flow, connect
+/// flows). This is rule-based, not AI/LLM inference.
+fn assess_market_regime(summary: &MarketIntelligenceSummary) -> MarketRegimeAssessment {
+    let sector_latest_date = summary.sector_rotation.iter().map(|s| s.date).max();
+    let capital_latest_date = summary.capital_flow.iter().map(|s| s.date).max();
+    let macro_latest_date = summary.macro_capital.iter().map(|s| s.date).max();
+    let as_of = [sector_latest_date, capital_latest_date, macro_latest_date]
+        .into_iter()
+        .flatten()
+        .max();
+
+    // Sector breadth and net/gross ratio on the freshest sector date.
+    let mut inflow_sectors = 0;
+    let mut outflow_sectors = 0;
+    let mut net = 0.0;
+    let mut gross = 0.0;
+    if let Some(date) = sector_latest_date {
+        for snapshot in summary.sector_rotation.iter().filter(|s| s.date == date) {
+            let Some(value) = snapshot.net_flow.or(snapshot.change_pct) else {
+                continue;
+            };
+            if value > 0.0 {
+                inflow_sectors += 1;
+            } else if value < 0.0 {
+                outflow_sectors += 1;
+            }
+            net += value;
+            gross += value.abs();
+        }
+    }
+    let sector_total = inflow_sectors + outflow_sectors;
+    let breadth = (sector_total > 0).then(|| inflow_sectors as f64 / sector_total as f64);
+    let net_ratio = (gross > 0.0).then_some(net / gross);
+
+    let main_net_flow = summary
+        .capital_flow
+        .iter()
+        .filter(|s| Some(s.date) == capital_latest_date)
+        .map(|s| s.net_flow)
+        .reduce(|a, b| a + b);
+
+    let latest_macro = |ind: &str| {
+        summary
+            .macro_capital
+            .iter()
+            .filter(|s| s.indicator == ind)
+            .max_by_key(|s| s.date)
+            .map(|s| s.value)
+    };
+    let northbound_net_flow = latest_macro(indicator::NORTHBOUND);
+    let margin_balance = latest_macro(indicator::MARGIN_BALANCE);
+
+    let metrics = MarketRegimeMetrics {
+        breadth,
+        net_ratio,
+        inflow_sectors,
+        outflow_sectors,
+        main_net_flow,
+        northbound_net_flow,
+        margin_balance,
+    };
+
+    // No usable input at all -> Unknown (never fabricate a regime).
+    if net_ratio.is_none() && main_net_flow.is_none() && northbound_net_flow.is_none() {
+        return MarketRegimeAssessment {
+            state: regime::UNKNOWN.to_string(),
+            rationale: vec!["缺少资金流、板块和北向数据，无法判断当前资金状态。".to_string()],
+            as_of,
+            sources: Vec::new(),
+            data_complete: false,
+            metrics,
+        };
+    }
+
+    let mut rationale = Vec::new();
+    let state = if let (Some(net_ratio), Some(breadth)) = (net_ratio, breadth) {
+        rationale.push(format!(
+            "板块净流入占比 {:.0}%（{} 流入 / {} 流出），净额/总额比 {:+.0}%。",
+            breadth * 100.0,
+            inflow_sectors,
+            outflow_sectors,
+            net_ratio * 100.0
+        ));
+        if net_ratio >= 0.15 && breadth >= 0.55 {
+            rationale.push("多数板块净流入且资金整体为正，判定为增量资金进入。".to_string());
+            regime::NEW_MONEY
+        } else if net_ratio <= -0.15 && breadth <= 0.45 {
+            rationale.push("多数板块净流出且资金整体为负，判定为整体流出。".to_string());
+            regime::OUTFLOW
+        } else if (0.30..=0.70).contains(&breadth) && net_ratio.abs() < 0.15 {
+            rationale.push("资金净额接近平衡但板块间强弱分化，判定为板块轮动。".to_string());
+            regime::ROTATION
+        } else {
+            rationale.push("资金活跃度与方向均不显著，判定为中性。".to_string());
+            regime::NEUTRAL
+        }
+    } else if let Some(main_net) = main_net_flow {
+        if main_net > 0.0 {
+            rationale.push("仅有主力资金净额数据且为净流入，暂判定为增量资金进入。".to_string());
+            regime::NEW_MONEY
+        } else if main_net < 0.0 {
+            rationale.push("仅有主力资金净额数据且为净流出，暂判定为整体流出。".to_string());
+            regime::OUTFLOW
+        } else {
+            regime::NEUTRAL
+        }
+    } else if let Some(north) = northbound_net_flow {
+        if north > 0.0 {
+            regime::NEW_MONEY
+        } else if north < 0.0 {
+            regime::OUTFLOW
+        } else {
+            regime::NEUTRAL
+        }
+    } else {
+        regime::NEUTRAL
+    };
+
+    if let Some(north) = northbound_net_flow {
+        rationale.push(format!("北向资金净流入 {north:+.2} 亿元。"));
+    }
+    if let Some(margin) = margin_balance {
+        rationale.push(format!("两融余额 {margin:.0} 亿元。"));
+    }
+
+    let mut sources = Vec::new();
+    for snapshot in &summary.sector_rotation {
+        push_unique(&mut sources, &snapshot.source);
+    }
+    for snapshot in &summary.capital_flow {
+        push_unique(&mut sources, &snapshot.source);
+    }
+    for snapshot in &summary.macro_capital {
+        push_unique(&mut sources, &snapshot.source);
+    }
+
+    let data_complete =
+        net_ratio.is_some() && main_net_flow.is_some() && northbound_net_flow.is_some();
+
+    MarketRegimeAssessment {
+        state: state.to_string(),
+        rationale,
+        as_of,
+        sources,
+        data_complete,
+        metrics,
+    }
+}
+
+fn push_unique(items: &mut Vec<String>, value: &str) {
+    if !value.is_empty() && !items.iter().any(|item| item == value) {
+        items.push(value.to_string());
+    }
+}
+
+struct MacroIndex {
+    indicator: &'static str,
+    market: &'static str,
+    symbol: &'static str,
+    fallback_symbols: &'static [&'static str],
+    currency: &'static str,
+}
+
+fn macro_indices() -> &'static [MacroIndex] {
+    &[
+        MacroIndex {
+            indicator: indicator::DXY,
+            market: "GLOBAL",
+            symbol: "DX-Y.NYB",
+            fallback_symbols: &["DX=F"],
+            currency: "USD",
+        },
+        MacroIndex {
+            indicator: indicator::VIX,
+            market: "US",
+            symbol: "^VIX",
+            fallback_symbols: &[],
+            currency: "USD",
+        },
+    ]
 }
 
 fn data_status(summary: &MarketIntelligenceSummary) -> Vec<MarketIntelligenceDataStatus> {
@@ -841,6 +1237,16 @@ fn data_status(summary: &MarketIntelligenceSummary) -> Vec<MarketIntelligenceDat
             "portfolioExposure",
             !summary.portfolio_exposure.is_empty(),
             "fund_research_lookthrough",
+        ),
+        status(
+            "macroCapital",
+            !summary.macro_capital.is_empty(),
+            "eastmoney_datacenter/yahoo",
+        ),
+        status(
+            "flowSignal",
+            summary.flow_signal.state != flow_state::UNKNOWN,
+            "market_flow_signal_service",
         ),
     ]
 }

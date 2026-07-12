@@ -2023,6 +2023,55 @@
       "themeRotation": "主题轮动",
       "portfolioExposure": "组合暴露"
     },
+    "macro": {
+      "title": "宏观资金",
+      "info": "宏观层面的资金观测：北向/南向资金、两融余额、ETF 资金、美元指数与 VIX。北向/两融来自东方财富，美元指数与 VIX 复用行情数据源。",
+      "unavailable": "宏观资金数据暂不可用。",
+      "unknown": "未知",
+      "indicator": {
+        "northbound": "北向资金",
+        "southbound": "南向资金",
+        "margin_balance": "两融余额",
+        "etf_net_flow": "ETF 净申赎",
+        "etf_shares": "ETF 份额",
+        "dxy": "美元指数",
+        "vix": "VIX"
+      }
+    },
+    "regime": {
+      "title": "当前市场状态",
+      "info": "基于已有客观资金数据、在后端用规则计算得出的资金状态判断（非 AI 推理），用于判断当前属于增量进入、板块轮动、整体流出、中性还是数据不足。",
+      "asOf": "数据更新时间",
+      "sources": "数据来源",
+      "dataComplete": "数据完整",
+      "dataIncomplete": "数据不完整",
+      "state": {
+        "new_money": "增量资金进入",
+        "rotation": "板块轮动",
+        "outflow": "整体流出",
+        "neutral": "中性",
+        "unknown": "数据不足"
+      }
+    },
+    "flowSignal": {
+      "title": "资金状态分析",
+      "info": "由后端资金状态分析服务基于北向/南向资金、两融余额、两市成交额、行业与主题轮动等客观数据用规则计算得出（非 AI、不构成交易建议）。数据不足时返回“数据不足”，不会伪造。",
+      "confidence": "置信度",
+      "unavailable": "资金状态数据不足，暂无法判断。",
+      "state": {
+        "new_money": "增量资金进入",
+        "rotation": "板块轮动",
+        "outflow": "整体流出",
+        "neutral": "中性",
+        "unknown": "数据不足"
+      },
+      "liquidity": {
+        "totalTurnover": "两市成交额",
+        "turnoverChange": "成交额变化率",
+        "advDecline": "上涨/下跌家数",
+        "advDeclineRatio": "涨跌比"
+      }
+    },
     "trends": {
       "title": "资金趋势",
       "subtitle": "按可用时间粒度聚合资金流向、行业轮动和主题轮动，用于观察持续流入、持续流出和轮动变化。",

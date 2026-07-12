@@ -1,4 +1,5 @@
 pub use super::capital_flow::CapitalFlowRepository;
+pub use super::macro_capital::MacroCapitalRepository;
 pub use super::market_overview::MarketSnapshotRepository;
 pub use super::portfolio_exposure::PortfolioThemeExposureRepository;
 pub use super::sector_rotation::SectorRotationRepository;
